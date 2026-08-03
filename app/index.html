@@ -363,6 +363,28 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .fav[aria-pressed="true"]{color:var(--gold)}
 .fav.mini{font-size:12px;margin-left:8px}
 .fav.big{font-size:22px;margin-left:auto;align-self:flex-start}
+.caught{
+  color:var(--dim);font-size:13px;line-height:1;flex:none;padding:2px;font-family:var(--mono);
+  transition:color .12s;
+}
+.caught:hover{color:var(--lime)}
+.caught[aria-pressed="true"]{color:var(--lime)}
+.fishrow.done .nm,.nrow.done .nm{opacity:.55;text-decoration:line-through;text-decoration-color:var(--dim)}
+.chipbtn.check{border-color:rgba(143,232,112,.5);color:var(--lime)}
+.chipbtn.check:hover{background:rgba(143,232,112,.14)}
+.intuit{font-size:10.5px;color:var(--gold);margin-top:3px;line-height:1.4}
+.intuit .ilabel{
+  font-size:9px;font-weight:700;padding:1px 5px;border-radius:var(--pill);
+  background:rgba(245,197,99,.16);margin-right:4px;
+}
+.tag.use{color:var(--mist);background:rgba(46,74,125,.5)}
+.tag.lure{font-weight:700}
+.tag.lure.amb{color:#FFB05C;background:rgba(255,176,92,.16);border-color:rgba(255,176,92,.5)}
+.tag.lure.mod{color:var(--aqua);background:rgba(79,220,236,.14);border-color:rgba(79,220,236,.5)}
+.wchip.lurechip{background:rgba(255,176,92,.16);color:#FFB05C}
+.lureline{color:#FFB05C;font-weight:600}
+.maplink{color:inherit;text-decoration:none;cursor:pointer;border-bottom:1px dotted var(--dim)}
+.maplink:hover{color:var(--gold);border-bottom-color:var(--gold)}
 .grow .dot{
   display:inline-block;width:6px;height:6px;border-radius:50%;
   background:var(--gold);margin-right:6px;vertical-align:middle;
@@ -867,6 +889,10 @@ const STR = {
     showMap: '地図で位置を見る', mapFailed: '地図を読み込めませんでした',
     mapNote: 'ゲーム内のマップ座標をそのまま重ねています。実際の釣り場は円の内側にあります。',
     patch: '実装', byPatch: '実装順', selectAll: '表示中を全部★', clearAll: '★を全部外す',
+    then: '次々回', caughtTip: '釣った／釣っていない', uncaughtOnly: '未釣獲のみ',
+    caughtAll: '表示中を釣獲済みに', caughtClear: '釣獲記録を消す',
+    uses: '使い道', craftUse: '素材', gcUse: 'GC納品', collectUse: '収集品',
+    lureAmb: 'アンビ', lureMod: 'モデスト', lureOnly: 'ルアー必須', lure: 'ルアー',
     points: '釣果点', bonus: 'ボーナス対象', ptsUnit: '点', multiHook: 'トリプル',
     biteSource: '出典：Lodinn の集計（Teamcraft の Allagan Reports に集まった実測）。釣果率はそのエサを使ったキャスト全体に占める割合。',
     minutes: '分', hoursU: '時間', days: '日', ago: 'あと ',
@@ -906,6 +932,10 @@ const STR = {
     showMap: 'Show on map', mapFailed: 'Could not load the map',
     mapNote: 'In-game map coordinates, overlaid directly. The spot sits inside the ring.',
     patch: 'Patch', byPatch: 'By patch', selectAll: 'Star all shown', clearAll: 'Clear stars',
+    then: 'then', caughtTip: 'Caught / not caught', uncaughtOnly: 'Not caught only',
+    caughtAll: 'Mark shown as caught', caughtClear: 'Clear caught',
+    uses: 'Used for', craftUse: 'Ingredient', gcUse: 'GC delivery', collectUse: 'Collectable',
+    lureAmb: 'Amb', lureMod: 'Mod', lureOnly: 'Lure required', lure: 'Lure',
     points: 'Points', bonus: 'Bonus objectives', ptsUnit: 'pt', multiHook: 'triple hook',
     biteSource: 'Source: Lodinn\u2019s aggregation of player reports collected via Teamcraft Allagan Reports. Catch rate is the share of all casts with that bait.',
     minutes: 'min', hoursU: 'h', days: 'd', ago: 'in ',
@@ -1266,6 +1296,9 @@ const state = {
   fishEyes: false,
   nushiKind: 'all',       // all | oonushi
   nushiPatch: 'all',
+  nushiVer: 'all',
+  uncaughtOnly: false,
+  lureOnly: false,
   nushiSort: 'next',      // next | name
   chartBait: null,        // ヒットタイム分布で選んでいるエサ
   chartChum: false,
@@ -1273,6 +1306,7 @@ const state = {
   oceanTargets: true,
   oceanLegendOnly: false,
   favs: new Set(),        // タイムラインに出すヌシ
+  caught: new Set(),      // 釣った魚
   favOnly: false,
   spotId: null,
   query: '',
@@ -1421,6 +1455,12 @@ function weatherHTML(f, territoryId) {
   return `<div class="weather">${prev}${cur}</div>`;
 }
 
+function predatorHTML(f) {
+  if (!f.predators.length) return '';
+  const p = f.predators.map(([id, n]) => `${esc(nm(DB.fish[id]?.n) || baitName(id))}×${n}`).join(' + ');
+  return `<div class="intuit"><span class="ilabel">${T('intuition')}</span> ${p}</div>`;
+}
+
 function baitHTML(f, spotId) {
   if (!f.baitPath.length) {
     // 上流にエサが無くても、実測の釣果率から推せる（主にオーシャンフィッシング）
@@ -1431,15 +1471,13 @@ function baitHTML(f, spotId) {
       return `<div class="bait" title="${T('byRate')}${b.swimOnly ? ` / ${T('swimOnly')}` : ''}">
         ${parts.join('')}<span class="brate-inline">${b.rate}%</span></div>`;
     }
-    if (f.predators.length) {
-      const p = f.predators.map(([id, n]) => `${esc(nm(DB.fish[id]?.n) || baitName(id))}×${n}`).join(' + ');
-      return `<div class="bait"><span class="none">${T('intuition')}:</span> <span class="b prey">${p}</span></div>`;
-    }
+    if (f.predators.length) return `<div class="bait">${predatorHTML(f)}</div>`;
     return `<div class="bait"><span class="none">—</span></div>`;
   }
   const parts = f.baitPath.map((id, i) =>
     `${i ? '<span class="arrow">▸</span>' : ''}<span class="b${i ? ' prey' : ''}">${esc(baitName(id))}</span>`);
-  return `<div class="bait">${parts.join('')}</div>`;
+  // エサと直感の両方が要る魚は、直感が埋もれないよう下に添える
+  return `<div class="bait">${parts.join('')}${predatorHTML(f)}</div>`;
 }
 
 function biteHTML(f, spotId) {
@@ -1449,6 +1487,17 @@ function biteHTML(f, spotId) {
     <b>${b.lo}–${b.hi}</b><span class="unit">s</span></div>`;
 }
 
+/**
+ * モデストルアー／アンビシャスルアー。
+ * アタリが来てから使う「引きを変える」アクションなので、エサとは別に印を出す。
+ */
+function lureTag(f) {
+  if (!f.lure) return '';
+  const amb = /Ambitious/i.test(f.lure.en);
+  return `<span class="tag lure ${amb ? 'amb' : 'mod'}" title="${esc(nm(f.lure))}">${
+    T(amb ? 'lureAmb' : 'lureMod')}</span>`;
+}
+
 function fishRow(f, spot) {
   const live = isUp(f, spot.territoryId, Date.now());
   const tags = [
@@ -1456,21 +1505,24 @@ function fishRow(f, spot) {
     f.folklore ? `<span class="tag folk">${T('folklore')}</span>` : '',
     f.collectable ? `<span class="tag coll">${T('collectable')}</span>` : '',
     f.gig ? `<span class="tag gig">${T('gig')}</span>` : '',
+    lureTag(f),
     f.oceanLegend ? `<span class="tag legend">${T('legendFish')}</span>` : '',
     f.oceanTimes ? `<span class="tag otime">${f.oceanTimes.map(timeLabel).join('/')}${T('onlySuffix')}</span>` : '',
     f.oceanPoints != null ? `<span class="tag pts">${f.oceanPoints}${T('ptsUnit')}</span>` : '',
     f.oceanMulti != null ? `<span class="tag pts">×${f.oceanMulti}</span>` : '',
     ...(f.oceanBonus ?? []).map((b) => `<span class="tag bonus">${esc(nm(b.n))}</span>`),
+    f.craft ? `<span class="tag use" title="${f.craft.map((c) => nm(DB.meta.craftNames[c])).join(' / ')}">${T('craftUse')}</span>` : '',
+    f.gc ? `<span class="tag use">${T('gcUse')}</span>` : '',
   ].join('');
   const stars = f.stars ? `<span class="stars">${'★'.repeat(f.stars)}</span>` : '';
   const tugCls = f.tugRank ? `t${f.tugRank}` : '';
-  return `<div class="fishrow${live ? ' live' : ''}" data-fish="${f.id}" tabindex="0" role="button">
-    <div class="fname">${iconImg(f)}<span class="nm">${esc(nm(f.n))}</span>${stars}<span class="tags">${tags}</span></div>
+  return `<div class="fishrow${live ? ' live' : ''}${state.caught.has(f.id) ? ' done' : ''}" data-fish="${f.id}" tabindex="0" role="button">
+    <div class="fname">${caughtBtn(f.id)}${iconImg(f)}<span class="nm">${esc(nm(f.n))}</span>${stars}<span class="tags">${tags}</span></div>
     ${baitHTML(f, spot.id)}
     ${ribbonHTML(f)}
     ${weatherHTML(f, spot.territoryId)}
     <div class="tug ${tugCls}">${f.tugJa ?? '<span style="color:var(--dim)">—</span>'}
-      ${f.hookset ? `<small>${esc(f.hookset.slice(0, 4))}</small>` : ''}</div>
+      ${f.hookset ? `<small title="${esc(nm(f.hookset))}">${esc(nm(f.hookset).replace(/フッキング|Hookset|Anhieb|Ferrage /g, '').trim())}</small>` : ''}</div>
     ${biteHTML(f, spot.id)}
   </div>`;
 }
@@ -1721,6 +1773,24 @@ function renderSearch() {
    ══════════════════════════════════════════════════════════ */
 const favBtn = (id) => `<button class="fav" data-fav="${id}" aria-pressed="${state.favs.has(id)}"
   title="★" aria-label="favourite">${state.favs.has(id) ? '★' : '☆'}</button>`;
+const caughtBtn = (id) => `<button class="caught" data-caught="${id}" aria-pressed="${state.caught.has(id)}"
+  title="${T('caughtTip')}" aria-label="caught">${state.caught.has(id) ? '✔' : '□'}</button>`;
+
+/**
+ * 釣った／釣っていないの記録。
+ * ★と違って数が増えるので URL には載せず、ブラウザに保存する。
+ * 保存できない環境（ファイルを直接開いた場合など）ではその場かぎりになる。
+ */
+const store = {
+  key: 'efg.caught',
+  load() {
+    try { return new Set(JSON.parse(localStorage.getItem(this.key) ?? '[]')); }
+    catch { return new Set(); }
+  },
+  save(set) {
+    try { localStorage.setItem(this.key, JSON.stringify([...set])); } catch { /* 保存できなくても動く */ }
+  },
+};
 
 function syncHash() {
   const base = state.view === 'nushi' ? 'nushi'
@@ -1778,6 +1848,7 @@ function condChips(f, spotId) {
   if (f.predators.length) c.push(`<span class="wchip" style="color:var(--gold)">${T('intuition')}</span>`);
   if (f.folklore) c.push(`<span class="wchip" style="color:var(--violet)">${T('folklore')}</span>`);
   if (f.snagging) c.push(`<span class="wchip">${T('snagging')}</span>`);
+  if (f.lure) c.push(`<span class="wchip lurechip">${esc(nm(f.lure))}</span>`);
   if (!c.length) c.push(`<span class="any">${T('anytime')}</span>`);
   return `<div class="ncond">${c.join('')}</div>`;
 }
@@ -1824,18 +1895,24 @@ function renderNushi() {
   let list = Object.values(DB.fish).filter((f) => f.nushi);
   if (state.nushiKind === 'oonushi') list = list.filter((f) => f.oonushi);
   if (state.nushiPatch !== 'all') list = list.filter((f) => Math.floor(f.patch || 0) === Number(state.nushiPatch));
+  if (state.nushiVer !== 'all') list = list.filter((f) => f.patch == state.nushiVer);
   if (state.favOnly) list = list.filter((f) => state.favs.has(f.id));
+  if (state.uncaughtOnly) list = list.filter((f) => !state.caught.has(f.id));
+  if (state.lureOnly) list = list.filter((f) => f.lure);
 
   // 状態は4つ。open=いま釣れる / soon=次の窓が決まっている / always=時間も天候も不問 / none=不明
   const rows = list.map((f) => {
     const spot = spotById.get(f.nushiSpot ?? f.spots[0]);
-    const w = nextWindow(nushiWindows(f, spot?.territoryId ?? null));
+    const ws = nushiWindows(f, spot?.territoryId ?? null);
+    const w = nextWindow(ws);
+    // 次々回。予定を立てるときに効く
+    const next2 = ws !== 'always' && w ? ws[ws.indexOf(w) + 1] ?? null : null;
     const up = uptime(f, spot?.territoryId ?? null);
     let st = 'none';
     if (!f.hasConditions) st = 'unknown';
     else if (w === 'always') st = 'always';
     else if (w) st = w[0] <= now + 1000 ? 'open' : 'soon';
-    return { f, spot, w, up, st, live: st === 'open' || st === 'always' };
+    return { f, spot, w, next2, up, st, live: st === 'open' || st === 'always' };
   });
 
   if (state.liveOnly) rows.splice(0, rows.length, ...rows.filter((r) => r.live));
@@ -1851,8 +1928,12 @@ function renderNushi() {
     return nm(a.f.n).localeCompare(nm(b.f.n), state.lang);
   });
 
-  const patches = [...new Set(Object.values(DB.fish).filter((f) => f.nushi)
-    .map((f) => Math.floor(f.patch || 0)))].sort((a, b) => a - b);
+  const allNushi = Object.values(DB.fish).filter((f) => f.nushi);
+  const patches = [...new Set(allNushi.map((f) => Math.floor(f.patch || 0)))].sort((a, b) => a - b);
+  // 拡張を選んでいればその中のパッチだけ、選んでいなければ全部
+  const vers = [...new Set(allNushi
+    .filter((f) => state.nushiPatch === 'all' || Math.floor(f.patch || 0) === Number(state.nushiPatch))
+    .map((f) => f.patch).filter(Boolean))].sort((a, b) => a - b);
   const EXP = state.lang === 'ja'
     ? { 2: '新生', 3: '蒼天', 4: '紅蓮', 5: '漆黒', 6: '暁月', 7: '黄金' }
     : { 2: 'ARR', 3: 'HW', 4: 'STB', 5: 'ShB', 6: 'EW', 7: 'DT' };
@@ -1874,6 +1955,11 @@ function renderNushi() {
       <span style="width:8px"></span>
       <button class="chipbtn" data-np="all" aria-pressed="${state.nushiPatch === 'all'}">${T('allPatches')}</button>
       ${patches.map((p) => `<button class="chipbtn" data-np="${p}" aria-pressed="${state.nushiPatch == p}">${EXP[p] ?? 'P' + p}</button>`).join('')}
+    </div>
+    <div class="toolbar" style="margin-top:2px">
+      <span class="eyebrow">${T('patch')}</span>
+      <button class="chipbtn" data-nv="all" aria-pressed="${state.nushiVer === 'all'}">${T('all')}</button>
+      ${vers.map((v) => `<button class="chipbtn" data-nv="${v}" aria-pressed="${state.nushiVer == v}">${v}</button>`).join('')}
       <span style="width:8px"></span>
       <button class="chipbtn" data-ns="next" aria-pressed="${state.nushiSort === 'next'}">${T('byNext')}</button>
       <button class="chipbtn" data-ns="name" aria-pressed="${state.nushiSort === 'name'}">${T('byName')}</button>
@@ -1883,6 +1969,11 @@ function renderNushi() {
       <span style="width:8px"></span>
       <button class="chipbtn star" data-favall="1">★ ${T('selectAll')}</button>
       ${state.favs.size ? `<button class="chipbtn" data-favclear="1">${T('clearAll')}</button>` : ''}
+      <span style="width:8px"></span>
+      <button class="chipbtn" data-lure="1" aria-pressed="${state.lureOnly}">${T('lureOnly')}</button>
+      <button class="chipbtn" data-uncaught="1" aria-pressed="${state.uncaughtOnly}">${T('uncaughtOnly')}</button>
+      <button class="chipbtn check" data-caughtall="1">✔ ${T('caughtAll')}</button>
+      ${state.caught.size ? `<button class="chipbtn" data-caughtclear="1">${T('caughtClear')} (${state.caught.size})</button>` : ''}
     </div>
 
     <div class="toolbar" style="margin-top:2px">
@@ -1893,10 +1984,11 @@ function renderNushi() {
       <div>${T('kind')}</div><div>${T('fish')}</div><div>${T('next')}</div>
       <div>${T('spot')}</div><div>${T('cond')}</div><div>${T('bait')}</div>
     </div>
-    <div>${rows.map(({ f, spot, w, up, st }) => `
-      <div class="nrow${st === 'open' ? ' open' : ''}${st === 'always' ? ' always' : ''}" data-fish="${f.id}" data-fishspot="${spot?.id ?? ''}" tabindex="0" role="button">
-        <div class="nkind">${favBtn(f.id)}<span class="kind${f.oonushi ? ' oo' : ''}">${f.oonushi ? T('oonushi') : T('nushiOne')}</span></div>
+    <div>${rows.map(({ f, spot, w, next2, up, st }) => `
+      <div class="nrow${st === 'open' ? ' open' : ''}${st === 'always' ? ' always' : ''}${state.caught.has(f.id) ? ' done' : ''}" data-fish="${f.id}" data-fishspot="${spot?.id ?? ''}" tabindex="0" role="button">
+        <div class="nkind">${favBtn(f.id)}${caughtBtn(f.id)}<span class="kind${f.oonushi ? ' oo' : ''}">${f.oonushi ? T('oonushi') : T('nushiOne')}</span></div>
         <div class="nname">${iconImg(f, 'ficon sm')}<span class="nm">${esc(nm(f.n))}</span>
+          ${lureTag(f)}
           ${f.patch ? `<span class="patch">${f.patch}</span>` : ''}
           ${f.fishEyes && state.fishEyes ? '<span class="tag coll">FE</span>' : ''}</div>
         <div class="nnext">${
@@ -1905,8 +1997,11 @@ function renderNushi() {
           : st === 'open' ? `<span class="live">${T('nowBiting')}</span><br><span class="rel">${untilText(w[1])} · ${remainText(mins(Date.now(), w[1]))}</span>`
           : st === 'soon' ? `<span class="abs">${absTime(w[0])}</span><br><span class="rel">${relTime(w[0])} · ${fmtMin(mins(w[0], w[1]))}</span>`
           : `<span class="never">${T('notFound')}</span>`}
+          ${next2 ? `<br><span class="rel dim">${T('then')} ${absTime(next2[0])}</span>` : ''}
           ${up != null && up < 100 ? `<br><span class="rel dim">${T('uptime')} ${up < 1 ? up.toFixed(1) : Math.round(up)}%</span>` : ''}</div>
-        <div class="nspot">${esc(nm(spot?.n)) || '—'}<small>${esc(nm(spot?.area))}</small></div>
+        <div class="nspot">${spot?.mapId != null
+          ? `<a class="maplink" data-map="${spot.id}" title="${T('showMap')}">${esc(nm(spot.n))} ◎</a>`
+          : esc(nm(spot?.n)) || '—'}<small>${esc(nm(spot?.area))}</small></div>
         ${condChips(f, spot?.id)}
         <div class="nbait">${baitHTML(f, spot?.id)}${(() => {
           const b = spot ? bestBite(f.id, spot.id, baitKey(f.baitPath[f.baitPath.length - 1])) : null;
@@ -2194,11 +2289,17 @@ function openFish(fishId, fromSpotId) {
           <dt>${T('weather')}</dt><dd>${!f.hasConditions ? T('unknown')
             : (f.weather.length ? f.weather.map((w) => wIcon(w) + esc(wName(w))).join(' / ') : T('anyWeather'))}
             ${f.prevWeather.length ? `<br><span style="color:var(--mist)">${T('prev')} ${f.prevWeather.map((w) => wIcon(w) + esc(wName(w))).join(' / ')}</span>` : ''}</dd>
-          <dt>${T('tug')}</dt><dd>${f.tugJa ?? '—'} ${f.hookset ? `／ ${esc(f.hookset)}` : ''}
+          ${f.lure ? `<dt>${T('lure')}</dt><dd class="lureline">${esc(nm(f.lure))}</dd>` : ''}
+          <dt>${T('tug')}</dt><dd>${f.tugJa ?? '—'}${f.hookset ? ` ／ ${esc(nm(f.hookset))}` : ''}
             ${f.tugFromStats ? `<span style="color:var(--dim);font-size:11px">${T('fromStats')}</span>` : ''}</dd>
           ${f.snagging ? `<dt>${T('snagging')}</dt><dd>✓</dd>` : ''}
           ${f.folklore ? `<dt>${T('folklore')}</dt><dd>${esc(nm(f.folklore))}</dd>` : ''}
           ${f.fishEyes ? '<dt>フィッシュアイ</dt><dd>有効</dd>' : ''}
+          ${(f.craft || f.gc || f.collectable) ? `<dt>${T('uses')}</dt><dd>${[
+            f.craft ? `${T('craftUse')}（${f.craft.map((c) => esc(nm(DB.meta.craftNames[c]))).join('・')}）` : '',
+            f.collectable ? T('collectUse') : '',
+            f.gc ? T('gcUse') : '',
+          ].filter(Boolean).join(' / ')}</dd>` : ''}
           ${f.oceanPoints != null ? `<dt>${T('points')}</dt><dd>${f.oceanPoints}${T('ptsUnit')}${
             f.oceanMulti != null ? ` / ${T('multiHook')} ×${f.oceanMulti}` : ''}</dd>` : ''}
           ${f.oceanBonus ? `<dt>${T('bonus')}</dt><dd>${f.oceanBonus.map((b) => esc(nm(b.n))).join('<br>')}</dd>` : ''}
@@ -2296,6 +2397,13 @@ document.addEventListener('click', (e) => {
   if (od) { state.oceanDest = od.dataset.od; renderOcean(); return; }
   if (e.target.closest('[data-ot]')) { state.oceanTargets = !state.oceanTargets; renderOcean(); return; }
   if (e.target.closest('[data-ol]')) { state.oceanLegendOnly = !state.oceanLegendOnly; renderOcean(); return; }
+  const ml = e.target.closest('[data-map]');
+  if (ml) {
+    e.stopPropagation();
+    const sp = spotById.get(Number(ml.dataset.map));
+    if (sp) openMap(sp);
+    return;
+  }
   if (e.target.closest('#showmap')) {
     const sp = spotById.get(state.spotId);
     if (sp) openMap(sp);
@@ -2304,7 +2412,15 @@ document.addEventListener('click', (e) => {
   const fv = e.target.closest('[data-fav]');
   if (fv) {
     e.stopPropagation();
-    toggleFav(Number(fv.dataset.fav));
+    const id = Number(fv.dataset.fav);
+    toggleFav(id);
+    // 詳細パネルを開いたまま押されたときは、そのボタンだけ描き直す
+    const on = state.favs.has(id);
+    document.querySelectorAll(`[data-fav="${id}"]`).forEach((el) => {
+      el.setAttribute('aria-pressed', on);
+      el.textContent = on ? '★' : '☆';
+    });
+    if ($('#drawer').classList.contains('open')) return;
     if (state.view === 'nushi') renderNushi(); else render();
     return;
   }
@@ -2316,6 +2432,28 @@ document.addEventListener('click', (e) => {
     syncHash(); renderNushi(); return;
   }
   if (e.target.closest('[data-favclear]')) { state.favs.clear(); syncHash(); renderNushi(); return; }
+  const cg = e.target.closest('[data-caught]');
+  if (cg) {
+    e.stopPropagation();
+    const id = Number(cg.dataset.caught);
+    state.caught.has(id) ? state.caught.delete(id) : state.caught.add(id);
+    store.save(state.caught);
+    const on = state.caught.has(id);
+    document.querySelectorAll(`[data-caught="${id}"]`).forEach((el) => {
+      el.setAttribute('aria-pressed', on);
+      el.textContent = on ? '✔' : '□';
+    });
+    document.querySelector(`.fishrow[data-fish="${id}"]`)?.classList.toggle('done', on);
+    document.querySelector(`.nrow[data-fish="${id}"]`)?.classList.toggle('done', on);
+    return;
+  }
+  if (e.target.closest('[data-caughtall]')) {
+    document.querySelectorAll('[data-caught]').forEach((b) => state.caught.add(Number(b.dataset.caught)));
+    store.save(state.caught); renderNushi(); return;
+  }
+  if (e.target.closest('[data-caughtclear]')) { state.caught.clear(); store.save(state.caught); renderNushi(); return; }
+  if (e.target.closest('[data-uncaught]')) { state.uncaughtOnly = !state.uncaughtOnly; renderNushi(); return; }
+  if (e.target.closest('[data-lure]')) { state.lureOnly = !state.lureOnly; renderNushi(); return; }
   const cb = e.target.closest('[data-cb]');
   if (cb) { state.chartBait = Number(cb.dataset.cb); renderSpot(true); return; }
   const cc = e.target.closest('[data-cc]');
@@ -2323,7 +2461,9 @@ document.addEventListener('click', (e) => {
   const nk = e.target.closest('[data-nk]');
   if (nk) { state.nushiKind = nk.dataset.nk; renderNushi(); return; }
   const np = e.target.closest('[data-np]');
-  if (np) { state.nushiPatch = np.dataset.np; renderNushi(); return; }
+  if (np) { state.nushiPatch = np.dataset.np; state.nushiVer = 'all'; renderNushi(); return; }
+  const nv = e.target.closest('[data-nv]');
+  if (nv) { state.nushiVer = nv.dataset.nv; renderNushi(); return; }
   const ns = e.target.closest('[data-ns]');
   if (ns) { state.nushiSort = ns.dataset.ns; renderNushi(); return; }
   const spotEl = e.target.closest('[data-spot]');
@@ -2389,6 +2529,7 @@ $('#scrim').addEventListener('click', () => {
    起動
    ══════════════════════════════════════════════════════════ */
 (function init() {
+  state.caught = store.load();
   // ハッシュ指定が無ければブラウザの言語に寄せる
   const pref = (navigator.languages ?? [navigator.language ?? 'ja']).map((x) => x.slice(0, 2));
   const hit = pref.find((x) => LANGS.some((l) => l.id === x));

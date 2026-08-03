@@ -45,6 +45,7 @@ const SOURCES = {
   'fish-parameter.json': `${TC}/fish-parameter.json`,
   'item-icons.json': `${TC}/item-icons.json`,
   'maps.json': `${TC}/maps.json`,
+  'collectables.json': `${TC}/collectables.json`,
   'ff14fish-data.js': `${FT}/js/app/data.js`,
   'SpearfishingItem.csv': `${DM}/ja/SpearfishingItem.csv`,
   'SpearfishingNotebook.csv': `${DM}/en/SpearfishingNotebook.csv`,
@@ -68,6 +69,9 @@ const SOURCES = {
   'IKDFishParam.csv': `${DM}/en/IKDFishParam.csv`,
   'IKDContentBonus_ja.csv': `${DM}/ja/IKDContentBonus.csv`,
   'IKDContentBonus_en.csv': `${DM}/en/IKDContentBonus.csv`,
+  'Recipe.csv': `${DM}/en/Recipe.csv`,
+  'GCSupplyDuty.csv': `${DM}/en/GCSupplyDuty.csv`,
+  'GatheringLeve.csv': `${DM}/en/GatheringLeve.csv`,
 };
 
 /**
@@ -137,7 +141,15 @@ function parseFishTracker(src) {
 // ─── 引き / フッキングの日本語表記 ──────────────────────────────
 const TUG_JA = { light: '！', medium: '！！', heavy: '！！！' };
 const TUG_RANK = { light: 1, medium: 2, heavy: 3 };
-const HOOKSET_JA = { Precision: 'プレシジョン', Powerful: 'パワフル' };
+// 実際のアクション名。「パワフル」だけだと何のことか分からないので略さない。
+const HOOKSET = {
+  Precision: { ja: 'プレシジョンフッキング', en: 'Precision Hookset', de: 'Präziser Anhieb', fr: 'Ferrage précise' },
+  Powerful:  { ja: 'パワフルフッキング',   en: 'Powerful Hookset', de: 'Kräftiger Anhieb', fr: 'Ferrage puissante' },
+};
+const LURE = {
+  Modest:    { ja: 'モデストルアー',   en: 'Modest Lure',    de: 'Zurückhaltender Köder', fr: 'Leurre modeste' },
+  Ambitious: { ja: 'アンビシャスルアー', en: 'Ambitious Lure', de: 'Ehrgeiziger Köder',     fr: 'Leurre ambitieux' },
+};
 
 async function main() {
   const raw = {};
@@ -349,9 +361,9 @@ async function main() {
       tug: c?.tug ?? null,
       tugJa: c?.tug ? TUG_JA[c.tug] : null,
       tugRank: c?.tug ? TUG_RANK[c.tug] : null,
-      hookset: c?.hookset ? HOOKSET_JA[c.hookset] ?? c.hookset : null,
+      hookset: c?.hookset ? HOOKSET[c.hookset] ?? null : null,
+      lure: c?.lure ? LURE[c.lure] ?? null : null,
       snagging: !!c?.snagging,
-      lure: c?.lure ?? null,
       fishEyes: !!c?.fishEyes,
       bigFish: !!c?.bigFish,
       folklore: c?.folklore && D.FOLKLORE[c.folklore]
@@ -378,7 +390,10 @@ async function main() {
         entry.tugRank = TUG_RANK[st.tug];
         entry.tugFromStats = true;
       }
-      if (!entry.hookset && st.hookset) { entry.hookset = st.hookset; entry.tugFromStats = true; }
+      if (!entry.hookset && st.hookset) {
+        entry.hookset = st.hookset === 'プレシジョン' ? HOOKSET.Precision : HOOKSET.Powerful;
+        entry.tugFromStats = true;
+      }
       if (!entry.snagging && st.snagging) entry.snagging = true;
     }
     fish[id] = entry;
@@ -555,6 +570,41 @@ async function main() {
     maps[sp.mapId] ??= { image: m.image, sizeFactor: m.size_factor ?? 100 };
   }
 
+  // ─── 使い道 ──────────────────────────────────────────────
+  // 「この魚は何に使えるか」をゲームデータから集める
+  const CRAFT_JA = ['木工', '鍛冶', '甲冑', '彫金', '革細工', '裁縫', '錬金', '調理'];
+  const CRAFT_EN = ['Carpenter', 'Blacksmith', 'Armorer', 'Goldsmith', 'Leatherworker', 'Weaver', 'Alchemist', 'Culinarian'];
+  for (const r of parseCsv(raw['Recipe.csv'])) {
+    const ct = Number(r.CraftType);
+    for (let i = 0; i < 8; i++) {
+      const id = Number(r[`Ingredient[${i}]`]);
+      const f = id ? fish[id] : null;
+      if (!f) continue;
+      f.craft ??= [];
+      if (!f.craft.includes(ct)) f.craft.push(ct);
+    }
+  }
+  const collectables = JSON.parse(raw['collectables.json']);
+  for (const id of Object.keys(collectables)) if (fish[id]) fish[id].collectable = true;
+
+  // グランドカンパニー納品：SupplyData[n].Item[m] に対象アイテムが並ぶ
+  let gcCount = 0;
+  for (const r of parseCsv(raw['GCSupplyDuty.csv'])) {
+    for (const [k, v] of Object.entries(r)) {
+      if (!/^SupplyData\[\d+\]\.Item\[\d+\]$/.test(k)) continue;
+      const f = fish[Number(v)];
+      if (f && !f.gc) { f.gc = true; gcCount++; }
+    }
+  }
+  // ギルドリーヴ（採集リーヴ）納品
+  let leveCount = 0;
+  for (const r of parseCsv(raw['GatheringLeve.csv'])) {
+    for (let i = 0; i < 4; i++) {
+      const f = fish[Number(r[`RequiredItem[${i}]`])];
+      if (f && !f.leve) { f.leve = true; leveCount++; }
+    }
+  }
+
   const iconCount = Object.values(fish).filter((f) => f.icon).length;
   const out = {
     meta: {
@@ -660,6 +710,9 @@ async function main() {
       ` / 時間限定 ${Object.values(fish).filter((f) => f.oceanTimes).length}` +
       ` / ボーナス対象 ${Object.values(fish).filter((f) => f.oceanBonus).length}` +
       `\n地図 ${Object.keys(maps).length} 枚` +
+      `\n用途: 素材 ${Object.values(fish).filter((f) => f.craft).length}` +
+      ` / 収集品 ${Object.values(fish).filter((f) => f.collectable).length}` +
+      ` / GC納品 ${gcCount} / リーヴ ${leveCount}` +
       `\n拡張別の釣り場: ${Object.values(expansions).map((e) =>
         `${e.n.ja} ${usableSpots.filter((s) => s.ex === e.id).length}`).join(' / ')}`,
   );
