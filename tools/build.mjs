@@ -608,6 +608,13 @@ async function main() {
   const iconCount = Object.values(fish).filter((f) => f.icon).length;
   const out = {
     meta: {
+      // 料理などの職種名。魚の「使い道」の表示に使う
+      craftNames: CRAFT_JA.map((ja, i) => ({ ja, en: CRAFT_EN[i], de: CRAFT_EN[i], fr: CRAFT_EN[i] })),
+      // ルアーのアクションアイコン（Action.csv より。1146=アンビシャス、1147=モデスト）
+      lureIcons: {
+        Ambitious: '/api/asset?path=ui/icon/001000/001146_hr1.tex&format=png',
+        Modest: '/api/asset?path=ui/icon/001000/001147_hr1.tex&format=png',
+      },
       // アイコン。ICONS=off でテキストのみの表示になる。
       // 配信元を自前でミラーする場合は ICON_BASE を指定する。
       icons: process.env.ICONS !== 'off',
