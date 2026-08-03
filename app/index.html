@@ -227,16 +227,32 @@ aside{
    本体
    ══════════════════════════════════════════════════════════ */
 section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
-.wrap{max-width:1180px;padding:22px 26px}
+.wrap{max-width:1560px;margin:0 auto;padding:22px 28px}
 
 /* ── 釣り場ヘッダ ─────────────────────────────────────── */
+.spothead-row{display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap}
+.spothead-row>.sh-main{flex:1;min-width:min(100%,340px)}
 .spot-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;margin-bottom:6px}
 .spot-head h1{font-size:29px;font-weight:800;letter-spacing:.01em;line-height:1.2}
 .spot-head h1.hasmap{cursor:pointer}
 .spot-head h1.hasmap:hover{color:var(--gold)}
 .mapicon{font-size:14px;color:var(--gold);margin-left:8px;vertical-align:middle;opacity:.8}
 .mapwrap{position:relative;border-radius:var(--r);overflow:hidden;border:1px solid var(--edge)}
-.mapwrap img{display:block;width:100%;height:auto}
+.mapinner{position:relative;width:100%;padding-top:100%;overflow:hidden;background:var(--deeper)}
+.mapinner img{position:absolute;display:block;height:auto}
+.mapfail{display:none;padding:20px;font-size:12px;color:var(--dim)}
+.mapwrap.failed .mapinner{display:none}
+.mapwrap.failed .mapfail{display:block}
+.mapwrap.thumb .mapring{display:none}
+.spotmap{
+  position:relative;width:210px;border-radius:var(--r);overflow:hidden;cursor:pointer;
+  margin-top:14px;
+}
+.spotmap:hover{box-shadow:0 0 0 1px var(--gold)}
+.spotmap .mapzoom{
+  position:absolute;right:6px;bottom:6px;z-index:2;font-size:12px;color:var(--foam);
+  background:rgba(8,16,30,.8);border-radius:4px;padding:2px 6px;
+}
 .mapdot{
   position:absolute;width:11px;height:11px;border-radius:50%;background:var(--coral);
   border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 10px rgba(0,0,0,.6);
@@ -327,7 +343,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 
 /* ── オーシャンフィッシング ───────────────────────────── */
 .nav .nv-i.sea{background:linear-gradient(145deg,var(--aqua),#2FA6C4);color:#07222B}
-.ohead,.orow{display:grid;grid-template-columns:132px 1fr 1fr;gap:14px}
+.ohead,.orow{display:grid;grid-template-columns:140px 1fr 1fr;gap:16px}
 .ohead{padding:0 12px 7px;border-bottom:1px solid var(--edge);position:sticky;top:0;background:var(--ink);z-index:5}
 .ohead>div{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
 .orow{padding:11px 12px;border-bottom:1px solid var(--edge-soft);align-items:flex-start}
@@ -423,8 +439,8 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 /* ── 魚テーブル ───────────────────────────────────────── */
 .thead,.fishrow{
   display:grid;
-  grid-template-columns:minmax(200px,1.5fr) minmax(160px,1.3fr) 132px minmax(120px,1fr) 62px 96px;
-  gap:12px;align-items:center;
+  grid-template-columns:minmax(190px,1.6fr) minmax(160px,1.5fr) minmax(120px,1fr) minmax(120px,1.1fr) 66px 100px;
+  gap:14px;align-items:center;
 }
 .thead{
   padding:0 12px 7px;border-bottom:1px solid var(--edge);
@@ -564,8 +580,8 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 /* ── ヌシ一覧 ─────────────────────────────────────────── */
 .nhead,.nrow{
   display:grid;
-  grid-template-columns:96px minmax(140px,1fr) 186px minmax(110px,.85fr) minmax(130px,1fr) minmax(150px,1.1fr);
-  gap:11px;align-items:start;
+  grid-template-columns:96px minmax(150px,1.1fr) minmax(180px,1.1fr) minmax(120px,.9fr) minmax(140px,1fr) minmax(160px,1.25fr);
+  gap:12px;align-items:start;
 }
 .nhead{padding:0 12px 7px;border-bottom:1px solid var(--edge);position:sticky;top:0;background:var(--ink);z-index:5}
 .nhead>div{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
@@ -702,7 +718,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .report button:hover{background:var(--gold);color:var(--ink)}
 
 /* ── ダッシュボード ───────────────────────────────────── */
-.dash{max-width:1180px}
+.dash{max-width:1560px}
 .dashhead{margin-bottom:6px}
 .dashhead h1{font-size:27px;font-weight:800;letter-spacing:.01em}
 .dashhead .meta{font-family:var(--mono);font-size:11px;color:var(--mist);margin-top:3px}
@@ -763,6 +779,9 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 @media (max-width:1240px){
   .nhead,.nrow{grid-template-columns:88px minmax(120px,1fr) 168px minmax(90px,.7fr) minmax(110px,.9fr) minmax(120px,1fr)}
 }
+@media (min-width:1500px){
+  .dgrid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+}
 @media (max-width:1080px){
   .thead,.fishrow{grid-template-columns:minmax(150px,1.4fr) minmax(120px,1.2fr) 104px 92px 50px 78px}
   .nhead,.nrow{grid-template-columns:84px minmax(110px,1fr) 156px minmax(100px,1fr)}
@@ -803,6 +822,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
   .tgl{flex:none}
 
   .wrap{padding:14px 12px 60px}
+  .spotmap{width:100%;max-width:280px}
   .spot-head h1{font-size:22px}
   .spot-head{gap:8px}
   .eyebrow{font-size:9px}
@@ -1391,6 +1411,29 @@ function bestBaitByRate(fishId, spotId) {
 const isRealBait = (id) => !DB.fish[id];
 
 /**
+ * エサの並び順。釣り場ごとに順序が変わらないよう、内容だけで決める。
+ * 竿に付けるエサを左、泳がせ（魚）を右。同じ組の中はアイテムID順。
+ * IDはおおむね実装順＝必要レベル順に並んでいるので、
+ * オーシャンフィッシングも イワイソメ → クリル → ファットワーム → 万能ルアー になる。
+ */
+// オーシャンフィッシング専用のエサ。この4つは常に先頭に、この順で置く。
+const OCEAN_BAITS = [29714, 29715, 29716, 29717];   // イワイソメ / クリル / ファットワーム / 万能ルアー
+function baitRank(id, ocean) {
+  if (!isRealBait(id)) return 2;                     // 泳がせ（魚）は右端
+  if (ocean && OCEAN_BAITS.includes(id)) return 0;   // 専用エサ
+  return ocean ? 1 : 0;                              // その他のエサ
+}
+/** 釣り場によって順が変わらないよう、内容だけで決める比較関数を作る */
+function baitOrderFor(ocean) {
+  return (a, b) => {
+    const ra = baitRank(a, ocean), rb = baitRank(b, ocean);
+    if (ra !== rb) return ra - rb;
+    if (ra === 0 && ocean) return OCEAN_BAITS.indexOf(a) - OCEAN_BAITS.indexOf(b);
+    return a - b;   // アイテムIDはおおむね実装順＝必要レベル順
+  };
+}
+
+/**
  * 実測から組み立てるエサの道筋。
  * 一番強いのが泳がせ（＝魚）なら、その魚を釣るためのエサまで遡って「A ▸ B」の形にする。
  * 泳がせでしか釣れない魚は、遡れないのでその魚の名前だけを出す。
@@ -1765,8 +1808,12 @@ function biteChartHTML(spot) {
 
   if (!m) return wrap(`<div class="gempty">${T('noBite')}</div>`, T('noData'));
 
-  const totals = [...biteBaitTotals.get(spot.id).entries()].sort((a, b) => b[1] - a[1]);
-  const baitId = totals.some(([b]) => b === state.chartBait) ? state.chartBait : totals[0][0];
+  const entries = [...biteBaitTotals.get(spot.id).entries()];
+  // 表示は決まった順。ただし最初に選ばれるのは実測が一番多いエサ
+  const cmp = baitOrderFor(!!spot.ocean);
+  const totals = entries.slice().sort((a, b) => cmp(a[0], b[0]));
+  const popular = entries.slice().sort((a, b) => b[1] - a[1])[0][0];
+  const baitId = totals.some(([b]) => b === state.chartBait) ? state.chartBait : popular;
   const chum = state.chartChum;
 
   // エサと撒き餌の切り替えは、中身が空でも必ず出す
@@ -1856,6 +1903,7 @@ function renderSpot(keepScroll = false) {
   const unknownCount = all.filter((f) => !f.hasConditions).length;
 
   $('#stage').innerHTML = `<div class="wrap">
+    <div class="spothead-row"><div class="sh-main">
     <div class="spot-head">
       <h1${spot.mapId != null ? ' class="hasmap" id="showmap" title="' + T('showMap') + '"' : ''}>${
         esc(nm(spot.n)).replace(/：幻海流|Spectral Current/i, '')}${
@@ -1871,6 +1919,11 @@ function renderSpot(keepScroll = false) {
     </div>
     <div class="eyebrow">${esc(spot.n.en)}</div>
     ${fc}
+    </div>
+    ${spot.mapId != null && DB.maps?.[spot.mapId] ? `<div class="spotmap" id="spotmap" title="${T('showMap')}">
+      ${mapHTML(spot, true)}<span class="mapzoom">⤢</span>
+    </div>` : ''}
+    </div>
     ${ganttHTML(spot.fishes.map((id) => DB.fish[id]).filter(Boolean), spot)}
     ${biteChartHTML(spot)}
     <div class="toolbar">
@@ -1896,6 +1949,30 @@ function mapPct(coord, sizeFactor) {
   const c = (sizeFactor ?? 100) / 100;
   return (((coord - 1) * c) / 41) * 100;
 }
+/**
+ * 地図の画像とマーカー。
+ * thumb=true は釣り場ページに埋め込む縮小版で、マーカーの周りを拡大して切り出す。
+ */
+function mapHTML(spot, thumb = false) {
+  const m = DB.maps?.[spot.mapId];
+  if (!m) return '';
+  const x = mapPct(spot.x, m.sizeFactor), y = mapPct(spot.y, m.sizeFactor);
+  const zoom = 2.6;
+  const imgStyle = thumb
+    ? `width:${zoom * 100}%;left:${(50 - x * zoom).toFixed(2)}%;top:${(50 - y * zoom).toFixed(2)}%`
+    : 'width:100%;left:0;top:0';
+  const px = thumb ? 50 : x, py = thumb ? 50 : y;
+  return `<div class="mapwrap${thumb ? ' thumb' : ''}">
+    <div class="mapinner">
+      <img src="${esc(m.image)}" alt="" loading="lazy" style="${imgStyle}"
+        onerror="this.closest('.mapwrap').classList.add('failed')">
+      <span class="mapdot" style="left:${px}%;top:${py}%"></span>
+      <span class="mapring" style="left:${px}%;top:${py}%"></span>
+    </div>
+    <span class="mapfail">${T('mapFailed')}</span>
+  </div>`;
+}
+
 function openMap(spot) {
   const m = DB.maps?.[spot.mapId];
   if (!m) return;
@@ -1910,12 +1987,7 @@ function openMap(spot) {
       </div></div>
     </header>
     <div class="dbody">
-      <div class="mapwrap">
-        <img src="${esc(m.image)}" alt="" loading="lazy"
-          onerror="this.closest('.mapwrap').innerHTML='<p class=\'gempty\'>${T('mapFailed')}</p>'">
-        <span class="mapdot" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%"></span>
-        <span class="mapring" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%"></span>
-      </div>
+      ${mapHTML(spot)}
       <p class="bnote">${T('mapNote')}</p>
     </div>`;
   $('#drawer').classList.add('open');
@@ -2676,7 +2748,8 @@ function openFish(fishId, fromSpotId) {
     : '<p style="color:var(--dim);font-size:12px">72時間以内にウィンドウなし、または条件が未判明です。</p>';
 
   // ヒットタイム：この釣り場でのエサ別実測
-  const bites = (spot && biteIndex.get(spot.id)?.get(f.id)) ?? [];
+  const bites = ((spot && biteIndex.get(spot.id)?.get(f.id)) ?? [])
+    .slice().sort(((c) => (a, b) => c(a.baitId, b.baitId))(baitOrderFor(!!spot?.ocean)));
   const key = `${spot?.id ?? 0}:${f.id}:${baitKey(f.baitPath[f.baitPath.length - 1]) ?? 0}`;
   const snippet = `"${key}": { "lo": 0, "hi": 0, "n": 1 }`;
 
@@ -2880,6 +2953,11 @@ document.addEventListener('click', (e) => {
   if (ml) {
     e.stopPropagation();
     const sp = spotById.get(Number(ml.dataset.map));
+    if (sp) openMap(sp);
+    return;
+  }
+  if (e.target.closest('#spotmap')) {
+    const sp = spotById.get(state.spotId);
     if (sp) openMap(sp);
     return;
   }
