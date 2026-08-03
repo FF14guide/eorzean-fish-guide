@@ -33,6 +33,10 @@ const TC = 'https://raw.githubusercontent.com/ffxiv-teamcraft/ffxiv-teamcraft/st
 const FT = 'https://raw.githubusercontent.com/icykoneko/ff14-fish-tracker-app/master';
 // ゲームから吸い出したシートのミラー。XIVAPI を直接叩かなくても同じ内容が手に入る。
 const DM = 'https://raw.githubusercontent.com/xivapi/ffxiv-datamining/master/csv';
+// オーシャンフィッシングの伝説魚・時間限定魚。ゲームデータには時間帯が入っていないため、
+// StreamDeck プラグイン（momokotomoko）が持っている一覧を借りる。
+const OF = 'https://raw.githubusercontent.com/momokotomoko/ffxivStreamDeckOceanFishingPlugin/master'
+  + '/Sources/com.elgato.ffxivoceanfishing.sdPlugin';
 
 const SOURCES = {
   'fishing-spots.json': `${TC}/fishing-spots.json`,
@@ -53,6 +57,13 @@ const SOURCES = {
   'SpearfishingItem_en.csv': `${DM}/en/SpearfishingItem.csv`,
   'IKDSpot.csv': `${DM}/en/IKDSpot.csv`,
   'IKDRouteTable.csv': `${DM}/en/IKDRouteTable.csv`,
+  'TerritoryType.csv': `${DM}/en/TerritoryType.csv`,
+  'ExVersion_ja.csv': `${DM}/ja/ExVersion.csv`,
+  'ExVersion_en.csv': `${DM}/en/ExVersion.csv`,
+  'ExVersion_de.csv': `${DM}/de/ExVersion.csv`,
+  'ExVersion_fr.csv': `${DM}/fr/ExVersion.csv`,
+  'ocean-indigo.json': `${OF}/oceanFishingDatabase%20-%20Indigo%20Route.json`,
+  'ocean-ruby.json': `${OF}/oceanFishingDatabase%20-%20Ruby%20Route.json`,
 };
 
 /**
@@ -144,7 +155,29 @@ async function main() {
   };
   const ikdRouteEn = ikdRoute.en;
   const ikdSpot = parseCsv(raw['IKDSpot.csv']);
+  // 航路の寄港地（通常＋幻海流）だけが本当のオーシャンフィッシング
+  const oceanMain = new Set(ikdSpot.map((r) => Number(r.SpotMain)).filter(Boolean));
+  const oceanSub = new Set(ikdSpot.map((r) => Number(r.SpotSub)).filter(Boolean));
+  const exOfSpot = (id, territoryId, placeId) => {
+    if (oceanMain.has(id) || oceanSub.has(id)) return OCEAN_EX;
+    if (territoryId != null && exOfTerritory.has(territoryId)) return exOfTerritory.get(territoryId);
+    if (placeId != null && exOfPlace.has(Number(placeId))) return exOfPlace.get(Number(placeId));
+    return 0;
+  };
   const ikdTable = parseCsv(raw['IKDRouteTable.csv']);
+  // 釣り場がどの拡張のものかは TerritoryType.ExVersion で分かる
+  const territories = parseCsv(raw['TerritoryType.csv']);
+  const exOfTerritory = new Map(territories.map((r) => [Number(r['#']), Number(r.ExVersion)]));
+  // territory_id が分からない釣り場のために、地名からも拡張を引けるようにしておく
+  const exOfPlace = new Map();
+  for (const r of territories) {
+    const pn = Number(r.PlaceName);
+    if (!pn || exOfPlace.has(pn)) continue;
+    exOfPlace.set(pn, Number(r.ExVersion));
+  }
+  const OCEAN_EX = -1;   // オーシャンフィッシングは拡張で括れないので独立させる
+  const exRows = { ja: parseCsv(raw['ExVersion_ja.csv']), en: parseCsv(raw['ExVersion_en.csv']),
+                   de: parseCsv(raw['ExVersion_de.csv']), fr: parseCsv(raw['ExVersion_fr.csv']) };
   const spearItems = parseCsv(raw['SpearfishingItem.csv']);
   const spearNotes = parseCsv(raw['SpearfishingNotebook.csv']);
   const gpBases = parseCsv(raw['GatheringPointBase.csv']);
@@ -231,6 +264,9 @@ async function main() {
       x: s.coords?.x ?? null,
       y: s.coords?.y ?? null,
       spear: spearIds.has(s.id),
+      ex: exOfSpot(s.id, territoryId, s.placeId),
+      ocean: oceanMain.has(s.id) || oceanSub.has(s.id),
+      spectral: oceanSub.has(s.id),
       fishes: s.fishes.slice(),
     });
   }
@@ -264,6 +300,7 @@ async function main() {
       x: null,
       y: null,
       spear: true,
+      ex: exOfSpot(baseId, terr, note.PlaceName),
       fishes,
     });
     known.add(baseId);
@@ -380,9 +417,30 @@ async function main() {
     weatherRates[tid] = { rates: wr.weather_rates, zoneId: wr.zone_id, regionId: wr.region_id };
   }
 
-  // ─── エリア順（ゲーム内の並びに近づける） ──────────────────
+  // ─── 拡張 → エリア の並び（ゲーム内の順に近づける） ────────
+  const expansions = {
+    [OCEAN_EX]: {
+      id: OCEAN_EX,
+      n: { ja: 'オーシャンフィッシング', en: 'Ocean Fishing', de: 'Ozeanfischen', fr: 'Pêche en mer' },
+    },
+  };
+  for (const r of exRows.en) {
+    if (!r.Name) continue;
+    const id = Number(r['#']);
+    const byLang = {};
+    for (const l of LANGS) byLang[l] = exRows[l].find((x) => x['#'] === r['#'])?.Name || r.Name;
+    expansions[id] = { id, n: fill(byLang) };
+  }
+
   const areaOrder = [];
-  for (const s of usableSpots) if (!areaOrder.some((a) => a.ja === s.area.ja)) areaOrder.push(s.area);
+  for (const s of usableSpots) {
+    if (!areaOrder.some((a) => a.ja === s.area.ja && a.ex === s.ex)) {
+      areaOrder.push({ ...s.area, ex: s.ex });
+    }
+  }
+  // 拡張の若い順。オーシャンフィッシングは最後に回す
+  const exRank = (e) => (e === OCEAN_EX ? 99 : e);
+  areaOrder.sort((a, b) => exRank(a.ex) - exRank(b.ex));
 
   // ─── オーシャンフィッシング ──────────────────────────────
   // 時間帯コードは 1=夜 2=昼 3=夕（プラグイン側の寄港順と突き合わせて確認済み）
@@ -409,6 +467,32 @@ async function main() {
       stops,
     };
   }
+  // ─── 伝説魚と時間限定魚 ─────────────────────────────────
+  // 「昼のみ」「夕方のみ」といった制限はゲームデータに無いので、外から補う。
+  const TIME_CODE = { night: 1, day: 2, sunset: 3 };
+  const normEn = (x) => x.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const fishByEn = new Map(Object.values(fish).map((f) => [normEn(f.n.en), f]));
+  let matched = 0, unmatched = [];
+  for (const key of ['ocean-indigo.json', 'ocean-ruby.json']) {
+    const db = JSON.parse(raw[key]);
+    for (const [group, items] of Object.entries(db.targets?.fish ?? {})) {
+      for (const [name, v] of Object.entries(items)) {
+        const f = fishByEn.get(normEn(name));
+        if (!f) { unmatched.push(name); continue; }
+        matched++;
+        if (group === 'Blue Fish') f.oceanLegend = true;
+        const times = new Set(f.oceanTimes ?? []);
+        for (const loc of v.locations ?? []) {
+          for (const t of String(loc.time ?? '').split(',')) {
+            if (TIME_CODE[t]) times.add(TIME_CODE[t]);
+          }
+        }
+        if (times.size) f.oceanTimes = [...times].sort();
+      }
+    }
+  }
+  if (unmatched.length) log(`ocean  名前が照合できなかった魚: ${unmatched.join(', ')}`);
+
   const ocean = {
     phase: OCEAN_PHASE,
     table: ikdTable.map((r) => [Number(r.IndigoRoute), Number(r.RubyRoute)]),
@@ -437,9 +521,11 @@ async function main() {
         'FFX|V Fish Tracker App — 出現条件・エサ・引き・天候',
         'xivapi/ffxiv-datamining — 銛・説明文・オーシャンフィッシングの運行表',
         ...(biteMeta?.source ? ['Lodinn — ヒットタイムと釣果率の実測統計'] : []),
+        'momokotomoko / StreamDeck Ocean Fishing — 伝説魚と時間限定魚',
       ],
     },
     areaOrder,
+    expansions,
     spots: usableSpots,
     fish,
     baits,
@@ -512,7 +598,11 @@ async function main() {
       `\n引きを実測から補完 ${Object.values(fish).filter((f) => f.tugFromStats).length} 種` +
       `\n銛の釣り場 ${usableSpots.filter((s) => s.spear).length} / 説明文 ${Object.values(fish).filter((f) => f.desc).length} 種` +
       `\nアイコン ${iconCount} / ${Object.keys(fish).length} 種` +
-      `\nオーシャンフィッシング 航路 ${Object.keys(oceanRoutes).length} / 運行表 ${ocean.table.length} 便`,
+      `\nオーシャンフィッシング 航路 ${Object.keys(oceanRoutes).length} / 運行表 ${ocean.table.length} 便` +
+      `\nオーシャン 伝説魚 ${Object.values(fish).filter((f) => f.oceanLegend).length}` +
+      ` / 時間限定 ${Object.values(fish).filter((f) => f.oceanTimes).length}` +
+      `\n拡張別の釣り場: ${Object.values(expansions).map((e) =>
+        `${e.n.ja} ${usableSpots.filter((s) => s.ex === e.id).length}`).join(' / ')}`,
   );
 }
 

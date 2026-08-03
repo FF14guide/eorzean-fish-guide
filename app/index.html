@@ -53,6 +53,7 @@
   --r-sm:5px;
   --pill:999px;
   --sidebar:300px;
+  --header-h:60px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -91,7 +92,7 @@ a{color:var(--glow)}
 
 header{
   display:flex;align-items:center;gap:18px;
-  padding:0 18px;height:60px;
+  padding:0 18px;height:var(--header-h);
   background:linear-gradient(180deg,#1B2C4E,#12203A);
   border-bottom:1px solid var(--edge);
   position:relative;z-index:20;
@@ -101,7 +102,10 @@ header::after{ /* 金の縁取り */
   background:linear-gradient(90deg,transparent,var(--gold) 18%,var(--gold) 82%,transparent);
   opacity:.55;
 }
-.brand{display:flex;align-items:center;gap:10px;flex:none}
+.brand{display:flex;align-items:center;gap:10px;flex:none;cursor:pointer;text-align:left}
+.brand:hover .mark{transform:scale(1.06)}
+.brand .mark{transition:transform .12s}
+.brand .ttl{display:block}
 .brand .mark{
   width:30px;height:30px;border-radius:var(--r-sm);display:grid;place-items:center;flex:none;
   background:linear-gradient(145deg,var(--gold),#C89B3C);color:#12203A;
@@ -112,7 +116,7 @@ header::after{ /* 金の縁取り */
   display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;
   color:var(--gold);opacity:.75;
 }
-@media (max-width:720px){.brand .sub{display:none}}
+
 
 /* ── ET時計：24分割のリング ─────────────────────────────── */
 .clock{display:flex;align-items:center;gap:10px;flex:none}
@@ -140,8 +144,8 @@ header::after{ /* 金の縁取り */
 .picks select:focus{outline:none;border-color:var(--aqua)}
 .clock-read.lt b{color:var(--aqua)}
 .clock-read.lt{padding-left:10px;border-left:1px solid var(--edge-soft)}
-@media (max-width:1180px){.clock-read.lt{display:none}}
-@media (max-width:900px){.picks select{padding:5px 7px;font-size:10.5px}}
+@media (max-width:1180px) and (min-width:781px){.clock-read.lt{display:none}}
+@media (max-width:900px){.picks select{padding:5px 8px;font-size:11px}}
 .toggles{display:flex;gap:6px;flex:none}
 .tgl{
   font-size:11.5px;font-weight:600;letter-spacing:.02em;
@@ -177,6 +181,19 @@ aside{
   background:linear-gradient(145deg,var(--gold),#C89B3C);color:#12203A;
 }
 .nav .count{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--dim)}
+
+.exp{border-bottom:1px solid var(--edge)}
+.exp>summary{
+  display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;
+  padding:10px 14px;font-size:12.5px;font-weight:800;letter-spacing:.02em;color:var(--gold);
+}
+.exp>summary::-webkit-details-marker{display:none}
+.exp>summary:hover{background:rgba(245,197,99,.08)}
+.exp>summary .caret{font-family:var(--mono);font-size:9px;color:var(--gold-dim);transition:transform .16s ease;flex:none}
+.exp[open]>summary .caret{transform:rotate(90deg)}
+.exp>summary .count{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--dim);font-weight:400}
+.exp .area>summary{padding-left:24px;font-size:12px;font-weight:600}
+.exp .spotlist button{padding-left:38px}
 
 .area{border-bottom:1px solid var(--edge-soft)}
 .area>summary{
@@ -308,11 +325,19 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .ostop i{font-style:normal;font-size:9px;margin-left:4px;font-weight:700}
 .ostop i.td{color:var(--gold)} .ostop i.ts{color:#FFA96B} .ostop i.tn{color:#8FA9F5}
 .oarrow{color:var(--dim);font-size:9px}
-.odim{color:var(--dim)}
-@media (max-width:900px){
-  .ohead{display:none}
-  .orow{grid-template-columns:1fr;gap:8px}
+.otargets{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.otgt{
+  font-size:10.5px;padding:3px 8px;border-radius:var(--pill);cursor:pointer;white-space:nowrap;
+  background:rgba(46,74,125,.35);color:var(--mist);border:1px solid transparent;
 }
+.otgt:hover{border-color:var(--gold);color:var(--foam)}
+.otgt.legend{background:rgba(245,197,99,.16);color:var(--gold);font-weight:700}
+.otgt i{font-style:normal;font-size:9px;color:var(--dim);margin-left:5px}
+.otgt.legend i{color:var(--gold-dim)}
+.tag.legend{color:var(--gold);background:rgba(245,197,99,.14)}
+.tag.otime{color:var(--aqua);background:rgba(79,220,236,.12)}
+.odim{color:var(--dim)}
+
 
 /* ── お気に入り ───────────────────────────────────────── */
 .fav{
@@ -383,6 +408,15 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .bait .b{color:var(--foam)}
 .bait .b.prey{color:var(--aqua)}
 .bait .none{color:var(--dim)}
+.bait .b.stat{color:var(--lime)}
+.brate-inline{font-family:var(--mono);font-size:10px;color:var(--dim)}
+.ostopwrap{display:inline-flex;align-items:center;gap:2px}
+.ospec{
+  font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:var(--pill);cursor:pointer;
+  background:rgba(187,147,245,.18);color:var(--violet);border:1px solid rgba(187,147,245,.4);
+}
+.ospec:hover{background:var(--violet);color:var(--ink)}
+.gigmark.spec{background:rgba(187,147,245,.18);color:var(--violet)}
 
 /* ET リボン：昼夜のグラデーションの上に有効帯を抜く */
 .ribbon{position:relative;height:17px;border-radius:var(--pill);overflow:hidden;background:var(--deeper)}
@@ -427,12 +461,17 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 /* ── ヌシ一覧 ─────────────────────────────────────────── */
 .nhead,.nrow{
   display:grid;
-  grid-template-columns:52px minmax(150px,1.1fr) minmax(120px,.9fr) minmax(150px,1.1fr) 170px 62px;
-  gap:12px;align-items:center;
+  grid-template-columns:96px minmax(140px,1fr) 186px minmax(110px,.85fr) minmax(130px,1fr) minmax(150px,1.1fr);
+  gap:11px;align-items:start;
 }
 .nhead{padding:0 12px 7px;border-bottom:1px solid var(--edge);position:sticky;top:0;background:var(--ink);z-index:5}
 .nhead>div{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
-.nrow{padding:10px 12px;border-bottom:1px solid var(--edge-soft);cursor:pointer}
+.nrow{padding:11px 12px;border-bottom:1px solid var(--edge-soft);cursor:pointer}
+.nkind{display:flex;align-items:center;gap:5px}
+.nspot small{display:block;font-size:10px;color:var(--dim);margin-top:1px}
+.nbait{display:flex;flex-direction:column;gap:4px;align-items:flex-start;min-width:0}
+.nnext .rel.dim{color:var(--dim)}
+.wchip.guess{background:rgba(255,126,126,.14);color:var(--coral);border:1px solid rgba(255,126,126,.4)}
 .nrow:hover{background:rgba(29,47,82,.55)}
 .nrow.open{background:rgba(143,232,112,.07);box-shadow:inset 3px 0 0 var(--lime)}
 .kind{
@@ -440,7 +479,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
   background:rgba(245,197,99,.14);color:var(--gold);white-space:nowrap;
 }
 .kind.oo{background:linear-gradient(145deg,var(--rose),#E574B4);color:#2A1030}
-.nname{font-size:13.5px;display:flex;align-items:center;gap:7px;min-width:0}
+.nname{font-size:13.5px;display:flex;align-items:center;gap:7px;min-width:0;padding-top:1px}
 .nname .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nspot{font-size:11.5px;color:var(--mist);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ncond{display:flex;flex-wrap:wrap;gap:3px;font-size:10.5px}
@@ -552,36 +591,131 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .credit a{color:var(--mist)}
 .credit .sqex{color:var(--mist);white-space:nowrap}
 
-/* ── レスポンシブ ─────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   レスポンシブ
+   1080px 以下で列を詰め、780px 以下では表をやめてカードに切り替える。
+   スマホでは横スクロールを一切出さないことを優先した。
+   ══════════════════════════════════════════════════════════ */
+@media (max-width:1240px){
+  .nhead,.nrow{grid-template-columns:88px minmax(120px,1fr) 168px minmax(90px,.7fr) minmax(110px,.9fr) minmax(120px,1fr)}
+}
 @media (max-width:1080px){
-  .thead,.fishrow{grid-template-columns:minmax(160px,1.4fr) minmax(130px,1.2fr) 110px 96px 54px 84px}
-  .nhead,.nrow{grid-template-columns:48px minmax(120px,1fr) minmax(90px,.8fr) 150px 50px}
-  .nhead>div:nth-child(4),.nrow>.ncond{display:none}
+  .thead,.fishrow{grid-template-columns:minmax(150px,1.4fr) minmax(120px,1.2fr) 104px 92px 50px 78px}
+  .nhead,.nrow{grid-template-columns:84px minmax(110px,1fr) 156px minmax(100px,1fr)}
+  .nhead>div:nth-child(5),.nhead>div:nth-child(6){display:none}
+  .nrow>.ncond,.nrow>.nbait{grid-column:2/-1;padding-top:2px}
 }
-@media (max-width:860px){
-  .baxis{margin-left:104px;margin-right:44px}
-  .bname{width:80px;font-size:10.5px}
-  .btug{width:24px;font-size:9px}
-  .brate{width:44px;font-size:10px}
-  .nhead{display:none}
-  .nrow{grid-template-columns:auto 1fr;gap:6px 10px;padding:12px}
-  .nrow>.nname{grid-column:2}
-  .nrow>.nspot,.nrow>.nnext,.nrow>.ndur{grid-column:1/-1}
-  .nrow>.ncond{grid-column:1/-1;display:flex}
-}
-@media (max-width:860px){
+
+/* ── タブレット以下：サイドバーを引き出しに ─────────────── */
+@media (max-width:900px){
   main{grid-template-columns:1fr}
-  aside{position:fixed;top:56px;bottom:0;left:0;width:var(--sidebar);z-index:30;
-        transform:translateX(-100%);transition:transform .2s}
+  aside{
+    position:fixed;top:var(--header-h);bottom:0;left:0;width:min(86vw,var(--sidebar));z-index:30;
+    transform:translateX(-100%);transition:transform .2s;box-shadow:14px 0 40px rgba(0,0,0,.45);
+  }
   aside.open{transform:none}
-  .thead{display:none}
-  .fishrow{grid-template-columns:1fr 1fr;gap:8px;padding:12px}
-  .fname{grid-column:1/-1}
-  .ribbon{grid-column:1/-1}
-  .wrap{padding:16px}
-  .search{max-width:none}
-  .brand span{display:none}
+  .menubtn{display:block;color:var(--mist);font-size:19px;padding:4px 2px}
+  .scrim.side{opacity:1;pointer-events:auto;z-index:25}
 }
+
+/* ── スマホ：表をカードに ────────────────────────────── */
+@media (max-width:780px){
+  :root{--header-h:auto}
+  body{font-size:14.5px}
+  header{
+    height:auto;flex-wrap:wrap;gap:9px 12px;padding:9px 12px 11px;
+    position:sticky;top:0;
+  }
+  .brand .ttl b{font-size:15px}
+  .brand .sub{display:none}
+  .clock{order:3;gap:8px}
+  .clock svg{width:26px;height:26px}
+  .clock-read b{font-size:14px}
+  .clock-read.lt{display:block;padding-left:8px}
+  .search{order:5;flex:1 1 100%;max-width:none}
+  .picks{order:4;margin-left:auto}
+  .toggles{order:6;flex:1 1 100%;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+  .toggles::-webkit-scrollbar{display:none}
+  .tgl{flex:none}
+
+  .wrap{padding:14px 12px 60px}
+  .spot-head h1{font-size:22px}
+  .spot-head{gap:8px}
+  .eyebrow{font-size:9px}
+
+  /* 釣り場の魚：カード */
+  .thead{display:none}
+  .fishrow{
+    grid-template-columns:1fr auto;gap:7px 10px;padding:13px 12px;
+    border-radius:var(--r);margin-bottom:7px;border:1px solid var(--edge-soft);
+    background:rgba(21,35,64,.5);
+  }
+  .fishrow.live{background:rgba(143,232,112,.09)}
+  .fishrow>.fname{grid-column:1;align-self:center}
+  .fishrow>.bite{grid-column:2;align-self:center;font-size:14px}
+  .fishrow>.bait{grid-column:1/-1}
+  .fishrow>.ribbon{grid-column:1/-1}
+  .fishrow>.weather{grid-column:1}
+  .fishrow>.tug{grid-column:2;text-align:right}
+  .fname .nm{font-size:14.5px}
+
+  /* ヌシ一覧：カード */
+  .nhead{display:none}
+  .nrow{
+    grid-template-columns:auto 1fr;gap:6px 9px;padding:13px 12px;
+    border-radius:var(--r);margin-bottom:7px;border:1px solid var(--edge-soft);
+    background:rgba(21,35,64,.5);
+  }
+  .nrow.open{background:rgba(143,232,112,.09)}
+  .nrow>.nkind{grid-column:1;align-self:center}
+  .nrow>.nname{grid-column:2;align-self:center}
+  .nrow>.nnext,.nrow>.nspot,.nrow>.ncond,.nrow>.nbait{grid-column:1/-1}
+  .nnext{font-size:12.5px}
+  .nspot{white-space:normal}
+
+  /* 運行表 */
+  .ohead{display:none}
+  .orow{
+    grid-template-columns:1fr;gap:9px;padding:13px 12px;
+    border-radius:var(--r);margin-bottom:7px;border:1px solid var(--edge-soft);
+    background:rgba(21,35,64,.5);
+  }
+  .otime{display:flex;align-items:baseline;gap:9px}
+  .otime b{font-size:15px}
+
+  /* 検索結果 */
+  .result{flex-wrap:wrap;gap:6px}
+  .result .kind{width:auto}
+  .result .sub{margin-left:0;flex:1 1 100%;font-size:11px}
+
+  /* ガント・分布 */
+  .gbody{padding:4px 10px 14px}
+  .gaxis{margin-left:92px}
+  .gname{width:92px;font-size:10.5px}
+  .baxis{margin-left:92px;margin-right:40px}
+  .bname{width:70px;font-size:10.5px}
+  .btug{width:22px;font-size:9px}
+  .brate{width:40px;font-size:9.5px}
+  .brange{font-size:8.5px}
+  .forecast{gap:5px;margin:14px 0 2px}
+  .wcell{flex:0 0 74px}
+
+  /* ドロワーは全画面に */
+  .drawer{width:100%;border-left:none}
+  .dbody{padding:16px 16px 80px}
+  .kv{grid-template-columns:74px 1fr}
+  .btab{font-size:11px}
+  .btab td{padding:5px 4px}
+  .empty{padding:34px 16px}
+  .empty h2{font-size:20px}
+}
+
+@media (max-width:400px){
+  .clock-read.lt{display:none}
+  .brand .ttl b{font-size:14px}
+  .picks select{max-width:104px}
+}
+
 .menubtn{display:none}
 @media (max-width:860px){.menubtn{display:block;color:var(--mist);font-size:18px}}
 
@@ -595,15 +729,15 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 <div id="app">
   <header>
     <button class="menubtn" id="menubtn" aria-label="釣り場一覧を開く">☰</button>
-    <div class="brand">
+    <button class="brand" id="home" title="Home">
       <span class="mark" aria-hidden="true">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 12c3.2-4 7-6 10-6s6.4 2 9.4 6c-3 4-6.4 6-9.4 6s-6.8-2-10-6Z"/>
           <circle cx="9" cy="12" r="1.1" fill="currentColor" stroke="none"/>
         </svg>
       </span>
-      <b>エオルゼア釣り図鑑</b><span class="sub">EORZEAN FISH GUIDE</span>
-    </div>
+      <span class="ttl"><b>エオルゼア釣り図鑑</b><span class="sub">EORZEAN FISH GUIDE</span></span>
+    </button>
 
     <div class="clock" title="エオルゼア時間">
       <svg width="34" height="34" viewBox="0 0 34 34" id="etring" aria-hidden="true"></svg>
@@ -696,7 +830,7 @@ const STR = {
     anytime: '時間・天候は不問', notFound: '400日以内になし', condMissing: '条件未収録',
     all: 'すべて', oonushiOnly: 'オオヌシのみ', byNext: '次回順', byName: '名前順',
     allPatches: '全拡張', favOnly: '★ お気に入り',
-    depart: '出航', indigoRoute: '藍の航路', rubyRoute: '紅の航路', boarding: '受付中',
+    depart: '出航', indigoRoute: '近海航路', rubyRoute: '遠洋航路', boarding: '受付中',
     howTo: '釣り方', released: '実装', place: '釣れる場所', windows: '次の出現ウィンドウ',
     baitCol: 'エサ', biteSec: 'ヒット秒数', chumCol: '撒き餌', rate: '釣果率', samples: '件数',
     showing: '種を表示', species: '匹', open: 'いま釣れる',
@@ -707,6 +841,11 @@ const STR = {
     biteSource: '出典：Lodinn の集計（Teamcraft の Allagan Reports に集まった実測）。釣果率はそのエサを使ったキャスト全体に占める割合。',
     minutes: '分', hoursU: '時間', days: '日', ago: 'あと ',
     nushiOne: 'ヌシ', oonushi: 'オオヌシ',
+    estimated: '推定', fromPredator: ' の条件から推定',
+    byRate: '実測の釣果率が最も高いエサ', spectral: '幻海流', normal: '通常',
+    targets: '狙える魚', legendOnly: '伝説魚が狙える便',
+    legendFish: '伝説魚', onlySuffix: '限定',
+    uptime: '出現率', nearshore: '近海航路', offshore: '遠洋航路',
   },
   en: {
     brandSub: 'EORZEAN FISH GUIDE',
@@ -737,6 +876,11 @@ const STR = {
     biteSource: 'Source: Lodinn\u2019s aggregation of player reports collected via Teamcraft Allagan Reports. Catch rate is the share of all casts with that bait.',
     minutes: 'min', hoursU: 'h', days: 'd', ago: 'in ',
     nushiOne: 'Big Fish', oonushi: 'Legendary',
+    estimated: 'Estimated', fromPredator: ' \u2014 derived from this predator',
+    byRate: 'highest measured catch rate', spectral: 'Spectral', normal: 'Normal',
+    targets: 'Targets', legendOnly: 'Legendary only',
+    legendFish: 'Legendary', onlySuffix: ' only',
+    uptime: 'Uptime', nearshore: 'Indigo Route', offshore: 'Ruby Route',
   },
 };
 const T = (k) => (STR[state.lang] ?? STR.en)[k] ?? STR.en[k] ?? k;
@@ -821,7 +965,8 @@ function hourRanges(f) {
   return [[f.startHour, 24], [0, f.endHour]];
 }
 /** 指定時刻に、その釣り場でその魚の条件が揃っているか */
-function isUp(fish, territoryId, ms) {
+function isUp(f0, territoryId, ms) {
+  const fish = condOf(f0);
   if (!fish.hasConditions) return false;
   const { h } = etParts(ms);
   const timeFree = state.fishEyes && fish.fishEyes;
@@ -844,7 +989,8 @@ function isUp(fish, territoryId, ms) {
  * 天候は8ET時間（1400実秒）単位でしか変わらないので、天候枠を跨いで走査し、
  * 枠内でET時間の条件と突き合わせる。ヌシのように何日も空く相手でも実用速度で出る。
  */
-function findWindows(f, territoryId, opts = {}) {
+function findWindows(f0, territoryId, opts = {}) {
+  const f = condOf(f0);
   const { days = 3, limit = 8, fishEyes = false, from = Date.now() } = opts;
   if (!f.hasConditions) return [];
   const end = from + days * 86400000;
@@ -907,6 +1053,20 @@ function nushiWindows(f, territoryId) {
   winCache.set(key, { at: Date.now(), v });
   return v;
 }
+/** 30日ぶんを走査して出現率を出す。ヌシの「どれくらい待つか」の目安になる */
+const upCache = new Map();
+function uptime(f, territoryId) {
+  const key = `${f.id}:${state.fishEyes ? 1 : 0}`;
+  if (upCache.has(key)) return upCache.get(key);
+  const days = 30, from = Date.now();
+  const ws = findWindows(f, territoryId, { days, limit: 1e9, fishEyes: state.fishEyes, from });
+  let v = null;
+  if (ws === 'always') v = 100;
+  else if (ws.length) v = (ws.reduce((a, [x, y]) => a + (y - x), 0) / (days * 86400000)) * 100;
+  upCache.set(key, v);
+  return v;
+}
+
 /** 直近（またはいま開いている）ウィンドウ。'always' はそのまま返す */
 function nextWindow(list) {
   if (list === 'always') return 'always';
@@ -914,8 +1074,36 @@ function nextWindow(list) {
   return list.find(([, b]) => b > now) ?? null;
 }
 
-const isConditional = (f) => f.weather.length || f.prevWeather.length ||
-                             f.startHour !== 0 || f.endHour !== 24 || f.predators.length;
+/**
+ * 条件が未収録のヌシでも、直感の前提魚が縛られていれば、そこから窓は導ける。
+ * 前提魚を釣らないと本命は釣れないので、前提魚の条件がそのまま実効的な条件になる。
+ * いちばん狭い前提魚を採用する。
+ */
+function deriveCond(f) {
+  if (!(f.unknownTime || f.unknownWeather) || !f.predators.length) return null;
+  const cands = f.predators
+    .map(([id]) => DB.fish[id])
+    .filter((p) => p && p.hasConditions &&
+      (p.weather.length || p.prevWeather.length || p.startHour !== 0 || p.endHour !== 24));
+  if (!cands.length) return null;
+  const span = (p) => {
+    const h = p.startHour < p.endHour ? p.endHour - p.startHour : 24 - p.startHour + p.endHour;
+    return h * (p.weather.length ? p.weather.length / 20 : 1);
+  };
+  const p = cands.sort((a, b) => span(a) - span(b))[0];
+  return {
+    startHour: p.startHour, endHour: p.endHour,
+    weather: p.weather, prevWeather: p.prevWeather,
+    fishEyes: false, hasConditions: true,
+    fromPredator: p.id,
+  };
+}
+/** 判定・窓の計算に使う実効条件 */
+const condOf = (f) => f.derived ?? f;
+
+const isConditional = (f0) => { const f = condOf(f0);
+  return f.weather.length || f.prevWeather.length ||
+         f.startHour !== 0 || f.endHour !== 24 || f0.predators.length; };
 
 /* ══════════════════════════════════════════════════════════
    小さなユーティリティ
@@ -932,6 +1120,7 @@ const dayLabel = (ms) => (ymd(ms) === ymd(Date.now()) ? '' : `${md(ms)} `);
 const mins = (a, b) => Math.round((b - a) / 60000);
 
 const spotById = new Map(DB.spots.map((s) => [s.id, s]));
+for (const f of Object.values(DB.fish)) f.derived = null;   // deriveCond のあとで埋める
 
 /**
  * アイテムアイコン。XIVAPI v2 のアセット配信を使う。
@@ -962,6 +1151,17 @@ for (const [key, rec] of Object.entries(DB.bite ?? {})) {
   t.set(ba, (t.get(ba) ?? 0) + rec.n);
 }
 for (const m of biteIndex.values()) for (const arr of m.values()) arr.sort((a, b) => b.n - a.n);
+
+/**
+ * その釣り場・その魚で、いちばん釣果率の高いエサ。
+ * オーシャンフィッシングの魚は上流にエサ情報が無いので、実測から選ぶ。
+ */
+function bestBaitByRate(fishId, spotId) {
+  const arr = biteIndex.get(spotId)?.get(fishId);
+  if (!arr?.length) return null;
+  const ranked = arr.filter((r) => r.rate != null).sort((a, b) => b.rate - a.rate || b.n - a.n);
+  return ranked[0] ?? null;
+}
 
 /** その釣り場・その魚で、いちばん頼れる1件。使うエサが分かっていればそれを優先 */
 function bestBite(fishId, spotId, preferBait) {
@@ -1009,6 +1209,8 @@ const state = {
   chartBait: null,        // ヒットタイム分布で選んでいるエサ
   chartChum: false,
   oceanDest: 'all',
+  oceanTargets: true,
+  oceanLegendOnly: false,
   favs: new Set(),        // タイムラインに出すヌシ
   favOnly: false,
   spotId: null,
@@ -1016,6 +1218,7 @@ const state = {
   liveOnly: false,
   condOnly: false,
   openAreas: new Set(),
+  openEx: new Set(),
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -1058,11 +1261,19 @@ function renderChrome() {
 }
 
 function renderSide() {
+  // 拡張ごとにエリアをまとめ、その下に釣り場を並べる
   const byArea = new Map();
   for (const s of DB.spots) {
-    if (!byArea.has(s.area.ja)) byArea.set(s.area.ja, []);
-    byArea.get(s.area.ja).push(s);
+    const key = `${s.ex}\u0001${s.area.ja}`;
+    if (!byArea.has(key)) byArea.set(key, []);
+    byArea.get(key).push(s);
   }
+  const byEx = new Map();
+  for (const a of DB.areaOrder) {
+    if (!byEx.has(a.ex)) byEx.set(a.ex, []);
+    byEx.get(a.ex).push(a);
+  }
+
   const nav = `<div class="nav">
     <button type="button" id="nav-nushi" ${state.view === 'nushi' ? 'aria-current="true"' : ''}>
       <span class="nv-i">${state.lang === 'ja' ? 'ヌ' : 'B'}</span>
@@ -1075,19 +1286,32 @@ function renderSide() {
       <span class="count">${T('schedule')}</span>
     </button>
   </div>`;
-  const html = nav + DB.areaOrder.filter((a) => byArea.has(a.ja)).map((area) => {
-    const list = byArea.get(area.ja);
-    const open = state.openAreas.has(area.ja);
-    return `<details class="area" data-area="${esc(area.ja)}"${open ? ' open' : ''}>
+
+  const html = nav + [...byEx.entries()].map(([ex, areas]) => {
+    const exp = DB.expansions[ex];
+    const count = areas.reduce((n, a) => n + (byArea.get(`${ex}\u0001${a.ja}`)?.length ?? 0), 0);
+    const exOpen = state.openEx.has(String(ex));
+    return `<details class="exp" data-ex="${ex}"${exOpen ? ' open' : ''}>
       <summary>
-        <span class="caret">▶</span><span>${esc(nm(area))}</span>
-        <span class="count">${list.length}</span></summary>
-      <div class="spotlist">${list.map((s) => `
-        <button type="button" data-spot="${s.id}" ${s.id === state.spotId ? 'aria-current="true"' : ''}>
-          ${s.spear ? '<span class="gig" title="銛">⚵</span>' : ''}
-          <span>${esc(nm(s.n))}</span>
-          ${s.level ? `<span class="lv">Lv${s.level}</span>` : ''}
-        </button>`).join('')}</div>
+        <span class="caret">▶</span><span>${esc(nm(exp?.n) || '?')}</span>
+        <span class="count">${count}</span>
+      </summary>
+      <div>${areas.map((area) => {
+        const list = byArea.get(`${ex}\u0001${area.ja}`) ?? [];
+        const open = state.openAreas.has(area.ja);
+        return `<details class="area" data-area="${esc(area.ja)}"${open ? ' open' : ''}>
+          <summary>
+            <span class="caret">▶</span><span>${esc(nm(area))}</span>
+            <span class="count">${list.length}</span>
+          </summary>
+          <div class="spotlist">${list.map((s) => `
+            <button type="button" data-spot="${s.id}" ${s.id === state.spotId ? 'aria-current="true"' : ''}>
+              ${s.spear ? '<span class="gig" title="spear">⚵</span>' : ''}
+              <span>${esc(nm(s.n))}</span>
+              ${s.level ? `<span class="lv">Lv${s.level}</span>` : ''}
+            </button>`).join('')}</div>
+        </details>`;
+      }).join('')}</div>
     </details>`;
   }).join('');
   $('#side').innerHTML = html;
@@ -1136,8 +1360,15 @@ function weatherHTML(f, territoryId) {
   return `<div class="weather">${prev}${cur}</div>`;
 }
 
-function baitHTML(f) {
+function baitHTML(f, spotId) {
   if (!f.baitPath.length) {
+    // 上流にエサが無くても、実測の釣果率から推せる（主にオーシャンフィッシング）
+    const b = spotId != null ? bestBaitByRate(f.id, spotId) : null;
+    if (b) {
+      return `<div class="bait" title="${T('byRate')}">
+        <span class="b stat">${esc(baitName(b.baitId))}</span>
+        <span class="brate-inline">${b.rate}%</span></div>`;
+    }
     if (f.predators.length) {
       const p = f.predators.map(([id, n]) => `${esc(nm(DB.fish[id]?.n) || baitName(id))}×${n}`).join(' + ');
       return `<div class="bait"><span class="none">${T('intuition')}:</span> <span class="b prey">${p}</span></div>`;
@@ -1163,12 +1394,14 @@ function fishRow(f, spot) {
     f.folklore ? `<span class="tag folk">${T('folklore')}</span>` : '',
     f.collectable ? `<span class="tag coll">${T('collectable')}</span>` : '',
     f.gig ? `<span class="tag gig">${T('gig')}</span>` : '',
+    f.oceanLegend ? `<span class="tag legend">${T('legendFish')}</span>` : '',
+    f.oceanTimes ? `<span class="tag otime">${f.oceanTimes.map(timeLabel).join('/')}${T('onlySuffix')}</span>` : '',
   ].join('');
   const stars = f.stars ? `<span class="stars">${'★'.repeat(f.stars)}</span>` : '';
   const tugCls = f.tugRank ? `t${f.tugRank}` : '';
   return `<div class="fishrow${live ? ' live' : ''}" data-fish="${f.id}" tabindex="0" role="button">
     <div class="fname">${iconImg(f)}<span class="nm">${esc(nm(f.n))}</span>${stars}<span class="tags">${tags}</span></div>
-    ${baitHTML(f)}
+    ${baitHTML(f, spot.id)}
     ${ribbonHTML(f)}
     ${weatherHTML(f, spot.territoryId)}
     <div class="tug ${tugCls}">${f.tugJa ?? '<span style="color:var(--dim)">—</span>'}
@@ -1315,7 +1548,9 @@ function renderSpot(keepScroll = false) {
 
   $('#stage').innerHTML = `<div class="wrap">
     <div class="spot-head">
-      <h1>${esc(nm(spot.n))}${spot.spear ? `<span class="gigmark">${T('spearMark')}</span>` : ''}</h1>
+      <h1>${esc(nm(spot.n)).replace(/：幻海流|Spectral Current/i, '')}${
+        spot.spear ? `<span class="gigmark">${T('spearMark')}</span>` : ''}${
+        spot.spectral ? `<span class="gigmark spec">${T('spectral')}</span>` : ''}</h1>
       <div class="meta">
         ${esc(nm(spot.area))}${spot.region ? ' · ' + esc(nm(spot.region)) : ''}
         ${spot.level ? ' · <b>Lv' + spot.level + '</b>' : ''}
@@ -1429,11 +1664,15 @@ const remainText = (m) => (state.lang === 'ja' ? `残り ${fmtMin(m)}` : `${fmtM
 
 function condChips(f, spotId) {
   const c = [];
-  const b = spotId != null ? bestBite(f.id, spotId, baitKey(f.baitPath[f.baitPath.length - 1])) : null;
-  if (b?.lo != null) c.push(`<span class="wchip bite" title="${esc(baitName(b.baitId))}で ${b.n} 件">${b.lo}–${b.hi}s</span>`);
-  if (f.startHour !== 0 || f.endHour !== 24) c.push(`<span class="wchip">ET ${etShort(f.startHour)}–${etShort(f.endHour)}</span>`);
-  f.prevWeather.forEach((w) => c.push(`<span class="wchip prev">${T('prev')}${esc(wName(w))}</span>`));
-  f.weather.forEach((w) => c.push(`<span class="wchip">${esc(wName(w))}</span>`));
+  const d = condOf(f);
+  const guess = !!f.derived;
+  if (guess) {
+    const p = DB.fish[f.derived.fromPredator];
+    c.push(`<span class="wchip guess" title="${esc(nm(p?.n))}${T('fromPredator')}">⚠ ${T('estimated')}</span>`);
+  }
+  if (d.startHour !== 0 || d.endHour !== 24) c.push(`<span class="wchip">ET ${etShort(d.startHour)}–${etShort(d.endHour)}</span>`);
+  d.prevWeather.forEach((w) => c.push(`<span class="wchip prev">${T('prev')}${esc(wName(w))}</span>`));
+  d.weather.forEach((w) => c.push(`<span class="wchip">${esc(wName(w))}</span>`));
   if (f.predators.length) c.push(`<span class="wchip" style="color:var(--gold)">${T('intuition')}</span>`);
   if (f.folklore) c.push(`<span class="wchip" style="color:var(--violet)">${T('folklore')}</span>`);
   if (f.snagging) c.push(`<span class="wchip">${T('snagging')}</span>`);
@@ -1489,11 +1728,12 @@ function renderNushi() {
   const rows = list.map((f) => {
     const spot = spotById.get(f.nushiSpot ?? f.spots[0]);
     const w = nextWindow(nushiWindows(f, spot?.territoryId ?? null));
+    const up = uptime(f, spot?.territoryId ?? null);
     let st = 'none';
     if (!f.hasConditions) st = 'unknown';
     else if (w === 'always') st = 'always';
     else if (w) st = w[0] <= now + 1000 ? 'open' : 'soon';
-    return { f, spot, w, st, live: st === 'open' || st === 'always' };
+    return { f, spot, w, up, st, live: st === 'open' || st === 'always' };
   });
 
   if (state.liveOnly) rows.splice(0, rows.length, ...rows.filter((r) => r.live));
@@ -1541,25 +1781,27 @@ function renderNushi() {
     </div>
 
     <div class="nhead">
-      <div>${T('kind')}</div><div>${T('fish')}</div><div>${T('spot')}</div><div>${T('cond')}</div><div>${T('next')}</div><div style="text-align:right">${T('dur')}</div>
+      <div>${T('kind')}</div><div>${T('fish')}</div><div>${T('next')}</div>
+      <div>${T('spot')}</div><div>${T('cond')}</div><div>${T('bait')}</div>
     </div>
-    <div>${rows.map(({ f, spot, w, st }) => `
+    <div>${rows.map(({ f, spot, w, up, st }) => `
       <div class="nrow${st === 'open' ? ' open' : ''}${st === 'always' ? ' always' : ''}" data-fish="${f.id}" data-fishspot="${spot?.id ?? ''}" tabindex="0" role="button">
-        <div><span class="kind${f.oonushi ? ' oo' : ''}">${f.oonushi ? T('oonushi') : T('nushiOne')}</span></div>
-        <div class="nname">${favBtn(f.id)}${iconImg(f, 'ficon sm')}<span class="nm">${esc(nm(f.n))}</span>
+        <div class="nkind">${favBtn(f.id)}<span class="kind${f.oonushi ? ' oo' : ''}">${f.oonushi ? T('oonushi') : T('nushiOne')}</span></div>
+        <div class="nname">${iconImg(f, 'ficon sm')}<span class="nm">${esc(nm(f.n))}</span>
           ${f.fishEyes && state.fishEyes ? '<span class="tag coll">FE</span>' : ''}</div>
-        <div class="nspot">${esc(nm(spot?.n)) || '—'}</div>
-        ${condChips(f, spot?.id)}
         <div class="nnext">${
           st === 'unknown' ? `<span class="never">${T('condMissing')}</span>`
           : st === 'always' ? `<span class="anytime">${T('anytime')}</span>`
-          : st === 'open' ? `<span class="live">${T('nowBiting')}</span><br><span class="rel">${untilText(w[1])}</span>`
-          : st === 'soon' ? `<span class="abs">${absTime(w[0])}</span><br><span class="rel">${relTime(w[0])}</span>`
-          : `<span class="never">${T('notFound')}</span>`}</div>
-        <div class="ndur">${
-          st === 'open' ? remainText(mins(Date.now(), w[1]))
-          : st === 'soon' ? fmtMin(mins(w[0], w[1]))
-          : '—'}</div>
+          : st === 'open' ? `<span class="live">${T('nowBiting')}</span><br><span class="rel">${untilText(w[1])} · ${remainText(mins(Date.now(), w[1]))}</span>`
+          : st === 'soon' ? `<span class="abs">${absTime(w[0])}</span><br><span class="rel">${relTime(w[0])} · ${fmtMin(mins(w[0], w[1]))}</span>`
+          : `<span class="never">${T('notFound')}</span>`}
+          ${up != null && up < 100 ? `<br><span class="rel dim">${T('uptime')} ${up < 1 ? up.toFixed(1) : Math.round(up)}%</span>` : ''}</div>
+        <div class="nspot">${esc(nm(spot?.n)) || '—'}<small>${esc(nm(spot?.area))}</small></div>
+        ${condChips(f, spot?.id)}
+        <div class="nbait">${baitHTML(f, spot?.id)}${(() => {
+          const b = spot ? bestBite(f.id, spot.id, baitKey(f.baitPath[f.baitPath.length - 1])) : null;
+          return b?.lo != null ? `<span class="wchip bite">${b.lo}–${b.hi}s</span>` : '';
+        })()}</div>
       </div>`).join('') ||
       `<div class="gempty" style="padding:26px 12px">${state.lang === 'ja' ? '条件に合うヌシがいません。' : 'No big fish match.'}</div>`}
     </div>
@@ -1588,10 +1830,51 @@ const timeLabel = (t) => T(TIME_KEY[t] ?? 'day');
 
 function stopsHTML(route) {
   if (!route) return '<span class="odim">—</span>';
-  return route.stops.map((st) => `
-    <span class="ostop${st.spotId ? '' : ' plain'}" ${st.spotId ? `data-spot="${st.spotId}"` : ''}>
-      ${esc(nm(st.n))}<i class="${TIME_CLS[st.time] ?? 'td'}">${timeLabel(st.time)}</i>
-    </span>`).join('<span class="oarrow">→</span>');
+  // 幻海流に入ると釣れる魚がまるごと入れ替わるので、寄港地ごとに両方へ行けるようにする
+  return route.stops.map((st) => `<span class="ostopwrap">
+    <span class="ostop${st.spotId ? '' : ' plain'}" ${st.spotId ? `data-spot="${st.spotId}"` : ''}
+      title="${T('normal')}">${esc(nm(st.n))}<i class="${TIME_CLS[st.time] ?? 'td'}">${timeLabel(st.time)}</i></span>
+    ${st.subSpotId ? `<span class="ospec" data-spot="${st.subSpotId}" title="${T('spectral')}">${state.lang === 'ja' ? '幻' : 'S'}</span>` : ''}
+  </span>`).join('<span class="oarrow">→</span>');
+}
+
+/**
+ * その便で狙える魚。寄港地の時間帯と、魚が要求する時間帯が合ったものだけ。
+ * 幻海流の魚は幻海流の釣り場から拾う。
+ */
+function voyageTargets(route) {
+  if (!route) return { legend: [], timed: [] };
+  const legend = [], timed = [];
+  for (const st of route.stops) {
+    for (const sid of [st.spotId, st.subSpotId]) {
+      const sp = sid != null ? spotById.get(sid) : null;
+      if (!sp) continue;
+      for (const id of sp.fishes) {
+        const f = DB.fish[id];
+        if (!f) continue;
+        // 時間指定のある魚は、その寄港地の時間帯と一致するときだけ狙える
+        if (f.oceanTimes && !f.oceanTimes.includes(st.time)) continue;
+        if (f.oceanLegend) legend.push({ f, sp, st });
+        else if (f.oceanTimes) timed.push({ f, sp, st });
+      }
+    }
+  }
+  return { legend, timed };
+}
+
+function targetChips(route) {
+  const { legend, timed } = voyageTargets(route);
+  if (!legend.length && !timed.length) return '';
+  const chip = (x, cls) => {
+    const b = bestBaitByRate(x.f.id, x.sp.id);
+    return `<span class="otgt ${cls}" data-fish="${x.f.id}" data-fishspot="${x.sp.id}"
+      title="${esc(nm(x.sp.n))} / ${timeLabel(x.st.time)}${b ? ` / ${esc(baitName(b.baitId))} ${b.rate}%` : ''}">
+      ${esc(nm(x.f.n))}${b ? `<i>${esc(baitName(b.baitId))}</i>` : ''}</span>`;
+  };
+  return `<div class="otargets">
+    ${legend.map((x) => chip(x, 'legend')).join('')}
+    ${timed.map((x) => chip(x, 'timed')).join('')}
+  </div>`;
 }
 
 function renderOcean() {
@@ -1606,6 +1889,8 @@ function renderOcean() {
     const v = voyageAt(c);
     if (state.oceanDest !== 'all' &&
         v.indigo?.dest.ja !== state.oceanDest && v.ruby?.dest.ja !== state.oceanDest) continue;
+    if (state.oceanLegendOnly &&
+        !voyageTargets(v.indigo).legend.length && !voyageTargets(v.ruby).legend.length) continue;
     rows.push({ c, dep, v, boarding: now >= dep && now < dep + 15 * 60000 });
   }
 
@@ -1620,6 +1905,9 @@ function renderOcean() {
       <button class="chipbtn" data-od="all" aria-pressed="${state.oceanDest === 'all'}">${T('all')}</button>
       ${dests.map((d) => `<button class="chipbtn" data-od="${esc(d.ja)}"
         aria-pressed="${state.oceanDest === d.ja}">${esc(nm(d))}</button>`).join('')}
+      <span style="width:10px"></span>
+      <button class="chipbtn" data-ot="1" aria-pressed="${state.oceanTargets}">${T('targets')}</button>
+      <button class="chipbtn" data-ol="1" aria-pressed="${state.oceanLegendOnly}">${T('legendOnly')}</button>
     </div>
 
     <div class="ohead">
@@ -1635,11 +1923,13 @@ function renderOcean() {
           <div class="oname indigo">${esc(nm(v.indigo?.n)) || '—'}
             <em>${v.indigo ? esc(timeLabel(v.indigo.destTime)) : ''}</em></div>
           <div class="opath">${stopsHTML(v.indigo)}</div>
+          ${state.oceanTargets ? targetChips(v.indigo) : ''}
         </div>
         <div class="oroute">
           <div class="oname ruby">${esc(nm(v.ruby?.n)) || '—'}
             <em>${v.ruby ? esc(timeLabel(v.ruby.destTime)) : ''}</em></div>
           <div class="opath">${stopsHTML(v.ruby)}</div>
+          ${state.oceanTargets ? targetChips(v.ruby) : ''}
         </div>
       </div>`).join('') || `<div class="gempty" style="padding:26px 12px">${state.lang === 'ja' ? 'この行き先の便は48時間以内にありません。' : 'No voyage to this destination within 48 hours.'}</div>`}
     </div>
@@ -1780,7 +2070,11 @@ function openFish(fishId, fromSpotId) {
       <div class="dsec">
         <span class="eyebrow">${T('howTo')}</span>
         <dl class="kv">
-          <dt>${T('bait')}</dt><dd>${f.baitPath.length ? f.baitPath.map(baitName).map(esc).join(' ▸ ') : '—'}</dd>
+          <dt>${T('bait')}</dt><dd>${(() => {
+            if (f.baitPath.length) return f.baitPath.map(baitName).map(esc).join(' ▸ ');
+            const b = spot ? bestBaitByRate(f.id, spot.id) : null;
+            return b ? `${esc(baitName(b.baitId))} <span style="color:var(--dim);font-size:11px">${b.rate}% · ${T('byRate')}</span>` : '—';
+          })()}</dd>
           ${f.predators.length ? `<dt>${T('intuition')}</dt><dd>${f.predators.map(([id, n]) =>
             `${esc(nm(DB.fish[id]?.n) || baitName(id))} ×${n}`).join(' + ')}${f.intuition ? `（${f.intuition}s）` : ''}</dd>` : ''}
           <dt>${T('hours')}</dt><dd>${!f.hasConditions ? T('unknown') : (f.startHour === 0 && f.endHour === 24 ? T('allDay') : `ET ${etLabel(f.startHour)} – ${etLabel(f.endHour)}`)}</dd>
@@ -1842,13 +2136,14 @@ function selectSpot(id) {
   state.spotId = Number(id);
   state.query = '';
   $('#q').value = '';
-  const s = spotById.get(state.spotId);
-  if (s) state.openAreas.add(s.area);
+  const sp = spotById.get(state.spotId);
+  if (sp) { state.openAreas.add(sp.area.ja); state.openEx.add(String(sp.ex)); }
   syncHash();
   renderSide();
   render();
   closeDrawer();
   $('#side').classList.remove('open');
+  $('#scrim').classList.remove('side');
 }
 
 document.addEventListener('click', (e) => {
@@ -1856,6 +2151,17 @@ document.addEventListener('click', (e) => {
   if (areaBtn) {
     const d = areaBtn.parentElement;
     setTimeout(() => d.open ? state.openAreas.add(d.dataset.area) : state.openAreas.delete(d.dataset.area), 0);
+  }
+  const exBtn = e.target.closest('.exp > summary');
+  if (exBtn) {
+    const d = exBtn.parentElement;
+    setTimeout(() => d.open ? state.openEx.add(d.dataset.ex) : state.openEx.delete(d.dataset.ex), 0);
+  }
+  if (e.target.closest('#home')) {
+    state.view = 'welcome'; state.spotId = null; state.query = ''; $('#q').value = '';
+    syncHash(); renderSide(); renderWelcome(); closeDrawer();
+    $('#side').classList.remove('open');
+    return;
   }
   if (e.target.closest('#nav-nushi')) {
     state.view = 'nushi'; state.query = ''; $('#q').value = '';
@@ -1866,11 +2172,13 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('#nav-ocean')) {
     state.view = 'ocean'; state.query = ''; $('#q').value = '';
     syncHash(); renderSide(); render(); closeDrawer();
-    $('#side').classList.remove('open');
+    $('#side').classList.remove('open'); $('#scrim').classList.remove('side');
     return;
   }
   const od = e.target.closest('[data-od]');
   if (od) { state.oceanDest = od.dataset.od; renderOcean(); return; }
+  if (e.target.closest('[data-ot]')) { state.oceanTargets = !state.oceanTargets; renderOcean(); return; }
+  if (e.target.closest('[data-ol]')) { state.oceanLegendOnly = !state.oceanLegendOnly; renderOcean(); return; }
   const fv = e.target.closest('[data-fav]');
   if (fv) {
     e.stopPropagation();
@@ -1917,6 +2225,7 @@ $('#t-eyes').addEventListener('click', (e) => {
   state.fishEyes = !state.fishEyes;
   e.currentTarget.setAttribute('aria-pressed', state.fishEyes);
   winCache.clear();
+  upCache.clear();
   render();
 });
 $('#t-live').addEventListener('click', (e) => {
@@ -1939,7 +2248,14 @@ $('#tz').addEventListener('change', (e) => {
   fmtCache.clear();
   syncHash(); renderChrome(); render(); drawRing();
 });
-$('#menubtn').addEventListener('click', () => $('#side').classList.toggle('open'));
+$('#menubtn').addEventListener('click', () => {
+  const open = $('#side').classList.toggle('open');
+  $('#scrim').classList.toggle('side', open);
+});
+$('#scrim').addEventListener('click', () => {
+  $('#side').classList.remove('open');
+  $('#scrim').classList.remove('side');
+});
 
 /* ══════════════════════════════════════════════════════════
    起動
@@ -1956,10 +2272,14 @@ $('#menubtn').addEventListener('click', () => $('#side').classList.toggle('open'
   if (m && spotById.has(Number(m[1]))) {
     state.view = 'spot';
     state.spotId = Number(m[1]);
-    state.openAreas.add(spotById.get(state.spotId).area);
+    const sp = spotById.get(state.spotId);
+    state.openAreas.add(sp.area.ja);
+    state.openEx.add(String(sp.ex));
   } else {
-    state.openAreas.add(DB.areaOrder[0]);
+    state.openEx.add(String(DB.areaOrder[0].ex));
   }
+  // 条件未収録のヌシは、前提魚から実効条件を組み立てておく
+  for (const f of Object.values(DB.fish)) f.derived = deriveCond(f);
   renderChrome();
   renderSide();
   render();
