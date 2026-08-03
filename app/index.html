@@ -277,21 +277,32 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .gantt[open] summary::before{content:"▾"}
 .gantt summary .eyebrow{margin-left:auto}
 .gbody{padding:4px 14px 16px;overflow-x:auto}
-.gaxis{position:relative;height:16px;margin-left:150px;border-bottom:1px solid var(--edge-soft)}
+.gaxis{position:relative;height:16px;margin-left:170px;margin-right:76px;border-bottom:1px solid var(--edge)}
 .gaxis span{
-  position:absolute;top:0;font-family:var(--mono);font-size:9px;color:var(--dim);
+  position:absolute;top:0;font-family:var(--mono);font-size:9px;color:var(--mist);
   transform:translateX(-50%);white-space:nowrap;
 }
-.grow{display:flex;align-items:center;height:24px}
+.gaxis i{position:absolute;top:16px;width:1px;height:1000px;background:var(--edge-soft);opacity:.55}
+.tl .gbody{position:relative;overflow:hidden}
+.tlrange{margin-left:auto;display:flex;gap:4px}
+.chipbtn.sm{font-size:10px;padding:3px 8px}
+.gwhen{width:76px;flex:none;text-align:right;font-family:var(--mono);font-size:10.5px;color:var(--mist);padding-left:8px}
+.gwhen .live{color:var(--lime)}
+.grow.on{background:rgba(143,232,112,.07)}
+.grow:nth-child(even){background:rgba(255,255,255,.018)}
+.grow:hover{background:rgba(46,74,125,.35)}
+.grow{display:flex;align-items:center;height:26px;border-radius:3px}
 .gname{
-  width:150px;flex:none;font-size:11.5px;color:var(--mist);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:10px;
+  width:170px;flex:none;font-size:11.5px;color:var(--mist);display:flex;align-items:center;gap:6px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 10px 0 6px;
 }
+.gname>span:last-child{overflow:hidden;text-overflow:ellipsis}
 .gname:hover{color:var(--aqua);cursor:pointer}
-.gtrack{position:relative;flex:1;height:9px;background:var(--deeper);border-radius:9px}
-.gbar{position:absolute;top:0;height:9px;border-radius:9px;background:var(--lime);opacity:.9}
+.gtrack{position:relative;flex:1;height:13px;background:rgba(8,16,30,.6);border-radius:3px;overflow:hidden}
+.gbar{position:absolute;top:0;height:13px;border-radius:2px;background:var(--gold);opacity:.85;min-width:2px}
+.gbar.now{background:var(--lime);opacity:1;box-shadow:0 0 8px rgba(143,232,112,.5)}
 .gbar.soon{background:var(--gold)}
-.gnow{position:absolute;top:-4px;width:1px;height:17px;background:var(--coral)}
+.gnow{position:absolute;left:0;top:-2px;width:2px;height:17px;background:var(--coral);border-radius:2px}
 .gempty{padding:14px 0;font-size:12px;color:var(--dim)}
 
 /* ── ヒットタイム分布 ─────────────────────────────────── */
@@ -504,6 +515,51 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .bite b{font-weight:600}
 .bite .unit{font-size:9px;color:var(--dim)}
 .bite .na{color:var(--dim);font-size:10px;letter-spacing:.06em}
+
+/* ── 一覧の操作バーと絞り込み ─────────────────────────── */
+.ctlbar{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:22px 0 8px;
+  padding:9px 12px;background:rgba(21,35,64,.6);border:1px solid var(--edge-soft);border-radius:var(--r);
+}
+.sel{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--mist)}
+.sel select{
+  background:rgba(8,16,30,.6);border:1px solid var(--edge-soft);border-radius:var(--pill);
+  padding:6px 11px;font-size:12px;color:var(--foam);cursor:pointer;
+}
+.sel select:hover{border-color:var(--gold)}
+.ctlbtn{
+  display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+  padding:6px 13px;border:1px solid var(--edge);border-radius:var(--pill);color:var(--mist);
+}
+.ctlbtn:hover{border-color:var(--gold);color:var(--foam)}
+.ctlbtn.on{border-color:var(--gold);color:var(--gold);background:rgba(245,197,99,.10)}
+.ctlbtn b{font-family:var(--mono);font-size:10px;background:var(--gold);color:#12203A;border-radius:var(--pill);padding:0 5px}
+.ctlbtn i{font-style:normal;font-size:8px;opacity:.7}
+.ctlcount{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.ctlcount .live{color:var(--lime)}
+.ctlacts{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+
+.activef{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.fchip{
+  font-size:10.5px;padding:4px 10px;border-radius:var(--pill);
+  background:rgba(245,197,99,.14);color:var(--gold);border:1px solid rgba(245,197,99,.35);
+}
+.fchip:hover{background:var(--gold);color:var(--ink)}
+
+.fpanel{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px 18px;
+  padding:14px;margin-bottom:10px;
+  background:rgba(16,28,51,.7);border:1px solid var(--edge-soft);border-radius:var(--r);
+}
+.fgrp{display:flex;flex-direction:column;gap:5px}
+.flabel{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.fopts{display:flex;flex-wrap:wrap;gap:4px}
+.fgrp.fend{justify-content:flex-end;align-items:flex-start}
+@media (max-width:780px){
+  .ctlbar{gap:8px;padding:8px 10px}
+  .ctlacts{margin-left:0;width:100%}
+  .fpanel{grid-template-columns:1fr 1fr;gap:10px}
+}
 
 /* ── ヌシ一覧 ─────────────────────────────────────────── */
 .nhead,.nrow{
@@ -944,20 +1000,20 @@ const STR = {
     live: '今釣れる', condOnly: '条件付きのみ', fishEyes: 'フィッシュアイ',
     nushi: 'ヌシ・オオヌシ', ocean: 'オーシャンフィッシング', schedule: '運行表',
     fish: '魚', bait: 'エサ', hours: '時間帯', weather: '天候', tug: '引き', bite: 'ヒット',
-    spot: '釣り場', kind: '種別', cond: '条件', next: '次に釣れる', dur: '継続',
+    spot: '釣り場', kind: '種別', cond: '条件', next: '次に釣れるのは', dur: '継続',
     allDay: '終日', anyWeather: '不問', unknown: '未収録', notMeasured: '未計測',
     prev: '前:', intuition: '直感', folklore: '伝承録', snagging: 'スナッグ',
     bigFish: '大物', collectable: '収集', gig: '銛',
-    windowTitle: '出現ウィンドウ', biteTitle: 'ヒットタイム分布', timeline: 'タイムライン',
+    windowTitle: '釣れる時間帯', biteTitle: 'ヒットタイム分布', timeline: 'タイムライン',
     noData: 'データなし', noChum: '撒き餌ありの実測がありません。', noBite: 'この釣り場の実測はまだ集まっていません。',
     noCond: 'この釣り場に時間・天候で縛られる魚はいません。いつ来ても同じ顔ぶれです。',
     chumOff: '撒き餌なし', chumOn: '撒き餌あり',
     nowBiting: 'いま釣れる', until: 'まで', remaining: '残り', soon: 'まもなく',
-    anytime: '時間・天候は不問', notFound: '400日以内になし', condMissing: '条件未収録',
+    anytime: '時間・天候は不問', notFound: '400日先まで見つからず', condMissing: '条件が未収録',
     all: 'すべて', oonushiOnly: 'オオヌシのみ', byNext: '次回順', byName: '名前順',
     allPatches: '全拡張', favOnly: '★ お気に入り',
     depart: '出航', indigoRoute: '近海航路', rubyRoute: '遠洋航路', boarding: '受付中',
-    howTo: '釣り方', released: '実装', place: '釣れる場所', windows: '次の出現ウィンドウ',
+    howTo: '釣り方', released: '実装', place: '釣れる場所', windows: 'これから釣れる時間',
     baitCol: 'エサ', biteSec: 'ヒット秒数', chumCol: '撒き餌', rate: '釣果率', samples: '件数',
     showing: '種を表示', species: '匹', open: 'いま釣れる',
     et: 'エオルゼア時間', lt: '現地時間',
@@ -967,7 +1023,7 @@ const STR = {
     showMap: '地図で位置を見る', mapFailed: '地図を読み込めませんでした',
     mapNote: 'ゲーム内のマップ座標をそのまま重ねています。実際の釣り場は円の内側にあります。',
     patch: '実装', byPatch: '実装順', selectAll: '表示中を全部★', clearAll: '★を全部外す',
-    then: '次々回', caughtTip: '釣った／釣っていない', uncaughtOnly: '未釣獲のみ',
+    then: 'その次', caughtTip: '釣った／釣っていない', uncaughtOnly: '未釣獲のみ',
     notify: '通知', notifyTip: '★を付けた魚の窓が開いたら音とデスクトップ通知で知らせます',
     notifyDenied: 'ブラウザの設定で通知が許可されていません。サイトの権限を確認してください。',
     progress: '釣獲', dashOpen: 'いま釣れるヌシ', dashFav: '★の魚', dashOcean: '次の便',
@@ -976,6 +1032,10 @@ const STR = {
     caughtAll: '表示中を釣獲済みに', caughtClear: '釣獲記録を消す',
     uses: '使い道', craftUse: '素材', gcUse: 'GC納品', collectUse: '収集品',
     lureAmb: 'アンビ', lureMod: 'モデスト', lureOnly: 'ルアー必須', lure: 'ルアー',
+    sortBy: '並び替え', filter: '絞り込み', reset: 'すべて解除', status: '状態',
+    expansion: '拡張', hookset: 'フッキング', band: '時間帯',
+    need: '要る', noNeed: '不要', restricted: '縛りあり',
+    dayBand: '昼 (ET6-18)', nightBand: '夜 (ET18-6)', byUptime: '出現率が低い順',
     points: '釣果点', bonus: 'ボーナス対象', ptsUnit: '点', multiHook: 'トリプル',
     biteSource: '出典：Lodinn の集計（Teamcraft の Allagan Reports に集まった実測）。釣果率はそのエサを使ったキャスト全体に占める割合。',
     minutes: '分', hoursU: '時間', days: '日', ago: 'あと ', secU: '秒',
@@ -1025,6 +1085,10 @@ const STR = {
     caughtAll: 'Mark shown as caught', caughtClear: 'Clear caught',
     uses: 'Used for', craftUse: 'Ingredient', gcUse: 'GC delivery', collectUse: 'Collectable',
     lureAmb: 'Amb', lureMod: 'Mod', lureOnly: 'Lure required', lure: 'Lure',
+    sortBy: 'Sort', filter: 'Filter', reset: 'Clear all', status: 'Status',
+    expansion: 'Expansion', hookset: 'Hookset', band: 'Time of day',
+    need: 'Required', noNeed: 'Not needed', restricted: 'Restricted',
+    dayBand: 'Day (ET6-18)', nightBand: 'Night (ET18-6)', byUptime: 'Rarest first',
     points: 'Points', bonus: 'Bonus objectives', ptsUnit: 'pt', multiHook: 'triple hook',
     biteSource: 'Source: Lodinn\u2019s aggregation of player reports collected via Teamcraft Allagan Reports. Catch rate is the share of all casts with that bait.',
     minutes: 'min', hoursU: 'h', days: 'd', ago: 'in ', secU: 's',
@@ -1383,14 +1447,26 @@ const state = {
   tz: 'auto',             // ZONES の id
   view: 'welcome',        // welcome | spot | search | nushi
   fishEyes: false,
-  nushiKind: 'all',       // all | oonushi
-  nushiPatch: 'all',
-  nushiVer: 'all',
-  uncaughtOnly: false,
-  lureOnly: false,
-  nushiSort: 'next',      // next | name
+  // ヌシ一覧の絞り込み。増えても散らからないよう1か所にまとめる。
+  nf: {
+    kind: 'all',          // all | nushi | oonushi
+    ex: 'all',            // 拡張
+    ver: 'all',           // パッチ
+    tug: new Set(),       // 1 | 2 | 3
+    hookset: 'any',       // any | Precision | Powerful
+    lure: 'any',          // any | yes | no
+    folklore: 'any',
+    intuition: 'any',
+    weather: 'any',       // any | yes（天候縛りあり）| no
+    band: 'any',          // any | day | night
+    status: new Set(),    // fav | uncaught | open
+  },
+  nushiSort: 'next',      // next | name | patch | uptime
   chartBait: null,        // ヒットタイム分布で選んでいるエサ
   chartChum: false,
+  tlHours: 24,
+  tlOpen: true,
+  nfOpen: false,
   oceanDest: 'all',
   oceanTargets: true,
   oceanLegendOnly: false,
@@ -1908,7 +1984,12 @@ const store = {
   },
 };
 
-function syncHash() {
+/**
+ * URL の同期。
+ * 画面を移ったときは履歴に積み（戻るで戻れる）、
+ * 言語やお気に入りのような設定変更は積まずに書き換えるだけにする。
+ */
+function syncHash(push = false) {
   const base = state.view === 'nushi' ? 'nushi'
     : state.view === 'ocean' ? 'ocean'
     : state.spotId ? `spot/${state.spotId}` : '';
@@ -1916,7 +1997,10 @@ function syncHash() {
   const fi = state.openFish ? `|fish=${state.openFish}` : '';
   const l = state.lang !== 'ja' ? `|l=${state.lang}` : '';
   const z = state.tz !== 'auto' ? `|z=${state.tz}` : '';
-  history.replaceState(null, '', `#${base}${fi}${f}${l}${z}`);
+  const url = `#${base}${fi}${f}${l}${z}`;
+  if (url === location.hash) return;
+  if (push) history.pushState(null, '', url);
+  else history.replaceState(null, '', url);
 }
 function readHash() {
   const m = location.hash.match(/\|f=([\d.]+)/);
@@ -2069,52 +2153,93 @@ function condChips(f, spotId) {
   return `<div class="ncond">${c.join('')}</div>`;
 }
 
-/** 選んだヌシだけを実時間で並べたタイムライン */
-function favTimelineHTML(hours = 24) {
+/**
+ * 選んだヌシだけを実時間で並べたタイムライン。
+ * 期間を切り替えられ、目盛りと現在位置を出す。
+ */
+const TL_RANGES = [12, 24, 48, 168];
+function favTimelineHTML() {
+  const hours = state.tlHours;
+  const head = (body) => `<details class="gantt tl" ${state.tlOpen ? 'open' : ''} id="tl">
+    <summary>${T('timeline')}<span class="eyebrow">${state.favs.size}</span>
+      <span class="tlrange">${TL_RANGES.map((h) => `<button class="chipbtn sm" data-tl="${h}"
+        aria-pressed="${h === hours}">${h < 168 ? h + 'h' : (state.lang === 'ja' ? '7日' : '7d')}</button>`).join('')}</span>
+    </summary>
+    <div class="gbody">${body}</div></details>`;
+
   if (!state.favs.size) {
-    return `<details class="gantt"><summary>${T('timeline')}<span class="eyebrow">☆</span></summary>
-      <div class="gbody"><div class="gempty">${state.lang === 'ja'
-        ? '行の左の ☆ を押すと、その魚だけをここに並べます。追いかけているヌシを数匹選んでおくと、次にどれが来るか一目で分かります。'
-        : 'Star a row below to pin it here. Pick the few you are chasing and you can see at a glance which comes next.'}</div></div></details>`;
+    return head(`<div class="gempty">${state.lang === 'ja'
+      ? '行の左の ☆ を押すと、その魚だけをここに並べます。追いかけているヌシを数匹選んでおくと、次にどれが来るか一目で分かります。'
+      : 'Star a row below to pin it here. Pick the few you are chasing and you can see at a glance which comes next.'}</div>`);
   }
+
   const t0 = Date.now(), span = hours * 3600 * 1000;
+  // 目盛り。24時間以内なら3時間おき、それ以上なら日付の変わり目に寄せる
+  const stepH = hours <= 12 ? 2 : hours <= 24 ? 4 : hours <= 48 ? 8 : 24;
   const axis = [];
-  for (let i = 0; i <= hours; i += 4) {
-    axis.push(`<span style="left:${(i / hours) * 100}%">${hhmm(t0 + i * 3600 * 1000)}</span>`);
+  for (let i = 0; i <= hours; i += stepH) {
+    const t = t0 + i * 3600 * 1000;
+    axis.push(`<span style="left:${(i / hours) * 100}%">${i === 0 ? 'now' : (hours > 24 ? dayLabel(t) : '') + hhmm(t)}</span>`);
+    if (i > 0 && i < hours) axis.push(`<i style="left:${(i / hours) * 100}%"></i>`);
   }
+
   const list = [...state.favs].map((id) => DB.fish[id]).filter(Boolean);
   const rows = list.map((f) => {
     const spot = spotById.get(f.nushiSpot ?? f.spots[0]);
     const wsR = findWindows(f, spot?.territoryId ?? null,
-      { days: hours / 24, limit: 60, fishEyes: state.fishEyes });
+      { days: hours / 24, limit: 400, fishEyes: state.fishEyes });
     const ws = wsR === 'always' ? [[t0, t0 + span]] : wsR;
+    const first = ws.find(([, b]) => b > t0);
     const bars = ws.map(([a, b]) => {
       const l = Math.max(0, (a - t0) / span) * 100;
-      const w = Math.max(0.4, ((b - a) / span) * 100);
-      return `<div class="gbar${a > t0 ? ' soon' : ''}" style="left:${l}%;width:${Math.min(w, 100 - l)}%"
+      const w = Math.max(0.35, ((b - a) / span) * 100);
+      const live = a <= t0 + 1000 && b > t0;
+      return `<div class="gbar${live ? ' now' : ''}" style="left:${l}%;width:${Math.min(w, 100 - l)}%"
         title="${dayLabel(a)}${hhmm(a)}–${hhmm(b)} (${fmtMin(mins(a, b))})"></div>`;
     }).join('');
-    return `<div class="grow">
+    const live = first && first[0] <= t0 + 1000;
+    return `<div class="grow${live ? ' on' : ''}">
       <div class="gname" data-fish="${f.id}" data-fishspot="${spot?.id ?? ''}" title="${esc(nm(spot?.n))}">
-        ${f.oonushi ? '<span class="dot oo"></span>' : f.nushi ? '<span class="dot"></span>' : ''}${esc(nm(f.n))}</div>
-      <div class="gtrack">${bars}<div class="gnow" style="left:0"></div></div>
-      <button class="fav mini" data-fav="${f.id}" aria-pressed="true" aria-label="外す">★</button>
+        <span class="dot${f.oonushi ? ' oo' : ''}"></span>${esc(nm(f.n))}</div>
+      <div class="gtrack">${bars}<div class="gnow"></div></div>
+      <div class="gwhen">${!first ? '—'
+        : live ? `<b class="live">${remainTag(first[1])}</b>`
+        : `<span class="rel">${relTime(first[0])}</span>`}</div>
+      <button class="fav mini" data-fav="${f.id}" aria-pressed="true" aria-label="remove">★</button>
     </div>`;
   }).join('');
-  return `<details class="gantt" open>
-    <summary>${T('timeline')}<span class="eyebrow">${list.length} · NEXT ${hours}H</span></summary>
-    <div class="gbody"><div class="gaxis">${axis.join('')}</div>${rows}</div></details>`;
+  return head(`<div class="gaxis">${axis.join('')}</div>${rows}`);
 }
 
-function renderNushi() {
+function renderNushi(keepScroll = false) {
+  const scrollY = keepScroll ? $('#stage').scrollTop : 0;
   const now = Date.now();
-  let list = Object.values(DB.fish).filter((f) => f.nushi);
-  if (state.nushiKind === 'oonushi') list = list.filter((f) => f.oonushi);
-  if (state.nushiPatch !== 'all') list = list.filter((f) => Math.floor(f.patch || 0) === Number(state.nushiPatch));
-  if (state.nushiVer !== 'all') list = list.filter((f) => f.patch == state.nushiVer);
-  if (state.favOnly) list = list.filter((f) => state.favs.has(f.id));
-  if (state.uncaughtOnly) list = list.filter((f) => !state.caught.has(f.id));
-  if (state.lureOnly) list = list.filter((f) => f.lure);
+  const nf = state.nf;
+  const allNushi = Object.values(DB.fish).filter((f) => f.nushi);
+
+  // ET の昼夜。窓の時間帯がその帯にかかるかで見る
+  const overlapsBand = (f, band) => {
+    const d = condOf(f);
+    if (d.startHour === 0 && d.endHour === 24) return true;
+    const hit = (h) => inHourRange(h, d.startHour, d.endHour);
+    const hours = band === 'day' ? [6, 9, 12, 15] : [18, 21, 0, 3];
+    return hours.some(hit);
+  };
+
+  let list = allNushi;
+  if (nf.kind === 'oonushi') list = list.filter((f) => f.oonushi);
+  if (nf.kind === 'nushi') list = list.filter((f) => !f.oonushi);
+  if (nf.ex !== 'all') list = list.filter((f) => Math.floor(f.patch || 0) === Number(nf.ex));
+  if (nf.ver !== 'all') list = list.filter((f) => f.patch == nf.ver);
+  if (nf.tug.size) list = list.filter((f) => nf.tug.has(String(f.tugRank)));
+  if (nf.hookset !== 'any') list = list.filter((f) => f.hookset && (nf.hookset === 'Precision') === /Precision/i.test(f.hookset.en));
+  if (nf.lure !== 'any') list = list.filter((f) => (nf.lure === 'yes') === !!f.lure);
+  if (nf.folklore !== 'any') list = list.filter((f) => (nf.folklore === 'yes') === !!f.folklore);
+  if (nf.intuition !== 'any') list = list.filter((f) => (nf.intuition === 'yes') === !!f.predators.length);
+  if (nf.weather !== 'any') list = list.filter((f) => (nf.weather === 'yes') === !!condOf(f).weather.length);
+  if (nf.band !== 'any') list = list.filter((f) => overlapsBand(f, nf.band));
+  if (nf.status.has('fav')) list = list.filter((f) => state.favs.has(f.id));
+  if (nf.status.has('uncaught')) list = list.filter((f) => !state.caught.has(f.id));
 
   // 状態は4つ。open=いま釣れる / soon=次の窓が決まっている / always=時間も天候も不問 / none=不明
   const rows = list.map((f) => {
@@ -2131,30 +2256,60 @@ function renderNushi() {
     return { f, spot, w, next2, up, st, live: st === 'open' || st === 'always' };
   });
 
-  if (state.liveOnly) rows.splice(0, rows.length, ...rows.filter((r) => r.live));
+  if (state.liveOnly || nf.status.has('open')) rows.splice(0, rows.length, ...rows.filter((r) => r.live));
   const ORDER = { open: 0, soon: 1, always: 2, none: 3, unknown: 4 };
   rows.sort((a, b) => {
     if (state.nushiSort === 'name') return nm(a.f.n).localeCompare(nm(b.f.n), state.lang);
     if (state.nushiSort === 'patch') {
       return (a.f.patch ?? 99) - (b.f.patch ?? 99) || nm(a.f.n).localeCompare(nm(b.f.n), state.lang);
     }
+    if (state.nushiSort === 'uptime') return (a.up ?? 101) - (b.up ?? 101);
     if (ORDER[a.st] !== ORDER[b.st]) return ORDER[a.st] - ORDER[b.st];
     if (a.st === 'open') return a.w[1] - b.w[1];        // 締切が近い順
     if (a.st === 'soon') return a.w[0] - b.w[0];        // 始まるのが早い順
     return nm(a.f.n).localeCompare(nm(b.f.n), state.lang);
   });
 
-  const allNushi = Object.values(DB.fish).filter((f) => f.nushi);
   const patches = [...new Set(allNushi.map((f) => Math.floor(f.patch || 0)))].sort((a, b) => a - b);
   // 拡張を選んでいればその中のパッチだけ、選んでいなければ全部
   const vers = [...new Set(allNushi
-    .filter((f) => state.nushiPatch === 'all' || Math.floor(f.patch || 0) === Number(state.nushiPatch))
+    .filter((f) => nf.ex === 'all' || Math.floor(f.patch || 0) === Number(nf.ex))
     .map((f) => f.patch).filter(Boolean))].sort((a, b) => a - b);
   const EXP = state.lang === 'ja'
     ? { 2: '新生', 3: '蒼天', 4: '紅蓮', 5: '漆黒', 6: '暁月', 7: '黄金' }
     : { 2: 'ARR', 3: 'HW', 4: 'STB', 5: 'ShB', 6: 'EW', 7: 'DT' };
 
   const liveNow = rows.filter((r) => r.st === 'open').length;
+
+  // 効いている絞り込みの数と、外せるチップ
+  const DEFAULTS = { kind: 'all', ex: 'all', ver: 'all', hookset: 'any', lure: 'any',
+                     folklore: 'any', intuition: 'any', weather: 'any', band: 'any' };
+  const LABELS = { kind: T('kind'), ex: T('expansion'), ver: T('patch'), hookset: T('hookset'),
+                   lure: T('lure'), folklore: T('folklore'), intuition: T('intuition'),
+                   weather: T('weather'), band: T('band') };
+  const VAL = { yes: T('need'), no: T('noNeed'), restricted: T('restricted'), day: T('dayBand'),
+                night: T('nightBand'), Precision: 'プレシジョン', Powerful: 'ストロング',
+                nushi: T('nushiOne'), oonushi: T('oonushi'), open: T('open'), fav: '★',
+                uncaught: T('uncaughtOnly') };
+  const chips = [];
+  for (const [k, d] of Object.entries(DEFAULTS)) {
+    if (nf[k] === d) continue;
+    const v = k === 'ex' ? (EXP[nf[k]] ?? nf[k]) : (VAL[nf[k]] ?? nf[k]);
+    chips.push(`<button class="fchip" data-nfclear="${k}">${LABELS[k]}: ${esc(String(v))} ×</button>`);
+  }
+  for (const t of nf.tug) chips.push(`<button class="fchip" data-nfclear="tug:${t}">${T('tug')}: ${'！'.repeat(Number(t))} ×</button>`);
+  for (const t of nf.status) chips.push(`<button class="fchip" data-nfclear="status:${t}">${VAL[t] ?? t} ×</button>`);
+  const activeCount = chips.length;
+  const activeChips = chips.join('');
+
+  const fgroup = (label, key, opts, multi = false) => `<div class="fgrp">
+    <span class="flabel">${label}</span>
+    <div class="fopts">${opts.map(([v, l]) => {
+      const on = multi ? nf[key].has(v) : nf[key] === v;
+      return `<button class="chipbtn sm" data-nfk="${key}" data-nfv="${v}" data-nfm="${multi ? 1 : 0}"
+        aria-pressed="${on}">${esc(l)}</button>`;
+    }).join('')}</div>
+  </div>`;
   const alwaysN = rows.filter((r) => r.st === 'always').length;
 
   $('#stage').innerHTML = `<div class="wrap">
@@ -2165,36 +2320,43 @@ function renderNushi() {
     <div class="eyebrow">BIG FISH — NEXT WINDOWS</div>
     ${favTimelineHTML()}
 
-    <div class="toolbar">
-      <button class="chipbtn" data-nk="all"     aria-pressed="${state.nushiKind === 'all'}">${T('all')}</button>
-      <button class="chipbtn" data-nk="oonushi" aria-pressed="${state.nushiKind === 'oonushi'}">${T('oonushiOnly')}</button>
-      <span style="width:8px"></span>
-      <button class="chipbtn" data-np="all" aria-pressed="${state.nushiPatch === 'all'}">${T('allPatches')}</button>
-      ${patches.map((p) => `<button class="chipbtn" data-np="${p}" aria-pressed="${state.nushiPatch == p}">${EXP[p] ?? 'P' + p}</button>`).join('')}
-    </div>
-    <div class="toolbar" style="margin-top:2px">
-      <span class="eyebrow">${T('patch')}</span>
-      <button class="chipbtn" data-nv="all" aria-pressed="${state.nushiVer === 'all'}">${T('all')}</button>
-      ${vers.map((v) => `<button class="chipbtn" data-nv="${v}" aria-pressed="${state.nushiVer == v}">${v}</button>`).join('')}
-      <span style="width:8px"></span>
-      <button class="chipbtn" data-ns="next" aria-pressed="${state.nushiSort === 'next'}">${T('byNext')}</button>
-      <button class="chipbtn" data-ns="name" aria-pressed="${state.nushiSort === 'name'}">${T('byName')}</button>
-      <button class="chipbtn" data-ns="patch" aria-pressed="${state.nushiSort === 'patch'}">${T('byPatch')}</button>
-      <span style="width:8px"></span>
-      <button class="chipbtn" data-nf="1" aria-pressed="${state.favOnly}">${T('favOnly')}${state.favs.size ? ` ${state.favs.size}` : ''}</button>
-      <span style="width:8px"></span>
-      <button class="chipbtn star" data-favall="1">★ ${T('selectAll')}</button>
-      ${state.favs.size ? `<button class="chipbtn" data-favclear="1">${T('clearAll')}</button>` : ''}
-      <span style="width:8px"></span>
-      <button class="chipbtn" data-lure="1" aria-pressed="${state.lureOnly}">${T('lureOnly')}</button>
-      <button class="chipbtn" data-uncaught="1" aria-pressed="${state.uncaughtOnly}">${T('uncaughtOnly')}</button>
-      <button class="chipbtn check" data-caughtall="1">✔ ${T('caughtAll')}</button>
-      ${state.caught.size ? `<button class="chipbtn" data-caughtclear="1">${T('caughtClear')} (${state.caught.size})</button>` : ''}
+    <div class="ctlbar">
+      <label class="sel">
+        <span>${T('sortBy')}</span>
+        <select id="nsort">
+          ${[['next', T('byNext')], ['uptime', T('byUptime')], ['patch', T('byPatch')], ['name', T('byName')]]
+            .map(([v, l]) => `<option value="${v}"${state.nushiSort === v ? ' selected' : ''}>${l}</option>`).join('')}
+        </select>
+      </label>
+      <button class="ctlbtn${activeCount ? ' on' : ''}" id="nfilter" aria-expanded="${state.nfOpen}">
+        ${T('filter')}${activeCount ? ` <b>${activeCount}</b>` : ''} <i>${state.nfOpen ? '▲' : '▼'}</i>
+      </button>
+      <span class="ctlcount">${rows.length} / ${allNushi.length}${
+        liveNow ? ` · <b class="live">${T('open')} ${liveNow}</b>` : ''}</span>
+      <span class="ctlacts">
+        <button class="chipbtn star" data-favall="1">★ ${T('selectAll')}</button>
+        <button class="chipbtn check" data-caughtall="1">✔ ${T('caughtAll')}</button>
+      </span>
     </div>
 
-    <div class="toolbar" style="margin-top:2px">
-      <span class="eyebrow">${rows.length} ${T('showing')} · ${T('open')} ${liveNow} · ${T('anytime')} ${alwaysN}${state.fishEyes ? ' · ' + T('fishEyes') : ''}</span>
-    </div>
+    ${activeCount ? `<div class="activef">${activeChips}</div>` : ''}
+
+    ${state.nfOpen ? `<div class="fpanel">
+      ${fgroup(T('kind'), 'kind', [['all', T('all')], ['nushi', T('nushiOne')], ['oonushi', T('oonushi')]])}
+      ${fgroup(T('status'), 'status', [['open', T('open')], ['fav', '★'], ['uncaught', T('uncaughtOnly')]], true)}
+      ${fgroup(T('expansion'), 'ex', [['all', T('all')], ...patches.map((p) => [String(p), EXP[p] ?? 'P' + p])])}
+      ${nf.ex !== 'all' && vers.length > 1 ? fgroup(T('patch'), 'ver', [['all', T('all')], ...vers.map((v) => [String(v), String(v)])]) : ''}
+      ${fgroup(T('tug'), 'tug', [['1', '！'], ['2', '！！'], ['3', '！！！']], true)}
+      ${fgroup(T('hookset'), 'hookset', [['any', T('all')], ['Precision', 'プレシジョン'], ['Powerful', 'ストロング']])}
+      ${fgroup(T('lure'), 'lure', [['any', T('all')], ['yes', T('need')], ['no', T('noNeed')]])}
+      ${fgroup(T('folklore'), 'folklore', [['any', T('all')], ['yes', T('need')], ['no', T('noNeed')]])}
+      ${fgroup(T('intuition'), 'intuition', [['any', T('all')], ['yes', T('need')], ['no', T('noNeed')]])}
+      ${fgroup(T('weather'), 'weather', [['any', T('all')], ['yes', T('restricted')], ['no', T('anyWeather')]])}
+      ${fgroup(T('band'), 'band', [['any', T('all')], ['day', T('dayBand')], ['night', T('nightBand')]])}
+      <div class="fgrp fend">
+        <button class="chipbtn" data-nfreset="1">${T('reset')}</button>
+      </div>
+    </div>` : ''}
 
     <div class="nhead">
       <div>${T('kind')}</div><div>${T('fish')}</div><div>${T('next')}</div>
@@ -2228,7 +2390,7 @@ function renderNushi() {
     </div>
     ${creditHTML()}
   </div>`;
-  $('#stage').scrollTop = 0;
+  $('#stage').scrollTop = scrollY;
 }
 
 
@@ -2634,7 +2796,7 @@ function openFish(fishId, fromSpotId) {
       </div>
     </div>`;
   state.openFish = f.id;
-  syncHash();
+  syncHash(true);
   $('#drawer').classList.add('open');
   $('#scrim').classList.add('open');
   $('#drawer .close').focus();
@@ -2668,7 +2830,7 @@ function selectSpot(id) {
   $('#q').value = '';
   const sp = spotById.get(state.spotId);
   if (sp) { state.openAreas.add(sp.area.ja); state.openEx.add(String(sp.ex)); }
-  syncHash();
+  syncHash(true);
   renderSide();
   render();
   closeDrawer();
@@ -2682,6 +2844,8 @@ document.addEventListener('click', (e) => {
     const d = areaBtn.parentElement;
     setTimeout(() => d.open ? state.openAreas.add(d.dataset.area) : state.openAreas.delete(d.dataset.area), 0);
   }
+  const tlSum = e.target.closest('#tl > summary');
+  if (tlSum && !e.target.closest('[data-tl]')) setTimeout(() => (state.tlOpen = $('#tl').open), 0);
   const exBtn = e.target.closest('.exp > summary');
   if (exBtn) {
     const d = exBtn.parentElement;
@@ -2689,22 +2853,22 @@ document.addEventListener('click', (e) => {
   }
   if (e.target.closest('#home')) {
     state.view = 'welcome'; state.spotId = null; state.query = ''; $('#q').value = '';
-    syncHash(); renderSide(); renderWelcome(); closeDrawer();
+    syncHash(true); renderSide(); renderWelcome(); closeDrawer();
     $('#side').classList.remove('open');
     return;
   }
   if (e.target.closest('#nav-nushi')) {
     state.view = 'nushi'; state.query = ''; $('#q').value = '';
-    syncHash(); renderSide(); render(); closeDrawer();
+    syncHash(true); renderSide(); render(); closeDrawer();
     $('#side').classList.remove('open');
     return;
   }
   if (e.target.closest('#dash-more')) {
-    state.view = 'nushi'; syncHash(); renderSide(); render(); return;
+    state.view = 'nushi'; syncHash(true); renderSide(); render(); return;
   }
   if (e.target.closest('#nav-ocean')) {
     state.view = 'ocean'; state.query = ''; $('#q').value = '';
-    syncHash(); renderSide(); render(); closeDrawer();
+    syncHash(true); renderSide(); render(); closeDrawer();
     $('#side').classList.remove('open'); $('#scrim').classList.remove('side');
     return;
   }
@@ -2736,17 +2900,16 @@ document.addEventListener('click', (e) => {
       el.textContent = on ? '★' : '☆';
     });
     if ($('#drawer').classList.contains('open')) return;
-    if (state.view === 'nushi') renderNushi(); else render();
+    // 一覧の途中で押されても位置が飛ばないようにする
+    if (state.view === 'nushi') renderNushi(true); else render();
     return;
   }
-  const nf = e.target.closest('[data-nf]');
-  if (nf) { state.favOnly = !state.favOnly; renderNushi(); return; }
   if (e.target.closest('[data-favall]')) {
     // いま画面に出ているぶんだけをまとめて★にする（絞り込みと併用できる）
     document.querySelectorAll('.nrow[data-fish]').forEach((r) => state.favs.add(Number(r.dataset.fish)));
-    syncHash(); renderNushi(); return;
+    syncHash(); renderNushi(true); return;
   }
-  if (e.target.closest('[data-favclear]')) { state.favs.clear(); syncHash(); renderNushi(); return; }
+  if (e.target.closest('[data-favclear]')) { state.favs.clear(); syncHash(); renderNushi(true); return; }
   const cg = e.target.closest('[data-caught]');
   if (cg) {
     e.stopPropagation();
@@ -2764,23 +2927,43 @@ document.addEventListener('click', (e) => {
   }
   if (e.target.closest('[data-caughtall]')) {
     document.querySelectorAll('[data-caught]').forEach((b) => state.caught.add(Number(b.dataset.caught)));
-    store.save(state.caught); renderNushi(); return;
+    store.save(state.caught); renderNushi(true); return;
   }
   if (e.target.closest('[data-caughtclear]')) { state.caught.clear(); store.save(state.caught); renderNushi(); return; }
-  if (e.target.closest('[data-uncaught]')) { state.uncaughtOnly = !state.uncaughtOnly; renderNushi(); return; }
-  if (e.target.closest('[data-lure]')) { state.lureOnly = !state.lureOnly; renderNushi(); return; }
+  const tl = e.target.closest('[data-tl]');
+  if (tl) { e.preventDefault(); state.tlHours = Number(tl.dataset.tl); renderNushi(true); return; }
   const cb = e.target.closest('[data-cb]');
   if (cb) { state.chartBait = Number(cb.dataset.cb); renderSpot(true); return; }
   const cc = e.target.closest('[data-cc]');
   if (cc) { state.chartChum = cc.dataset.cc === '1'; renderSpot(true); return; }
-  const nk = e.target.closest('[data-nk]');
-  if (nk) { state.nushiKind = nk.dataset.nk; renderNushi(); return; }
-  const np = e.target.closest('[data-np]');
-  if (np) { state.nushiPatch = np.dataset.np; state.nushiVer = 'all'; renderNushi(); return; }
-  const nv = e.target.closest('[data-nv]');
-  if (nv) { state.nushiVer = nv.dataset.nv; renderNushi(); return; }
-  const ns = e.target.closest('[data-ns]');
-  if (ns) { state.nushiSort = ns.dataset.ns; renderNushi(); return; }
+  const nfk = e.target.closest('[data-nfk]');
+  if (nfk) {
+    const { nfk: key, nfv: val, nfm: multi } = nfk.dataset;
+    if (multi === '1') {
+      state.nf[key].has(val) ? state.nf[key].delete(val) : state.nf[key].add(val);
+    } else {
+      state.nf[key] = val;
+      if (key === 'ex') state.nf.ver = 'all';   // 拡張を変えたらパッチの選択は外す
+    }
+    renderNushi(true);
+    return;
+  }
+  const nfc = e.target.closest('[data-nfclear]');
+  if (nfc) {
+    const [key, val] = nfc.dataset.nfclear.split(':');
+    if (val !== undefined) state.nf[key].delete(val);
+    else state.nf[key] = key === 'kind' || key === 'ex' || key === 'ver' ? 'all' : 'any';
+    renderNushi(true);
+    return;
+  }
+  if (e.target.closest('[data-nfreset]')) {
+    state.nf = { kind: 'all', ex: 'all', ver: 'all', tug: new Set(), hookset: 'any', lure: 'any',
+                 folklore: 'any', intuition: 'any', weather: 'any', band: 'any', status: new Set() };
+    renderNushi(true);
+    return;
+  }
+  if (e.target.closest('#nfilter')) { state.nfOpen = !state.nfOpen; renderNushi(true); return; }
+
   const spotEl = e.target.closest('[data-spot]');
   if (spotEl) { selectSpot(spotEl.dataset.spot); return; }
   const fishEl = e.target.closest('[data-fish]');
@@ -2821,6 +3004,9 @@ $('#t-cond').addEventListener('click', (e) => {
   e.currentTarget.setAttribute('aria-pressed', state.condOnly);
   render();
 });
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'nsort') { state.nushiSort = e.target.value; renderNushi(true); }
+});
 $('#t-bell').addEventListener('click', async (e) => {
   if (!notify.on) {
     const ok = await notify.enable();
@@ -2848,6 +3034,30 @@ $('#scrim').addEventListener('click', () => {
   $('#side').classList.remove('open');
   $('#scrim').classList.remove('side');
 });
+
+/** URL から画面の状態を組み直す（戻る／進む・直リンク用） */
+function applyRoute() {
+  const h = location.hash;
+  const m = h.match(/^#spot\/(\d+)/);
+  if (h.startsWith('#nushi')) { state.view = 'nushi'; state.spotId = null; }
+  else if (h.startsWith('#ocean')) { state.view = 'ocean'; state.spotId = null; }
+  else if (m && spotById.has(Number(m[1]))) {
+    state.view = 'spot';
+    state.spotId = Number(m[1]);
+    const sp = spotById.get(state.spotId);
+    state.openAreas.add(sp.area.ja);
+    state.openEx.add(String(sp.ex));
+  } else { state.view = 'welcome'; state.spotId = null; }
+
+  const fi = h.match(/\|fish=(\d+)/);
+  state.query = '';
+  $('#q').value = '';
+  renderSide();
+  render();
+  if (fi && DB.fish[fi[1]]) openFish(Number(fi[1]), state.spotId);
+  else closeDrawer();
+}
+window.addEventListener('popstate', applyRoute);
 
 /* ══════════════════════════════════════════════════════════
    起動
@@ -2894,7 +3104,7 @@ $('#scrim').addEventListener('click', () => {
   // 表示中の内容は時間で変わるので定期的に描き直す
   setInterval(() => {
     if (state.query.trim()) return;
-    if (state.view === 'nushi') renderNushi();
+    if (state.view === 'nushi') renderNushi(true);
     else if (state.view === 'ocean') renderOcean();
     else if (state.spotId) renderSpot(true);
   }, 60 * 1000);

@@ -142,9 +142,11 @@ function parseFishTracker(src) {
 const TUG_JA = { light: '！', medium: '！！', heavy: '！！！' };
 const TUG_RANK = { light: 1, medium: 2, heavy: 3 };
 // 実際のアクション名。「パワフル」だけだと何のことか分からないので略さない。
+// 日本語版の正式名称は「ストロングフッキング」。「パワフル」というアクションは存在しない。
+// （Action.csv: 4103 ストロングフッキング / 4179 プレシジョンフッキング）
 const HOOKSET = {
-  Precision: { ja: 'プレシジョンフッキング', en: 'Precision Hookset', de: 'Präziser Anhieb', fr: 'Ferrage précise' },
-  Powerful:  { ja: 'パワフルフッキング',   en: 'Powerful Hookset', de: 'Kräftiger Anhieb', fr: 'Ferrage puissante' },
+  Precision: { ja: 'プレシジョンフッキング', en: 'Precision Hookset', de: 'Präziser Anhieb', fr: 'Ferrage précise', icon: '001116' },
+  Powerful:  { ja: 'ストロングフッキング',   en: 'Powerful Hookset', de: 'Kräftiger Anhieb', fr: 'Ferrage puissante', icon: '001115' },
 };
 const LURE = {
   Modest:    { ja: 'モデストルアー',   en: 'Modest Lure',    de: 'Zurückhaltender Köder', fr: 'Leurre modeste' },
@@ -611,6 +613,10 @@ async function main() {
       // 料理などの職種名。魚の「使い道」の表示に使う
       craftNames: CRAFT_JA.map((ja, i) => ({ ja, en: CRAFT_EN[i], de: CRAFT_EN[i], fr: CRAFT_EN[i] })),
       // ルアーのアクションアイコン（Action.csv より。1146=アンビシャス、1147=モデスト）
+      hooksetIcons: {
+        Precision: '/api/asset?path=ui/icon/001000/001116_hr1.tex&format=png',
+        Powerful: '/api/asset?path=ui/icon/001000/001115_hr1.tex&format=png',
+      },
       lureIcons: {
         Ambitious: '/api/asset?path=ui/icon/001000/001146_hr1.tex&format=png',
         Modest: '/api/asset?path=ui/icon/001000/001147_hr1.tex&format=png',
