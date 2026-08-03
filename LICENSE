@@ -1,0 +1,40 @@
+MIT License
+
+Copyright (c) 2026 エオルゼア釣り図鑑 contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+このライセンスが対象とするのは、このリポジトリのコード（tools/, app/）だけです。
+
+FINAL FANTASY XIV に由来する名称・説明文・アイコンなどの著作物は
+株式会社スクウェア・エニックスに帰属し、MIT ライセンスの対象外です。
+それらの利用は「ファイナルファンタジーXIV 著作物利用条件」に従ってください。
+https://support.jp.square-enix.com/rule.php?id=5381&tag=authc
+
+data/ 以下の生成データは、以下のコミュニティ提供データを加工したものです。
+利用の際はそれぞれの条件を確認してください。
+
+- FFXIV Teamcraft (MIT)
+- FFX|V Fish Tracker App (icykoneko)
+- Lodinn — ヒットタイムと釣果率の実測統計
+- xivapi/ffxiv-datamining
+
+© SQUARE ENIX

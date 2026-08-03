@@ -1,0 +1,6 @@
+node_modules/
+tools/.cache/
+dist/
+
+# ビルドのたびに作り直される生成物。上流データとヒットタイムから毎回組み立てられる。
+data/fishing.json
