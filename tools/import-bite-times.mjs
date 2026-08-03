@@ -190,6 +190,14 @@ async function main() {
     records,
   };
 
+  // 手書きの実測があれば上書きで混ぜる（data/bite-times.manual.json）
+  try {
+    const manual = JSON.parse(await readFile(path.join(ROOT, 'data', 'bite-times.manual.json'), 'utf8'));
+    const rec = manual.records ?? {};
+    Object.assign(records, rec);
+    if (Object.keys(rec).length) log(`手書きの記録 ${Object.keys(rec).length} 件を反映`);
+  } catch { /* 無くてよい */ }
+
   await mkdir(path.join(ROOT, 'data'), { recursive: true });
   const json = JSON.stringify(out);
   await writeFile(path.join(ROOT, 'data', 'bite-times.json'), json);

@@ -44,6 +44,7 @@ const SOURCES = {
   'places.json': `${TC}/places.json`,
   'fish-parameter.json': `${TC}/fish-parameter.json`,
   'item-icons.json': `${TC}/item-icons.json`,
+  'maps.json': `${TC}/maps.json`,
   'ff14fish-data.js': `${FT}/js/app/data.js`,
   'SpearfishingItem.csv': `${DM}/ja/SpearfishingItem.csv`,
   'SpearfishingNotebook.csv': `${DM}/en/SpearfishingNotebook.csv`,
@@ -64,6 +65,9 @@ const SOURCES = {
   'ExVersion_fr.csv': `${DM}/fr/ExVersion.csv`,
   'ocean-indigo.json': `${OF}/oceanFishingDatabase%20-%20Indigo%20Route.json`,
   'ocean-ruby.json': `${OF}/oceanFishingDatabase%20-%20Ruby%20Route.json`,
+  'IKDFishParam.csv': `${DM}/en/IKDFishParam.csv`,
+  'IKDContentBonus_ja.csv': `${DM}/ja/IKDContentBonus.csv`,
+  'IKDContentBonus_en.csv': `${DM}/en/IKDContentBonus.csv`,
 };
 
 /**
@@ -144,6 +148,7 @@ async function main() {
   const places = JSON.parse(raw['places.json']);
   const fishParam = JSON.parse(raw['fish-parameter.json']);
   const itemIcons = JSON.parse(raw['item-icons.json']);
+  const mapsAll = JSON.parse(raw['maps.json']);
   const D = parseFishTracker(raw['ff14fish-data.js']);
 
   const LANGS = ['ja', 'en', 'de', 'fr'];
@@ -264,6 +269,7 @@ async function main() {
       x: s.coords?.x ?? null,
       y: s.coords?.y ?? null,
       spear: spearIds.has(s.id),
+      mapId: s.mapId ?? null,
       ex: exOfSpot(s.id, territoryId, s.placeId),
       ocean: oceanMain.has(s.id) || oceanSub.has(s.id),
       spectral: oceanSub.has(s.id),
@@ -410,7 +416,12 @@ async function main() {
   // ─── 天候 ────────────────────────────────────────────────────
   const weatherTypes = {};
   for (const [id, w] of Object.entries(D.WEATHER_TYPES)) {
-    weatherTypes[id] = { n: fill({ ja: w.name_ja, en: w.name_en, de: w.name_de, fr: w.name_fr }), icon: w.icon };
+    // アイコン番号からアセットのパスを組み立てる（アイテムと同じ形式）
+    const folder = String(Math.floor(Number(w.icon) / 1000) * 1000).padStart(6, '0');
+    weatherTypes[id] = {
+      n: fill({ ja: w.name_ja, en: w.name_en, de: w.name_de, fr: w.name_fr }),
+      icon: w.icon ? `/api/asset?path=ui/icon/${folder}/${w.icon}_hr1.tex&format=png` : null,
+    };
   }
   const weatherRates = {};
   for (const [tid, wr] of Object.entries(D.WEATHER_RATES)) {
@@ -493,11 +504,56 @@ async function main() {
   }
   if (unmatched.length) log(`ocean  名前が照合できなかった魚: ${unmatched.join(', ')}`);
 
+  // ─── オーシャンのボーナス条件 ────────────────────────────
+  // どの魚がどのミッション（サメ／タコ／クラゲ…）に数えられるかはゲームデータにある
+  const bonusRows = { ja: parseCsv(raw['IKDContentBonus_ja.csv']), en: parseCsv(raw['IKDContentBonus_en.csv']) };
+  const bonusName = new Map();
+  for (const r of bonusRows.en) {
+    if (!r.Objective) continue;
+    const ja = bonusRows.ja.find((x) => x['#'] === r['#']);
+    bonusName.set(r['#'], fill({ ja: ja?.Objective || r.Objective, en: r.Objective }));
+  }
+  const fishParamRowToItem = new Map(fishSheet.map((r) => [r['#'], Number(r.Item)]));
+  for (const r of parseCsv(raw['IKDFishParam.csv'])) {
+    const itemId = fishParamRowToItem.get(r.Fish);
+    const f = itemId ? fish[itemId] : null;
+    if (!f) continue;
+    const list = [];
+    for (const key of ['PartyBonus', 'IndividualBonus']) {
+      const b = bonusName.get(r[key]);
+      if (b) list.push({ n: b, party: key === 'PartyBonus' });
+    }
+    if (list.length) f.oceanBonus = list;
+  }
+
+  // 釣果点と多重フッキングの匹数は手書きのデータ（data/ocean-notes.json）から
+  try {
+    const notes = JSON.parse(await readFile(path.join(ROOT, 'data', 'ocean-notes.json'), 'utf8')).notes ?? {};
+    let n = 0;
+    for (const [id, v] of Object.entries(notes)) {
+      const f = fish[id];
+      if (!f) continue;
+      if (v.points != null) f.oceanPoints = v.points;
+      if (v.multi != null) f.oceanMulti = v.multi;
+      n++;
+    }
+    if (n) log(`ocean  釣果点・匹数の手書きデータ ${n} 件`);
+  } catch { /* 無くてよい */ }
+
   const ocean = {
     phase: OCEAN_PHASE,
     table: ikdTable.map((r) => [Number(r.IndigoRoute), Number(r.RubyRoute)]),
     routes: oceanRoutes,
   };
+
+  // ─── 地図 ────────────────────────────────────────────────
+  // 釣り場の位置を出すために、使っている地図の画像と縮尺だけ持っておく
+  const maps = {};
+  for (const sp of usableSpots) {
+    const m = sp.mapId != null ? mapsAll[sp.mapId] : null;
+    if (!m?.image) { sp.mapId = null; continue; }
+    maps[sp.mapId] ??= { image: m.image, sizeFactor: m.size_factor ?? 100 };
+  }
 
   const iconCount = Object.values(fish).filter((f) => f.icon).length;
   const out = {
@@ -531,6 +587,7 @@ async function main() {
     baits,
     weatherTypes,
     weatherRates,
+    maps,
     ocean,
     bite: biteTimes,
   };
@@ -601,6 +658,8 @@ async function main() {
       `\nオーシャンフィッシング 航路 ${Object.keys(oceanRoutes).length} / 運行表 ${ocean.table.length} 便` +
       `\nオーシャン 伝説魚 ${Object.values(fish).filter((f) => f.oceanLegend).length}` +
       ` / 時間限定 ${Object.values(fish).filter((f) => f.oceanTimes).length}` +
+      ` / ボーナス対象 ${Object.values(fish).filter((f) => f.oceanBonus).length}` +
+      `\n地図 ${Object.keys(maps).length} 枚` +
       `\n拡張別の釣り場: ${Object.values(expansions).map((e) =>
         `${e.n.ja} ${usableSpots.filter((s) => s.ex === e.id).length}`).join(' / ')}`,
   );

@@ -232,6 +232,19 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 /* ── 釣り場ヘッダ ─────────────────────────────────────── */
 .spot-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;margin-bottom:6px}
 .spot-head h1{font-size:29px;font-weight:800;letter-spacing:.01em;line-height:1.2}
+.spot-head h1.hasmap{cursor:pointer}
+.spot-head h1.hasmap:hover{color:var(--gold)}
+.mapicon{font-size:14px;color:var(--gold);margin-left:8px;vertical-align:middle;opacity:.8}
+.mapwrap{position:relative;border-radius:var(--r);overflow:hidden;border:1px solid var(--edge)}
+.mapwrap img{display:block;width:100%;height:auto}
+.mapdot{
+  position:absolute;width:11px;height:11px;border-radius:50%;background:var(--coral);
+  border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 10px rgba(0,0,0,.6);
+}
+.mapring{
+  position:absolute;width:52px;height:52px;border-radius:50%;transform:translate(-50%,-50%);
+  border:2px solid var(--coral);opacity:.55;
+}
 .spot-head h1 .gigmark{
   font-size:11px;font-weight:700;vertical-align:middle;margin-left:9px;padding:3px 9px;
   border-radius:var(--pill);background:rgba(255,159,208,.16);color:var(--rose);
@@ -336,6 +349,8 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .otgt.legend i{color:var(--gold-dim)}
 .tag.legend{color:var(--gold);background:rgba(245,197,99,.14)}
 .tag.otime{color:var(--aqua);background:rgba(79,220,236,.12)}
+.tag.bonus{color:var(--lime);background:rgba(143,232,112,.12)}
+.tag.pts{color:var(--gold);background:rgba(245,197,99,.14);font-family:var(--mono)}
 .odim{color:var(--dim)}
 
 
@@ -409,6 +424,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .bait .b.prey{color:var(--aqua)}
 .bait .none{color:var(--dim)}
 .bait .b.stat{color:var(--lime)}
+.bait .b.stat.prey{color:var(--aqua)}
 .brate-inline{font-family:var(--mono);font-size:10px;color:var(--dim)}
 .ostopwrap{display:inline-flex;align-items:center;gap:2px}
 .ospec{
@@ -439,9 +455,13 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 /* 天候 */
 .weather{display:flex;flex-wrap:wrap;gap:3px;font-size:10.5px}
 .wchip{
+  display:inline-flex;align-items:center;gap:3px;
   padding:2px 7px;border-radius:var(--pill);background:rgba(46,74,125,.55);color:var(--mist);
   white-space:nowrap;
 }
+.wicon{width:15px;height:15px;flex:none;vertical-align:middle}
+.wicon.lg{width:20px;height:20px;margin-right:4px}
+.wcell .n{display:flex;align-items:center}
 .wchip.prev{background:transparent;border:1px dashed var(--dim);color:var(--dim)}
 .wchip.hit{background:var(--aqua);color:var(--ink);font-weight:700}
 .wchip.bite{background:rgba(79,220,236,.12);border:1px solid rgba(79,220,236,.5);color:var(--aqua);font-family:var(--mono);font-size:9.5px;font-weight:700}
@@ -471,6 +491,12 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .nspot small{display:block;font-size:10px;color:var(--dim);margin-top:1px}
 .nbait{display:flex;flex-direction:column;gap:4px;align-items:flex-start;min-width:0}
 .nnext .rel.dim{color:var(--dim)}
+.patch{
+  font-family:var(--mono);font-size:9px;color:var(--dim);background:rgba(46,74,125,.45);
+  padding:1px 5px;border-radius:var(--pill);flex:none;
+}
+.chipbtn.star{border-color:rgba(245,197,99,.5);color:var(--gold)}
+.chipbtn.star:hover{background:rgba(245,197,99,.14)}
 .wchip.guess{background:rgba(255,126,126,.14);color:var(--coral);border:1px solid rgba(255,126,126,.4)}
 .nrow:hover{background:rgba(29,47,82,.55)}
 .nrow.open{background:rgba(143,232,112,.07);box-shadow:inset 3px 0 0 var(--lime)}
@@ -612,6 +638,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
   aside{
     position:fixed;top:var(--header-h);bottom:0;left:0;width:min(86vw,var(--sidebar));z-index:30;
     transform:translateX(-100%);transition:transform .2s;box-shadow:14px 0 40px rgba(0,0,0,.45);
+    overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
   }
   aside.open{transform:none}
   .menubtn{display:block;color:var(--mist);font-size:19px;padding:4px 2px}
@@ -620,7 +647,6 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 
 /* ── スマホ：表をカードに ────────────────────────────── */
 @media (max-width:780px){
-  :root{--header-h:auto}
   body{font-size:14.5px}
   header{
     height:auto;flex-wrap:wrap;gap:9px 12px;padding:9px 12px 11px;
@@ -838,11 +864,15 @@ const STR = {
     day: '昼', sunset: '夕', night: '夜',
     fromStats: '（実測統計より）', spearMark: '銛',
     langLabel: '言語', tzLabel: '時間帯',
+    showMap: '地図で位置を見る', mapFailed: '地図を読み込めませんでした',
+    mapNote: 'ゲーム内のマップ座標をそのまま重ねています。実際の釣り場は円の内側にあります。',
+    patch: '実装', byPatch: '実装順', selectAll: '表示中を全部★', clearAll: '★を全部外す',
+    points: '釣果点', bonus: 'ボーナス対象', ptsUnit: '点', multiHook: 'トリプル',
     biteSource: '出典：Lodinn の集計（Teamcraft の Allagan Reports に集まった実測）。釣果率はそのエサを使ったキャスト全体に占める割合。',
     minutes: '分', hoursU: '時間', days: '日', ago: 'あと ',
     nushiOne: 'ヌシ', oonushi: 'オオヌシ',
     estimated: '推定', fromPredator: ' の条件から推定',
-    byRate: '実測の釣果率が最も高いエサ', spectral: '幻海流', normal: '通常',
+    byRate: '実測の釣果率が最も高いエサ', swimOnly: '泳がせ専用', spectral: '幻海流', normal: '通常',
     targets: '狙える魚', legendOnly: '伝説魚が狙える便',
     legendFish: '伝説魚', onlySuffix: '限定',
     uptime: '出現率', nearshore: '近海航路', offshore: '遠洋航路',
@@ -873,11 +903,15 @@ const STR = {
     day: 'Day', sunset: 'Sunset', night: 'Night',
     fromStats: ' (from measurements)', spearMark: 'Spear',
     langLabel: 'Language', tzLabel: 'Time zone',
+    showMap: 'Show on map', mapFailed: 'Could not load the map',
+    mapNote: 'In-game map coordinates, overlaid directly. The spot sits inside the ring.',
+    patch: 'Patch', byPatch: 'By patch', selectAll: 'Star all shown', clearAll: 'Clear stars',
+    points: 'Points', bonus: 'Bonus objectives', ptsUnit: 'pt', multiHook: 'triple hook',
     biteSource: 'Source: Lodinn\u2019s aggregation of player reports collected via Teamcraft Allagan Reports. Catch rate is the share of all casts with that bait.',
     minutes: 'min', hoursU: 'h', days: 'd', ago: 'in ',
     nushiOne: 'Big Fish', oonushi: 'Legendary',
     estimated: 'Estimated', fromPredator: ' \u2014 derived from this predator',
-    byRate: 'highest measured catch rate', spectral: 'Spectral', normal: 'Normal',
+    byRate: 'highest measured catch rate', swimOnly: 'only via swimming bait', spectral: 'Spectral', normal: 'Normal',
     targets: 'Targets', legendOnly: 'Legendary only',
     legendFish: 'Legendary', onlySuffix: ' only',
     uptime: 'Uptime', nearshore: 'Indigo Route', offshore: 'Ruby Route',
@@ -947,6 +981,14 @@ function weatherAt(territoryId, ms) {
   return wr.rates[wr.rates.length - 1][0];
 }
 const wName = (id) => nm(DB.weatherTypes[id]?.n) || `#${id}`;
+/** 天候アイコン。読めなければ静かに消える */
+function wIcon(id, cls = 'wicon') {
+  const w = DB.weatherTypes[id];
+  if (!DB.meta.icons || !w?.icon) return '';
+  const alt = iconV1(w.icon);
+  return `<img class="${cls}" src="${esc(DB.meta.iconBase + w.icon)}" alt="" loading="lazy"
+    onerror="if(this.dataset.f){this.style.display='none'}else{this.dataset.f=1;this.src='${alt}'}">`;
+}
 
 /* ══════════════════════════════════════════════════════════
    出現判定
@@ -1162,6 +1204,25 @@ function bestBaitByRate(fishId, spotId) {
   const ranked = arr.filter((r) => r.rate != null).sort((a, b) => b.rate - a.rate || b.n - a.n);
   return ranked[0] ?? null;
 }
+/** 竿に付けられるエサか（魚なら泳がせ、つまり竿には付けられない） */
+const isRealBait = (id) => !DB.fish[id];
+
+/**
+ * 実測から組み立てるエサの道筋。
+ * 一番強いのが泳がせ（＝魚）なら、その魚を釣るためのエサまで遡って「A ▸ B」の形にする。
+ * 泳がせでしか釣れない魚は、遡れないのでその魚の名前だけを出す。
+ */
+function baitPathByRate(fishId, spotId) {
+  const top = bestBaitByRate(fishId, spotId);
+  if (!top) return null;
+  if (isRealBait(top.baitId)) return { path: [top.baitId], rate: top.rate };
+  // 泳がせ。エサになる魚を釣るためのエサを探す
+  const prey = bestBaitByRate(top.baitId, spotId);
+  if (prey && isRealBait(prey.baitId)) {
+    return { path: [prey.baitId, top.baitId], rate: top.rate, preyRate: prey.rate };
+  }
+  return { path: [top.baitId], rate: top.rate, swimOnly: true };
+}
 
 /** その釣り場・その魚で、いちばん頼れる1件。使うエサが分かっていればそれを優先 */
 function bestBite(fishId, spotId, preferBait) {
@@ -1354,20 +1415,21 @@ function weatherHTML(f, territoryId) {
   const nowW = territoryId != null ? weatherAt(territoryId, Date.now()) : null;
   const prevW = territoryId != null ? weatherAt(territoryId, periodStart(Date.now()) - W_PERIOD * 1000) : null;
   const prev = f.prevWeather.map((w) =>
-    `<span class="wchip prev${w === prevW ? ' hit' : ''}">${T('prev')}${esc(wName(w))}</span>`).join('');
+    `<span class="wchip prev${w === prevW ? ' hit' : ''}">${T('prev')}${wIcon(w)}${esc(wName(w))}</span>`).join('');
   const cur = f.weather.map((w) =>
-    `<span class="wchip${w === nowW ? ' hit' : ''}">${esc(wName(w))}</span>`).join('');
+    `<span class="wchip${w === nowW ? ' hit' : ''}">${wIcon(w)}${esc(wName(w))}</span>`).join('');
   return `<div class="weather">${prev}${cur}</div>`;
 }
 
 function baitHTML(f, spotId) {
   if (!f.baitPath.length) {
     // 上流にエサが無くても、実測の釣果率から推せる（主にオーシャンフィッシング）
-    const b = spotId != null ? bestBaitByRate(f.id, spotId) : null;
+    const b = spotId != null ? baitPathByRate(f.id, spotId) : null;
     if (b) {
-      return `<div class="bait" title="${T('byRate')}">
-        <span class="b stat">${esc(baitName(b.baitId))}</span>
-        <span class="brate-inline">${b.rate}%</span></div>`;
+      const parts = b.path.map((id, i) =>
+        `${i ? '<span class="arrow">▸</span>' : ''}<span class="b stat${i ? ' prey' : ''}">${esc(baitName(id))}</span>`);
+      return `<div class="bait" title="${T('byRate')}${b.swimOnly ? ` / ${T('swimOnly')}` : ''}">
+        ${parts.join('')}<span class="brate-inline">${b.rate}%</span></div>`;
     }
     if (f.predators.length) {
       const p = f.predators.map(([id, n]) => `${esc(nm(DB.fish[id]?.n) || baitName(id))}×${n}`).join(' + ');
@@ -1396,6 +1458,9 @@ function fishRow(f, spot) {
     f.gig ? `<span class="tag gig">${T('gig')}</span>` : '',
     f.oceanLegend ? `<span class="tag legend">${T('legendFish')}</span>` : '',
     f.oceanTimes ? `<span class="tag otime">${f.oceanTimes.map(timeLabel).join('/')}${T('onlySuffix')}</span>` : '',
+    f.oceanPoints != null ? `<span class="tag pts">${f.oceanPoints}${T('ptsUnit')}</span>` : '',
+    f.oceanMulti != null ? `<span class="tag pts">×${f.oceanMulti}</span>` : '',
+    ...(f.oceanBonus ?? []).map((b) => `<span class="tag bonus">${esc(nm(b.n))}</span>`),
   ].join('');
   const stars = f.stars ? `<span class="stars">${'★'.repeat(f.stars)}</span>` : '';
   const tugCls = f.tugRank ? `t${f.tugRank}` : '';
@@ -1538,7 +1603,7 @@ function renderSpot(keepScroll = false) {
       const w = weatherAt(spot.territoryId, t);
       return `<div class="wcell${i === 0 ? ' now' : ''}">
         <div class="t">${i === 0 ? 'NOW' : dayLabel(t) + hhmm(t)}</div>
-        <div class="n">${esc(wName(w))}</div></div>`;
+        <div class="n">${wIcon(w, 'wicon lg')}${esc(wName(w))}</div></div>`;
     }).join('') + '</div>';
   }
 
@@ -1548,7 +1613,9 @@ function renderSpot(keepScroll = false) {
 
   $('#stage').innerHTML = `<div class="wrap">
     <div class="spot-head">
-      <h1>${esc(nm(spot.n)).replace(/：幻海流|Spectral Current/i, '')}${
+      <h1${spot.mapId != null ? ' class="hasmap" id="showmap" title="' + T('showMap') + '"' : ''}>${
+        esc(nm(spot.n)).replace(/：幻海流|Spectral Current/i, '')}${
+        spot.mapId != null ? '<span class="mapicon">◎</span>' : ''}${
         spot.spear ? `<span class="gigmark">${T('spearMark')}</span>` : ''}${
         spot.spectral ? `<span class="gigmark spec">${T('spectral')}</span>` : ''}</h1>
       <div class="meta">
@@ -1574,6 +1641,41 @@ function renderSpot(keepScroll = false) {
     ${creditHTML()}
   </div>`;
   $('#stage').scrollTop = scrollY;
+}
+
+/* ══════════════════════════════════════════════════════════
+   地図
+   釣り場の座標をマップ画像の上に重ねる。
+   ゲーム内の座標系（1〜42）から画像上の位置への変換は縮尺（size_factor）で決まる。
+   ══════════════════════════════════════════════════════════ */
+function mapPct(coord, sizeFactor) {
+  const c = (sizeFactor ?? 100) / 100;
+  return (((coord - 1) * c) / 41) * 100;
+}
+function openMap(spot) {
+  const m = DB.maps?.[spot.mapId];
+  if (!m) return;
+  const x = mapPct(spot.x, m.sizeFactor), y = mapPct(spot.y, m.sizeFactor);
+  $('#drawer').innerHTML = `
+    <header>
+      <button class="close" aria-label="close">×</button>
+      <div class="dhead"><div style="min-width:0">
+        <h2>${esc(nm(spot.n))}</h2>
+        <div class="eyebrow" style="margin-top:3px">${esc(nm(spot.area))}${
+          spot.x != null ? ` · X:${spot.x.toFixed(1)} Y:${spot.y.toFixed(1)}` : ''}</div>
+      </div></div>
+    </header>
+    <div class="dbody">
+      <div class="mapwrap">
+        <img src="${esc(m.image)}" alt="" loading="lazy"
+          onerror="this.closest('.mapwrap').innerHTML='<p class=\'gempty\'>${T('mapFailed')}</p>'">
+        <span class="mapdot" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%"></span>
+        <span class="mapring" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%"></span>
+      </div>
+      <p class="bnote">${T('mapNote')}</p>
+    </div>`;
+  $('#drawer').classList.add('open');
+  $('#scrim').classList.add('open');
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1671,8 +1773,8 @@ function condChips(f, spotId) {
     c.push(`<span class="wchip guess" title="${esc(nm(p?.n))}${T('fromPredator')}">⚠ ${T('estimated')}</span>`);
   }
   if (d.startHour !== 0 || d.endHour !== 24) c.push(`<span class="wchip">ET ${etShort(d.startHour)}–${etShort(d.endHour)}</span>`);
-  d.prevWeather.forEach((w) => c.push(`<span class="wchip prev">${T('prev')}${esc(wName(w))}</span>`));
-  d.weather.forEach((w) => c.push(`<span class="wchip">${esc(wName(w))}</span>`));
+  d.prevWeather.forEach((w) => c.push(`<span class="wchip prev">${T('prev')}${wIcon(w)}${esc(wName(w))}</span>`));
+  d.weather.forEach((w) => c.push(`<span class="wchip">${wIcon(w)}${esc(wName(w))}</span>`));
   if (f.predators.length) c.push(`<span class="wchip" style="color:var(--gold)">${T('intuition')}</span>`);
   if (f.folklore) c.push(`<span class="wchip" style="color:var(--violet)">${T('folklore')}</span>`);
   if (f.snagging) c.push(`<span class="wchip">${T('snagging')}</span>`);
@@ -1740,6 +1842,9 @@ function renderNushi() {
   const ORDER = { open: 0, soon: 1, always: 2, none: 3, unknown: 4 };
   rows.sort((a, b) => {
     if (state.nushiSort === 'name') return nm(a.f.n).localeCompare(nm(b.f.n), state.lang);
+    if (state.nushiSort === 'patch') {
+      return (a.f.patch ?? 99) - (b.f.patch ?? 99) || nm(a.f.n).localeCompare(nm(b.f.n), state.lang);
+    }
     if (ORDER[a.st] !== ORDER[b.st]) return ORDER[a.st] - ORDER[b.st];
     if (a.st === 'open') return a.w[1] - b.w[1];        // 締切が近い順
     if (a.st === 'soon') return a.w[0] - b.w[0];        // 始まるのが早い順
@@ -1772,8 +1877,12 @@ function renderNushi() {
       <span style="width:8px"></span>
       <button class="chipbtn" data-ns="next" aria-pressed="${state.nushiSort === 'next'}">${T('byNext')}</button>
       <button class="chipbtn" data-ns="name" aria-pressed="${state.nushiSort === 'name'}">${T('byName')}</button>
+      <button class="chipbtn" data-ns="patch" aria-pressed="${state.nushiSort === 'patch'}">${T('byPatch')}</button>
       <span style="width:8px"></span>
       <button class="chipbtn" data-nf="1" aria-pressed="${state.favOnly}">${T('favOnly')}${state.favs.size ? ` ${state.favs.size}` : ''}</button>
+      <span style="width:8px"></span>
+      <button class="chipbtn star" data-favall="1">★ ${T('selectAll')}</button>
+      ${state.favs.size ? `<button class="chipbtn" data-favclear="1">${T('clearAll')}</button>` : ''}
     </div>
 
     <div class="toolbar" style="margin-top:2px">
@@ -1788,6 +1897,7 @@ function renderNushi() {
       <div class="nrow${st === 'open' ? ' open' : ''}${st === 'always' ? ' always' : ''}" data-fish="${f.id}" data-fishspot="${spot?.id ?? ''}" tabindex="0" role="button">
         <div class="nkind">${favBtn(f.id)}<span class="kind${f.oonushi ? ' oo' : ''}">${f.oonushi ? T('oonushi') : T('nushiOne')}</span></div>
         <div class="nname">${iconImg(f, 'ficon sm')}<span class="nm">${esc(nm(f.n))}</span>
+          ${f.patch ? `<span class="patch">${f.patch}</span>` : ''}
           ${f.fishEyes && state.fishEyes ? '<span class="tag coll">FE</span>' : ''}</div>
         <div class="nnext">${
           st === 'unknown' ? `<span class="never">${T('condMissing')}</span>`
@@ -1866,10 +1976,11 @@ function targetChips(route) {
   const { legend, timed } = voyageTargets(route);
   if (!legend.length && !timed.length) return '';
   const chip = (x, cls) => {
-    const b = bestBaitByRate(x.f.id, x.sp.id);
+    const b = baitPathByRate(x.f.id, x.sp.id);
+    const label = b ? b.path.map(baitName).join(' ▸ ') : '';
     return `<span class="otgt ${cls}" data-fish="${x.f.id}" data-fishspot="${x.sp.id}"
-      title="${esc(nm(x.sp.n))} / ${timeLabel(x.st.time)}${b ? ` / ${esc(baitName(b.baitId))} ${b.rate}%` : ''}">
-      ${esc(nm(x.f.n))}${b ? `<i>${esc(baitName(b.baitId))}</i>` : ''}</span>`;
+      title="${esc(nm(x.sp.n))} / ${timeLabel(x.st.time)}${b ? ` / ${esc(label)} ${b.rate}%` : ''}">
+      ${esc(nm(x.f.n))}${b ? `<i>${esc(label)}</i>` : ''}</span>`;
   };
   return `<div class="otargets">
     ${legend.map((x) => chip(x, 'legend')).join('')}
@@ -2072,19 +2183,25 @@ function openFish(fishId, fromSpotId) {
         <dl class="kv">
           <dt>${T('bait')}</dt><dd>${(() => {
             if (f.baitPath.length) return f.baitPath.map(baitName).map(esc).join(' ▸ ');
-            const b = spot ? bestBaitByRate(f.id, spot.id) : null;
-            return b ? `${esc(baitName(b.baitId))} <span style="color:var(--dim);font-size:11px">${b.rate}% · ${T('byRate')}</span>` : '—';
+            const b = spot ? baitPathByRate(f.id, spot.id) : null;
+            if (!b) return '—';
+            return `${b.path.map(baitName).map(esc).join(' ▸ ')}
+              <span style="color:var(--dim);font-size:11px">${b.rate}% · ${b.swimOnly ? T('swimOnly') : T('byRate')}</span>`;
           })()}</dd>
           ${f.predators.length ? `<dt>${T('intuition')}</dt><dd>${f.predators.map(([id, n]) =>
             `${esc(nm(DB.fish[id]?.n) || baitName(id))} ×${n}`).join(' + ')}${f.intuition ? `（${f.intuition}s）` : ''}</dd>` : ''}
           <dt>${T('hours')}</dt><dd>${!f.hasConditions ? T('unknown') : (f.startHour === 0 && f.endHour === 24 ? T('allDay') : `ET ${etLabel(f.startHour)} – ${etLabel(f.endHour)}`)}</dd>
-          <dt>${T('weather')}</dt><dd>${!f.hasConditions ? T('unknown') : (f.weather.length ? f.weather.map(wName).map(esc).join(' / ') : T('anyWeather'))}
-            ${f.prevWeather.length ? `<br><span style="color:var(--mist)">${T('prev')} ${f.prevWeather.map(wName).map(esc).join(' / ')}</span>` : ''}</dd>
+          <dt>${T('weather')}</dt><dd>${!f.hasConditions ? T('unknown')
+            : (f.weather.length ? f.weather.map((w) => wIcon(w) + esc(wName(w))).join(' / ') : T('anyWeather'))}
+            ${f.prevWeather.length ? `<br><span style="color:var(--mist)">${T('prev')} ${f.prevWeather.map((w) => wIcon(w) + esc(wName(w))).join(' / ')}</span>` : ''}</dd>
           <dt>${T('tug')}</dt><dd>${f.tugJa ?? '—'} ${f.hookset ? `／ ${esc(f.hookset)}` : ''}
             ${f.tugFromStats ? `<span style="color:var(--dim);font-size:11px">${T('fromStats')}</span>` : ''}</dd>
           ${f.snagging ? `<dt>${T('snagging')}</dt><dd>✓</dd>` : ''}
           ${f.folklore ? `<dt>${T('folklore')}</dt><dd>${esc(nm(f.folklore))}</dd>` : ''}
           ${f.fishEyes ? '<dt>フィッシュアイ</dt><dd>有効</dd>' : ''}
+          ${f.oceanPoints != null ? `<dt>${T('points')}</dt><dd>${f.oceanPoints}${T('ptsUnit')}${
+            f.oceanMulti != null ? ` / ${T('multiHook')} ×${f.oceanMulti}` : ''}</dd>` : ''}
+          ${f.oceanBonus ? `<dt>${T('bonus')}</dt><dd>${f.oceanBonus.map((b) => esc(nm(b.n))).join('<br>')}</dd>` : ''}
           ${f.patch ? `<dt>${T('released')}</dt><dd>Patch ${f.patch}</dd>` : ''}
         </dl>
       </div>
@@ -2179,6 +2296,11 @@ document.addEventListener('click', (e) => {
   if (od) { state.oceanDest = od.dataset.od; renderOcean(); return; }
   if (e.target.closest('[data-ot]')) { state.oceanTargets = !state.oceanTargets; renderOcean(); return; }
   if (e.target.closest('[data-ol]')) { state.oceanLegendOnly = !state.oceanLegendOnly; renderOcean(); return; }
+  if (e.target.closest('#showmap')) {
+    const sp = spotById.get(state.spotId);
+    if (sp) openMap(sp);
+    return;
+  }
   const fv = e.target.closest('[data-fav]');
   if (fv) {
     e.stopPropagation();
@@ -2188,6 +2310,12 @@ document.addEventListener('click', (e) => {
   }
   const nf = e.target.closest('[data-nf]');
   if (nf) { state.favOnly = !state.favOnly; renderNushi(); return; }
+  if (e.target.closest('[data-favall]')) {
+    // いま画面に出ているぶんだけをまとめて★にする（絞り込みと併用できる）
+    document.querySelectorAll('.nrow[data-fish]').forEach((r) => state.favs.add(Number(r.dataset.fish)));
+    syncHash(); renderNushi(); return;
+  }
+  if (e.target.closest('[data-favclear]')) { state.favs.clear(); syncHash(); renderNushi(); return; }
   const cb = e.target.closest('[data-cb]');
   if (cb) { state.chartBait = Number(cb.dataset.cb); renderSpot(true); return; }
   const cc = e.target.closest('[data-cc]');
@@ -2280,6 +2408,15 @@ $('#scrim').addEventListener('click', () => {
   }
   // 条件未収録のヌシは、前提魚から実効条件を組み立てておく
   for (const f of Object.values(DB.fish)) f.derived = deriveCond(f);
+  // ヘッダは折り返しで高さが変わるので、実測してサイドバーの起点に使う
+  const syncHeaderHeight = () => {
+    const h = document.querySelector('header')?.offsetHeight;
+    if (h) document.documentElement.style.setProperty('--header-h', `${h}px`);
+  };
+  syncHeaderHeight();
+  window.addEventListener('resize', syncHeaderHeight);
+  if (window.ResizeObserver) new ResizeObserver(syncHeaderHeight).observe(document.querySelector('header'));
+
   renderChrome();
   renderSide();
   render();

@@ -2,5 +2,8 @@ node_modules/
 tools/.cache/
 dist/
 
-# ビルドのたびに作り直される生成物。上流データとヒットタイムから毎回組み立てられる。
+# ビルドのたびに作り直される生成物。
+# fishing.json は上流データから、bite-times.json は import スクリプトから毎回組み立てられる。
+# リポジトリに置くと、Actions が更新するたびに手元とぶつかるので追跡しない。
 data/fishing.json
+data/bite-times.json
