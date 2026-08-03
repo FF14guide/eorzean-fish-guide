@@ -47,6 +47,10 @@ const SOURCES = {
   'FishParameterSheet.csv': `${DM}/ja/FishParameter.csv`,
   'IKDRoute_ja.csv': `${DM}/ja/IKDRoute.csv`,
   'IKDRoute_en.csv': `${DM}/en/IKDRoute.csv`,
+  'IKDRoute_de.csv': `${DM}/de/IKDRoute.csv`,
+  'IKDRoute_fr.csv': `${DM}/fr/IKDRoute.csv`,
+  'FishParameter_en.csv': `${DM}/en/FishParameter.csv`,
+  'SpearfishingItem_en.csv': `${DM}/en/SpearfishingItem.csv`,
   'IKDSpot.csv': `${DM}/en/IKDSpot.csv`,
   'IKDRouteTable.csv': `${DM}/en/IKDRouteTable.csv`,
 };
@@ -131,8 +135,14 @@ async function main() {
   const itemIcons = JSON.parse(raw['item-icons.json']);
   const D = parseFishTracker(raw['ff14fish-data.js']);
 
-  const ikdRouteJa = parseCsv(raw['IKDRoute_ja.csv']);
-  const ikdRouteEn = parseCsv(raw['IKDRoute_en.csv']);
+  const LANGS = ['ja', 'en', 'de', 'fr'];
+  const ikdRoute = {
+    ja: parseCsv(raw['IKDRoute_ja.csv']),
+    en: parseCsv(raw['IKDRoute_en.csv']),
+    de: parseCsv(raw['IKDRoute_de.csv']),
+    fr: parseCsv(raw['IKDRoute_fr.csv']),
+  };
+  const ikdRouteEn = ikdRoute.en;
   const ikdSpot = parseCsv(raw['IKDSpot.csv']);
   const ikdTable = parseCsv(raw['IKDRouteTable.csv']);
   const spearItems = parseCsv(raw['SpearfishingItem.csv']);
@@ -147,10 +157,21 @@ async function main() {
     [0, 1, 2, 3, 4, 5, 6, 7].map((i) => r[`Item[${i}]`]).filter((v) => v && v !== '0'),
   ]));
 
-  // 釣り手帳の説明文（日本語）
+  // 釣り手帳の説明文。日本語と英語だけ（4言語ぶん持つとデータが倍近くなるため）
   const fishDesc = new Map();
-  for (const r of fishSheet) if (r.Item && r.Item !== '0' && r.Text) fishDesc.set(Number(r.Item), r.Text);
-  for (const r of spearItems) if (r.Item && r.Item !== '0' && r.Description) fishDesc.set(Number(r.Item), r.Description);
+  const addDesc = (rows, key, lang) => {
+    for (const r of rows) {
+      const id = Number(r.Item);
+      if (!id || !r[key]) continue;
+      const cur = fishDesc.get(id) ?? {};
+      cur[lang] = r[key];
+      fishDesc.set(id, cur);
+    }
+  };
+  addDesc(fishSheet, 'Text', 'ja');
+  addDesc(parseCsv(raw['FishParameter_en.csv']), 'Text', 'en');
+  addDesc(spearItems, 'Description', 'ja');
+  addDesc(parseCsv(raw['SpearfishingItem_en.csv']), 'Description', 'en');
 
   // ヒットタイム（tools/import-bite-times.mjs が作る、または手書き）
   let biteTimes = {};
@@ -171,30 +192,40 @@ async function main() {
   // ─── 名前解決 ────────────────────────────────────────────────
   // アイコンは XIVAPI v2 のアセットパス（Teamcraft が持っている対応表をそのまま使う）
   const iconOf = (id) => itemIcons[id] ?? null;
+  /** {ja,en,de,fr} を返す。欠けている言語は英語→日本語の順で埋める */
+  const fill = (o) => {
+    const base = o.en || o.ja || Object.values(o).find(Boolean) || '?';
+    const out = {};
+    for (const l of LANGS) out[l] = o[l] || base;
+    return out;
+  };
   const nameOf = (id) => {
     const ft = D.ITEMS[id];
-    if (ft) return { ja: ft.name_ja, en: ft.name_en, icon: iconOf(id) };
+    if (ft) return { n: fill({ ja: ft.name_ja, en: ft.name_en, de: ft.name_de, fr: ft.name_fr }), icon: iconOf(id) };
     const tc = items[id];
-    if (tc) return { ja: tc.ja, en: tc.en, icon: iconOf(id) };
-    return { ja: `#${id}`, en: `#${id}`, icon: iconOf(id) };
+    if (tc) return { n: fill(tc), icon: iconOf(id) };
+    const s = `#${id}`;
+    return { n: { ja: s, en: s, de: s, fr: s }, icon: iconOf(id) };
   };
-  const placeName = (id) => (places[id]?.ja || places[id]?.en || null);
+  const placeN = (id) => (places[id] ? fill(places[id]) : null);
+  const placeName = (id) => placeN(id)?.ja ?? null;
 
   // ─── 釣り場 ──────────────────────────────────────────────────
   const spearIds = new Set(Object.keys(D.SPEARFISHING_SPOTS).map(Number));
   const spots = [];
   for (const s of tcSpots) {
     const ft = D.FISHING_SPOTS[s.id] || D.SPEARFISHING_SPOTS[s.id];
-    const nameJa = ft?.name_ja || placeName(s.zoneId) || `釣り場 ${s.id}`;
-    const nameEn = ft?.name_en || places[s.zoneId]?.en || `Spot ${s.id}`;
+    const n = ft
+      ? fill({ ja: ft.name_ja, en: ft.name_en, de: ft.name_de, fr: ft.name_fr })
+      : placeN(s.zoneId) ?? fill({ en: `Spot ${s.id}` });
     const territoryId = ft?.territory_id ?? null;
     const wr = territoryId != null ? D.WEATHER_RATES[territoryId] : null;
+    const reg = wr ? D.REGIONS[wr.region_id] : null;
     spots.push({
       id: s.id,
-      nameJa,
-      nameEn,
-      area: placeName(s.placeId) || '不明',
-      region: wr ? D.REGIONS[wr.region_id]?.name_ja ?? null : null,
+      n,
+      area: placeN(s.placeId) ?? fill({ en: 'Unknown', ja: '不明' }),
+      region: reg ? fill({ ja: reg.name_ja, en: reg.name_en, de: reg.name_de, fr: reg.name_fr }) : null,
       territoryId,
       level: s.level ?? null,
       x: s.coords?.x ?? null,
@@ -217,12 +248,17 @@ async function main() {
     const ft = D.SPEARFISHING_SPOTS[baseId];
     const terr = Number(note.TerritoryType) || null;
     const wr = terr != null ? D.WEATHER_RATES[terr] : null;
+    const zone = wr ? D.ZONES[wr.zone_id] : null;
+    const reg = wr ? D.REGIONS[wr.region_id] : null;
     spots.push({
       id: baseId,
-      nameJa: ft?.name_ja || places[note.PlaceName]?.ja || `銛場 ${baseId}`,
-      nameEn: ft?.name_en || places[note.PlaceName]?.en || `Spearfishing ${baseId}`,
-      area: wr ? D.ZONES[wr.zone_id]?.name_ja ?? '不明' : '不明',
-      region: wr ? D.REGIONS[wr.region_id]?.name_ja ?? null : null,
+      n: ft
+        ? fill({ ja: ft.name_ja, en: ft.name_en, de: ft.name_de, fr: ft.name_fr })
+        : placeN(note.PlaceName) ?? fill({ en: `Spearfishing ${baseId}` }),
+      area: zone
+        ? fill({ ja: zone.name_ja, en: zone.name_en, de: zone.name_de, fr: zone.name_fr })
+        : fill({ en: 'Unknown', ja: '不明' }),
+      region: reg ? fill({ ja: reg.name_ja, en: reg.name_en, de: reg.name_de, fr: reg.name_fr }) : null,
       territoryId: terr,
       level: Number(note.GatheringLevel) || null,
       x: null,
@@ -254,8 +290,7 @@ async function main() {
     const n = nameOf(id);
     const entry = {
       id,
-      nameJa: n.ja,
-      nameEn: n.en,
+      n: n.n,
       icon: n.icon,
       spots: spotIds,
       level: p?.level ?? null,
@@ -276,7 +311,12 @@ async function main() {
       lure: c?.lure ?? null,
       fishEyes: !!c?.fishEyes,
       bigFish: !!c?.bigFish,
-      folklore: c?.folklore ? D.FOLKLORE[c.folklore]?.name_ja ?? null : null,
+      folklore: c?.folklore && D.FOLKLORE[c.folklore]
+        ? fill({
+            ja: D.FOLKLORE[c.folklore].name_ja, en: D.FOLKLORE[c.folklore].name_en,
+            de: D.FOLKLORE[c.folklore].name_de, fr: D.FOLKLORE[c.folklore].name_fr,
+          })
+        : null,
       collectable: !!c?.collectable,
       gig: c?.gig ?? null,
       patch: c?.patch ?? null,
@@ -314,18 +354,26 @@ async function main() {
   }
 
   // ─── エサ ────────────────────────────────────────────────────
+  // bestCatchPath は「どちらでも釣れる」場合に候補を配列で持つ。ほぐして全部登録する。
   const baitIds = new Set();
-  for (const f of Object.values(fish)) f.baitPath.forEach((b) => baitIds.add(b));
+  for (const f of Object.values(fish)) {
+    for (const b of f.baitPath) {
+      if (Array.isArray(b)) b.forEach((x) => baitIds.add(x));
+      else baitIds.add(b);
+    }
+  }
+  for (const key of Object.keys(biteTimes)) baitIds.add(Number(key.split(':')[2]));
   const baits = {};
   for (const id of baitIds) {
+    if (!id) continue;
     const n = nameOf(id);
-    baits[id] = { id, nameJa: n.ja, nameEn: n.en, icon: n.icon, isFish: !!fish[id] };
+    baits[id] = { id, n: n.n, icon: n.icon, isFish: !!fish[id] };
   }
 
   // ─── 天候 ────────────────────────────────────────────────────
   const weatherTypes = {};
   for (const [id, w] of Object.entries(D.WEATHER_TYPES)) {
-    weatherTypes[id] = { nameJa: w.name_ja, nameEn: w.name_en, icon: w.icon };
+    weatherTypes[id] = { n: fill({ ja: w.name_ja, en: w.name_en, de: w.name_de, fr: w.name_fr }), icon: w.icon };
   }
   const weatherRates = {};
   for (const [tid, wr] of Object.entries(D.WEATHER_RATES)) {
@@ -334,29 +382,29 @@ async function main() {
 
   // ─── エリア順（ゲーム内の並びに近づける） ──────────────────
   const areaOrder = [];
-  for (const s of usableSpots) if (!areaOrder.includes(s.area)) areaOrder.push(s.area);
+  for (const s of usableSpots) if (!areaOrder.some((a) => a.ja === s.area.ja)) areaOrder.push(s.area);
 
   // ─── オーシャンフィッシング ──────────────────────────────
-  const TIME_JA = { 1: '夜', 2: '昼', 3: '夕' };
+  // 時間帯コードは 1=夜 2=昼 3=夕（プラグイン側の寄港順と突き合わせて確認済み）
   const ikdSpotById = new Map(ikdSpot.map((r) => [r['#'], r]));
   const oceanRoutes = {};
   for (const r of ikdRouteEn) {
     if (!r.Name) continue;
-    const ja = ikdRouteJa.find((x) => x['#'] === r['#']);
+    const nameByLang = {};
+    for (const l of LANGS) nameByLang[l] = ikdRoute[l].find((x) => x['#'] === r['#'])?.Name || r.Name;
     const stops = [0, 1, 2].map((k) => {
       const sp = ikdSpotById.get(r[`Spot[${k}]`]);
       return {
-        nameJa: placeName(sp?.PlaceName) ?? '?',
+        n: placeN(sp?.PlaceName) ?? fill({ en: '?' }),
         spotId: Number(sp?.SpotMain) || null,      // 通常
         subSpotId: Number(sp?.SpotSub) || null,    // 幻海流
-        time: TIME_JA[r[`Time[${k}]`]] ?? '?',
+        time: Number(r[`Time[${k}]`]) || 0,
       };
     });
     oceanRoutes[r['#']] = {
       id: Number(r['#']),
-      nameJa: ja?.Name || r.Name,
-      nameEn: r.Name,
-      dest: stops[2].nameJa,
+      n: fill(nameByLang),
+      dest: stops[2].n,
       destTime: stops[2].time,
       stops,
     };
@@ -387,6 +435,7 @@ async function main() {
       sources: [
         'FFXIV Teamcraft (MIT) — 釣り場と魚の対応、アイテム名',
         'FFX|V Fish Tracker App — 出現条件・エサ・引き・天候',
+        'xivapi/ffxiv-datamining — 銛・説明文・オーシャンフィッシングの運行表',
         ...(biteMeta?.source ? ['Lodinn — ヒットタイムと釣果率の実測統計'] : []),
       ],
     },

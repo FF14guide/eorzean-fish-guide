@@ -131,7 +131,18 @@ header::after{ /* 金の縁取り */
 .search input::placeholder{color:var(--dim)}
 .search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--dim)}
 
-.toggles{display:flex;gap:6px;flex:none;margin-left:auto}
+.picks{display:flex;gap:6px;flex:none;margin-left:auto}
+.picks select{
+  background:rgba(8,16,30,.6);border:1px solid var(--edge-soft);border-radius:var(--pill);
+  padding:6px 10px;font-size:11.5px;color:var(--mist);cursor:pointer;
+}
+.picks select:hover{border-color:var(--gold);color:var(--foam)}
+.picks select:focus{outline:none;border-color:var(--aqua)}
+.clock-read.lt b{color:var(--aqua)}
+.clock-read.lt{padding-left:10px;border-left:1px solid var(--edge-soft)}
+@media (max-width:1180px){.clock-read.lt{display:none}}
+@media (max-width:900px){.picks select{padding:5px 7px;font-size:10.5px}}
+.toggles{display:flex;gap:6px;flex:none}
 .tgl{
   font-size:11.5px;font-weight:600;letter-spacing:.02em;
   padding:6px 13px;border:1px solid var(--edge);border-radius:var(--pill);
@@ -600,6 +611,10 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
         <b id="etclock">--:--</b>
         <div>EORZEA</div>
       </div>
+      <div class="clock-read lt">
+        <b id="ltclock">--:--</b>
+        <div id="ltlabel">LOCAL</div>
+      </div>
     </div>
 
     <div class="search">
@@ -609,10 +624,17 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
       <input id="q" type="search" placeholder="魚・釣り場・エサを検索" autocomplete="off" spellcheck="false">
     </div>
 
+    <div class="picks">
+      <select id="lang" aria-label="Language">
+        ${''}
+      </select>
+      <select id="tz" aria-label="Time zone"></select>
+    </div>
+
     <div class="toggles">
-      <button class="tgl" id="t-eyes" aria-pressed="false" title="フィッシュアイで時間制限が外れる魚を、時間外でも釣れる扱いにする">フィッシュアイ</button>
-      <button class="tgl" id="t-live" aria-pressed="false">今釣れる</button>
-      <button class="tgl" id="t-cond" aria-pressed="false">条件付きのみ</button>
+      <button class="tgl" id="t-eyes" aria-pressed="false"></button>
+      <button class="tgl" id="t-live" aria-pressed="false"></button>
+      <button class="tgl" id="t-cond" aria-pressed="false"></button>
     </div>
   </header>
 
@@ -636,6 +658,115 @@ const INLINE_DATA = /*__DATA__*/null;
 const DATA_URLS   = /*__URLS__*/null;
 
 function startApp(DB) {
+
+
+/* ══════════════════════════════════════════════════════════
+   表示言語
+   名前（魚・釣り場・エサ・天候・航路）は4言語ぶんデータに入っている。
+   画面のラベルは日本語と英語を用意し、ドイツ語・フランス語は
+   名前だけ現地語、ラベルは英語にフォールバックする。
+   ══════════════════════════════════════════════════════════ */
+const LANGS = [
+  { id: 'ja', label: '日本語' },
+  { id: 'en', label: 'English' },
+  { id: 'de', label: 'Deutsch' },
+  { id: 'fr', label: 'Français' },
+];
+/** 多言語オブジェクトから、いまの言語の文字列を取り出す */
+const nm = (o) => (o ? o[state.lang] ?? o.en ?? o.ja ?? '?' : '');
+/** 検索用に全言語を連結する */
+const nmAll = (o) => (o ? Object.values(o).join('\u0001').toLowerCase() : '');
+
+const STR = {
+  ja: {
+    brandSub: 'EORZEAN FISH GUIDE',
+    search: '魚・釣り場・エサを検索',
+    live: '今釣れる', condOnly: '条件付きのみ', fishEyes: 'フィッシュアイ',
+    nushi: 'ヌシ・オオヌシ', ocean: 'オーシャンフィッシング', schedule: '運行表',
+    fish: '魚', bait: 'エサ', hours: '時間帯', weather: '天候', tug: '引き', bite: 'ヒット',
+    spot: '釣り場', kind: '種別', cond: '条件', next: '次に釣れる', dur: '継続',
+    allDay: '終日', anyWeather: '不問', unknown: '未収録', notMeasured: '未計測',
+    prev: '前:', intuition: '直感', folklore: '伝承録', snagging: 'スナッグ',
+    bigFish: '大物', collectable: '収集', gig: '銛',
+    windowTitle: '出現ウィンドウ', biteTitle: 'ヒットタイム分布', timeline: 'タイムライン',
+    noData: 'データなし', noChum: '撒き餌ありの実測がありません。', noBite: 'この釣り場の実測はまだ集まっていません。',
+    noCond: 'この釣り場に時間・天候で縛られる魚はいません。いつ来ても同じ顔ぶれです。',
+    chumOff: '撒き餌なし', chumOn: '撒き餌あり',
+    nowBiting: 'いま釣れる', until: 'まで', remaining: '残り', soon: 'まもなく',
+    anytime: '時間・天候は不問', notFound: '400日以内になし', condMissing: '条件未収録',
+    all: 'すべて', oonushiOnly: 'オオヌシのみ', byNext: '次回順', byName: '名前順',
+    allPatches: '全拡張', favOnly: '★ お気に入り',
+    depart: '出航', indigoRoute: '藍の航路', rubyRoute: '紅の航路', boarding: '受付中',
+    howTo: '釣り方', released: '実装', place: '釣れる場所', windows: '次の出現ウィンドウ',
+    baitCol: 'エサ', biteSec: 'ヒット秒数', chumCol: '撒き餌', rate: '釣果率', samples: '件数',
+    showing: '種を表示', species: '匹', open: 'いま釣れる',
+    et: 'エオルゼア時間', lt: '現地時間',
+    day: '昼', sunset: '夕', night: '夜',
+    fromStats: '（実測統計より）', spearMark: '銛',
+    langLabel: '言語', tzLabel: '時間帯',
+    biteSource: '出典：Lodinn の集計（Teamcraft の Allagan Reports に集まった実測）。釣果率はそのエサを使ったキャスト全体に占める割合。',
+    minutes: '分', hoursU: '時間', days: '日', ago: 'あと ',
+    nushiOne: 'ヌシ', oonushi: 'オオヌシ',
+  },
+  en: {
+    brandSub: 'EORZEAN FISH GUIDE',
+    search: 'Search fish, spots, bait',
+    live: 'Available now', condOnly: 'Conditional only', fishEyes: 'Fish Eyes',
+    nushi: 'Big Fish', ocean: 'Ocean Fishing', schedule: 'Schedule',
+    fish: 'Fish', bait: 'Bait', hours: 'Hours', weather: 'Weather', tug: 'Tug', bite: 'Bite',
+    spot: 'Spot', kind: 'Type', cond: 'Conditions', next: 'Next window', dur: 'Length',
+    allDay: 'All day', anyWeather: 'Any', unknown: 'No data', notMeasured: 'No data',
+    prev: 'prev:', intuition: 'Intuition', folklore: 'Folklore', snagging: 'Snagging',
+    bigFish: 'Big Fish', collectable: 'Collectable', gig: 'Spear',
+    windowTitle: 'Availability', biteTitle: 'Bite time distribution', timeline: 'Timeline',
+    noData: 'No data', noChum: 'No chummed samples for this spot.', noBite: 'No measurements for this spot yet.',
+    noCond: 'No time or weather restricted fish here. The lineup never changes.',
+    chumOff: 'No chum', chumOn: 'Chummed',
+    nowBiting: 'Available now', until: 'until', remaining: 'left', soon: 'soon',
+    anytime: 'No time or weather limit', notFound: 'None within 400 days', condMissing: 'Conditions unknown',
+    all: 'All', oonushiOnly: 'Legendary only', byNext: 'By next window', byName: 'By name',
+    allPatches: 'All expansions', favOnly: '★ Favourites',
+    depart: 'Departs', indigoRoute: 'Indigo Route', rubyRoute: 'Ruby Route', boarding: 'Boarding',
+    howTo: 'How to catch', released: 'Patch', place: 'Where to catch', windows: 'Upcoming windows',
+    baitCol: 'Bait', biteSec: 'Bite time', chumCol: 'Chummed', rate: 'Catch rate', samples: 'Samples',
+    showing: 'shown', species: '', open: 'available now',
+    et: 'Eorzea Time', lt: 'Local Time',
+    day: 'Day', sunset: 'Sunset', night: 'Night',
+    fromStats: ' (from measurements)', spearMark: 'Spear',
+    langLabel: 'Language', tzLabel: 'Time zone',
+    biteSource: 'Source: Lodinn\u2019s aggregation of player reports collected via Teamcraft Allagan Reports. Catch rate is the share of all casts with that bait.',
+    minutes: 'min', hoursU: 'h', days: 'd', ago: 'in ',
+    nushiOne: 'Big Fish', oonushi: 'Legendary',
+  },
+};
+const T = (k) => (STR[state.lang] ?? STR.en)[k] ?? STR.en[k] ?? k;
+
+/* ══════════════════════════════════════════════════════════
+   現地時間（LT）
+   FF14 のデータセンターがある地域を選べるようにしてある。
+   既定はブラウザの設定。
+   ══════════════════════════════════════════════════════════ */
+const ZONES = [
+  { id: 'auto', tz: null, ja: '自動', en: 'Auto' },
+  { id: 'jp', tz: 'Asia/Tokyo', ja: '日本 JST', en: 'Japan JST' },
+  { id: 'naw', tz: 'America/Los_Angeles', ja: '北米西部 PT', en: 'NA West PT' },
+  { id: 'nae', tz: 'America/New_York', ja: '北米東部 ET', en: 'NA East ET' },
+  { id: 'eu', tz: 'Europe/London', ja: '欧州 GMT', en: 'Europe GMT' },
+  { id: 'euc', tz: 'Europe/Paris', ja: '欧州中部 CET', en: 'Europe CET' },
+  { id: 'oce', tz: 'Australia/Sydney', ja: 'オセアニア AEST', en: 'Oceania AEST' },
+];
+const zoneOf = () => ZONES.find((z) => z.id === state.tz)?.tz ?? undefined;
+const LOCALE = { ja: 'ja-JP', en: 'en-US', de: 'de-DE', fr: 'fr-FR' };
+const fmtCache = new Map();
+/** loc を指定しなければ表示言語の書式。時刻だけは常に24時間表記に揃える */
+function fmt(opts, loc) {
+  const l = loc ?? LOCALE[state.lang] ?? 'en-US';
+  const key = state.tz + l + JSON.stringify(opts);
+  if (!fmtCache.has(key)) {
+    fmtCache.set(key, new Intl.DateTimeFormat(l, { timeZone: zoneOf(), ...opts }));
+  }
+  return fmtCache.get(key);
+}
 
 /* ══════════════════════════════════════════════════════════
    エオルゼア時間と天候
@@ -671,7 +802,7 @@ function weatherAt(territoryId, ms) {
   for (const [id, cum] of wr.rates) if (t < cum) return id;
   return wr.rates[wr.rates.length - 1][0];
 }
-const wName = (id) => DB.weatherTypes[id]?.nameJa ?? `天候${id}`;
+const wName = (id) => nm(DB.weatherTypes[id]?.n) || `#${id}`;
 
 /* ══════════════════════════════════════════════════════════
    出現判定
@@ -793,12 +924,11 @@ const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pad = (n) => String(n).padStart(2, '0');
-const hhmm = (ms) => { const d = new Date(ms); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
-const dayLabel = (ms) => {
-  const d = new Date(ms), n = new Date();
-  const same = d.toDateString() === n.toDateString();
-  return same ? '' : `${d.getMonth() + 1}/${d.getDate()} `;
-};
+/* 実時間の整形はすべて選択中のタイムゾーンを通す */
+const hhmm = (ms) => fmt({ hour: '2-digit', minute: '2-digit', hour12: false }, 'en-GB').format(ms);
+const ymd = (ms) => fmt({ year: 'numeric', month: '2-digit', day: '2-digit' }, 'en-CA').format(ms);
+const md = (ms) => fmt({ month: 'numeric', day: 'numeric' }).format(ms);
+const dayLabel = (ms) => (ymd(ms) === ymd(Date.now()) ? '' : `${md(ms)} `);
 const mins = (a, b) => Math.round((b - a) / 60000);
 
 const spotById = new Map(DB.spots.map((s) => [s.id, s]));
@@ -857,12 +987,20 @@ function histPath(h, maxSec, w = 350, ht = 24) {
   pts.push(`L${x(h.start + h.v.length - 1).toFixed(1)},${ht}Z`);
   return pts.join('');
 }
-const baitName = (id) => DB.baits[id]?.nameJa ?? DB.fish[id]?.nameJa ?? `#${id}`;
+/** エサ名。ff14fish は「どちらでも可」の候補を配列で持つので、その場合は並べる */
+const baitName = (id) => {
+  if (Array.isArray(id)) return id.map(baitName).join(' / ');
+  return nm(DB.baits[id]?.n) || nm(DB.fish[id]?.n) || `#${id}`;
+};
+/** 実測を引くときの代表エサ。候補が複数なら先頭を使う */
+const baitKey = (id) => (Array.isArray(id) ? id[0] : id);
 
 /* ══════════════════════════════════════════════════════════
    状態
    ══════════════════════════════════════════════════════════ */
 const state = {
+  lang: 'ja',             // ja | en | de | fr
+  tz: 'auto',             // ZONES の id
   view: 'welcome',        // welcome | spot | search | nushi
   fishEyes: false,
   nushiKind: 'all',       // all | oonushi
@@ -894,40 +1032,60 @@ function drawRing() {
       transform="rotate(-90 ${C} ${C})"/>
     <circle cx="${C}" cy="${C}" r="2" fill="${h >= 6 && h < 18 ? 'var(--day)' : 'var(--night)'}"/>`;
   $('#etclock').textContent = `${pad(h)}:${pad(m)}`;
+  $('#ltclock').textContent = hhmm(Date.now());
 }
 
 /* ══════════════════════════════════════════════════════════
    サイドバー
    ══════════════════════════════════════════════════════════ */
+/** ヘッダの固定ラベルを、いまの言語に合わせて書き換える */
+function renderChrome() {
+  document.documentElement.lang = state.lang;
+  $('#q').placeholder = T('search');
+  $('#t-eyes').textContent = T('fishEyes');
+  $('#t-live').textContent = T('live');
+  $('#t-cond').textContent = T('condOnly');
+  const lang = $('#lang');
+  if (lang.options.length !== LANGS.length) {
+    lang.innerHTML = LANGS.map((l) => `<option value="${l.id}">${l.label}</option>`).join('');
+  }
+  lang.value = state.lang;
+  const tz = $('#tz');
+  tz.innerHTML = ZONES.map((z) =>
+    `<option value="${z.id}">${esc(state.lang === 'ja' ? z.ja : z.en)}</option>`).join('');
+  tz.value = state.tz;
+  $('#ltlabel').textContent = (ZONES.find((z) => z.id === state.tz) ?? ZONES[0])[state.lang === 'ja' ? 'ja' : 'en'].toUpperCase();
+}
+
 function renderSide() {
   const byArea = new Map();
   for (const s of DB.spots) {
-    if (!byArea.has(s.area)) byArea.set(s.area, []);
-    byArea.get(s.area).push(s);
+    if (!byArea.has(s.area.ja)) byArea.set(s.area.ja, []);
+    byArea.get(s.area.ja).push(s);
   }
   const nav = `<div class="nav">
     <button type="button" id="nav-nushi" ${state.view === 'nushi' ? 'aria-current="true"' : ''}>
-      <span class="nv-i">ヌ</span>
-      <span>ヌシ・オオヌシ</span>
+      <span class="nv-i">${state.lang === 'ja' ? 'ヌ' : 'B'}</span>
+      <span>${T('nushi')}</span>
       <span class="count">${DB.meta.nushiCount}</span>
     </button>
     <button type="button" id="nav-ocean" ${state.view === 'ocean' ? 'aria-current="true"' : ''}>
-      <span class="nv-i sea">海</span>
-      <span>オーシャンフィッシング</span>
-      <span class="count">運行表</span>
+      <span class="nv-i sea">${state.lang === 'ja' ? '海' : 'O'}</span>
+      <span>${T('ocean')}</span>
+      <span class="count">${T('schedule')}</span>
     </button>
   </div>`;
-  const html = nav + DB.areaOrder.filter((a) => byArea.has(a)).map((area) => {
-    const list = byArea.get(area);
-    const open = state.openAreas.has(area);
-    return `<details class="area" data-area="${esc(area)}"${open ? ' open' : ''}>
+  const html = nav + DB.areaOrder.filter((a) => byArea.has(a.ja)).map((area) => {
+    const list = byArea.get(area.ja);
+    const open = state.openAreas.has(area.ja);
+    return `<details class="area" data-area="${esc(area.ja)}"${open ? ' open' : ''}>
       <summary>
-        <span class="caret">▶</span><span>${esc(area)}</span>
+        <span class="caret">▶</span><span>${esc(nm(area))}</span>
         <span class="count">${list.length}</span></summary>
       <div class="spotlist">${list.map((s) => `
         <button type="button" data-spot="${s.id}" ${s.id === state.spotId ? 'aria-current="true"' : ''}>
           ${s.spear ? '<span class="gig" title="銛">⚵</span>' : ''}
-          <span>${esc(s.nameJa)}</span>
+          <span>${esc(nm(s.n))}</span>
           ${s.level ? `<span class="lv">Lv${s.level}</span>` : ''}
         </button>`).join('')}</div>
     </details>`;
@@ -943,7 +1101,7 @@ function ribbonHTML(f) {
   if (!f.hasConditions) {
     return `<div class="ribbon" title="出現条件のデータがありません">
       <div class="sky" style="opacity:.10"></div>
-      <div class="lbl" style="color:var(--dim)">未収録</div></div>`;
+      <div class="lbl" style="color:var(--dim)">${T('unknown')}</div></div>`;
   }
   const nowPct = ((h + m / 60) / 24) * 100;
   let bars = '';
@@ -956,7 +1114,7 @@ function ribbonHTML(f) {
             <div class="on" style="left:0;width:${f.endHour / 24 * 100}%"></div>`;
   }
   const label = f.startHour === 0 && f.endHour === 24
-    ? '終日'
+    ? T('allDay')
     : `${etShort(f.startHour)}–${etShort(f.endHour)}`;
   return `<div class="ribbon" title="ET ${label}">
     <div class="sky"></div>${bars}
@@ -965,14 +1123,14 @@ function ribbonHTML(f) {
 }
 
 function weatherHTML(f, territoryId) {
-  if (!f.hasConditions) return `<div class="weather"><span class="any">未収録</span></div>`;
+  if (!f.hasConditions) return `<div class="weather"><span class="any">${T('unknown')}</span></div>`;
   if (!f.weather.length && !f.prevWeather.length) {
-    return `<div class="weather"><span class="any">${f.unknownWeather ? '未判明' : '不問'}</span></div>`;
+    return `<div class="weather"><span class="any">${T('anyWeather')}</span></div>`;
   }
   const nowW = territoryId != null ? weatherAt(territoryId, Date.now()) : null;
   const prevW = territoryId != null ? weatherAt(territoryId, periodStart(Date.now()) - W_PERIOD * 1000) : null;
   const prev = f.prevWeather.map((w) =>
-    `<span class="wchip prev${w === prevW ? ' hit' : ''}">前:${esc(wName(w))}</span>`).join('');
+    `<span class="wchip prev${w === prevW ? ' hit' : ''}">${T('prev')}${esc(wName(w))}</span>`).join('');
   const cur = f.weather.map((w) =>
     `<span class="wchip${w === nowW ? ' hit' : ''}">${esc(wName(w))}</span>`).join('');
   return `<div class="weather">${prev}${cur}</div>`;
@@ -981,8 +1139,8 @@ function weatherHTML(f, territoryId) {
 function baitHTML(f) {
   if (!f.baitPath.length) {
     if (f.predators.length) {
-      const p = f.predators.map(([id, n]) => `${esc(DB.fish[id]?.nameJa ?? baitName(id))}×${n}`).join(' + ');
-      return `<div class="bait"><span class="none">直感:</span> <span class="b prey">${p}</span></div>`;
+      const p = f.predators.map(([id, n]) => `${esc(nm(DB.fish[id]?.n) || baitName(id))}×${n}`).join(' + ');
+      return `<div class="bait"><span class="none">${T('intuition')}:</span> <span class="b prey">${p}</span></div>`;
     }
     return `<div class="bait"><span class="none">—</span></div>`;
   }
@@ -992,8 +1150,8 @@ function baitHTML(f) {
 }
 
 function biteHTML(f, spotId) {
-  const b = bestBite(f.id, spotId, f.baitPath[f.baitPath.length - 1]);
-  if (!b || b.lo == null) return `<div class="bite"><span class="na">未計測</span></div>`;
+  const b = bestBite(f.id, spotId, baitKey(f.baitPath[f.baitPath.length - 1]));
+  if (!b || b.lo == null) return `<div class="bite"><span class="na">${T('notMeasured')}</span></div>`;
   return `<div class="bite" title="${esc(baitName(b.baitId))}で ${b.n} 件の実測${b.rate != null ? ` / 釣果率 ${b.rate}%` : ''}">
     <b>${b.lo}–${b.hi}</b><span class="unit">s</span></div>`;
 }
@@ -1001,15 +1159,15 @@ function biteHTML(f, spotId) {
 function fishRow(f, spot) {
   const live = isUp(f, spot.territoryId, Date.now());
   const tags = [
-    f.bigFish ? '<span class="tag big">大物</span>' : '',
-    f.folklore ? '<span class="tag folk">伝承</span>' : '',
-    f.collectable ? '<span class="tag coll">収集</span>' : '',
-    f.gig ? `<span class="tag gig">銛</span>` : '',
+    f.bigFish ? `<span class="tag big">${T('bigFish')}</span>` : '',
+    f.folklore ? `<span class="tag folk">${T('folklore')}</span>` : '',
+    f.collectable ? `<span class="tag coll">${T('collectable')}</span>` : '',
+    f.gig ? `<span class="tag gig">${T('gig')}</span>` : '',
   ].join('');
   const stars = f.stars ? `<span class="stars">${'★'.repeat(f.stars)}</span>` : '';
   const tugCls = f.tugRank ? `t${f.tugRank}` : '';
   return `<div class="fishrow${live ? ' live' : ''}" data-fish="${f.id}" tabindex="0" role="button">
-    <div class="fname">${iconImg(f)}<span class="nm">${esc(f.nameJa)}</span>${stars}<span class="tags">${tags}</span></div>
+    <div class="fname">${iconImg(f)}<span class="nm">${esc(nm(f.n))}</span>${stars}<span class="tags">${tags}</span></div>
     ${baitHTML(f)}
     ${ribbonHTML(f)}
     ${weatherHTML(f, spot.territoryId)}
@@ -1025,8 +1183,8 @@ function fishRow(f, spot) {
 function ganttHTML(fishes, spot, hours = 12) {
   const conditional = fishes.filter((f) => isConditional(f) && f.hasConditions);
   if (!conditional.length) {
-    return `<details class="gantt"><summary>出現ウィンドウ<span class="eyebrow">NEXT ${hours}H</span></summary>
-      <div class="gbody"><div class="gempty">この釣り場に時間・天候で縛られる魚はいません。いつ来ても同じ顔ぶれです。</div></div></details>`;
+    return `<details class="gantt"><summary>${T('windowTitle')}<span class="eyebrow">NEXT ${hours}H</span></summary>
+      <div class="gbody"><div class="gempty">${T('noCond')}</div></div></details>`;
   }
   const t0 = Date.now(), span = hours * 3600 * 1000;
   const axis = [];
@@ -1042,13 +1200,13 @@ function ganttHTML(fishes, spot, hours = 12) {
       const w = Math.max(0.5, ((b - a) / span) * 100);
       const soon = a > t0;
       return `<div class="gbar${soon ? ' soon' : ''}" style="left:${l}%;width:${Math.min(w, 100 - l)}%"
-              title="${dayLabel(a)}${hhmm(a)}–${hhmm(b)}（${mins(a, b)}分）"></div>`;
+              title="${dayLabel(a)}${hhmm(a)}–${hhmm(b)} (${fmtMin(mins(a, b))})"></div>`;
     }).join('');
     return `<div class="grow">
-      <div class="gname" data-fish="${f.id}" title="${esc(f.nameJa)}">${esc(f.nameJa)}</div>
+      <div class="gname" data-fish="${f.id}" title="${esc(nm(f.n))}">${esc(nm(f.n))}</div>
       <div class="gtrack">${bars}<div class="gnow" style="left:0"></div></div></div>`;
   }).join('');
-  return `<details class="gantt" open><summary>出現ウィンドウ<span class="eyebrow">NEXT ${hours}H · 実時間</span></summary>
+  return `<details class="gantt" open><summary>${T('windowTitle')}<span class="eyebrow">NEXT ${hours}H · LT</span></summary>
     <div class="gbody"><div class="gaxis">${axis.join('')}</div>${rows}</div></details>`;
 }
 
@@ -1059,26 +1217,37 @@ function ganttHTML(fishes, spot, hours = 12) {
    ══════════════════════════════════════════════════════════ */
 function biteChartHTML(spot) {
   const m = biteIndex.get(spot.id);
-  if (!m) {
-    return `<details class="gantt"><summary>ヒットタイム分布<span class="eyebrow">NO DATA</span></summary>
-      <div class="gbody"><div class="gempty">この釣り場の実測はまだ集まっていません。</div></div></details>`;
-  }
+  const wrap = (body, note = '') => `<details class="gantt" open>
+    <summary>${T('biteTitle')}<span class="eyebrow">${note}</span></summary>
+    <div class="gbody">${body}</div></details>`;
+
+  if (!m) return wrap(`<div class="gempty">${T('noBite')}</div>`, T('noData'));
+
   const totals = [...biteBaitTotals.get(spot.id).entries()].sort((a, b) => b[1] - a[1]);
   const baitId = totals.some(([b]) => b === state.chartBait) ? state.chartBait : totals[0][0];
   const chum = state.chartChum;
+
+  // エサと撒き餌の切り替えは、中身が空でも必ず出す
+  const bar = `<div class="baitbar">
+    <span class="eyebrow">${T('bait')}</span>
+    ${totals.slice(0, 8).map(([b, n]) => `<button class="chipbtn" data-cb="${b}"
+        aria-pressed="${b === baitId}" title="${n}">${esc(baitName(b))}</button>`).join('')}
+    <span style="width:10px"></span>
+    <button class="chipbtn" data-cc="0" aria-pressed="${!chum}">${T('chumOff')}</button>
+    <button class="chipbtn" data-cc="1" aria-pressed="${chum}">${T('chumOn')}</button>
+  </div>`;
 
   const rows = [];
   for (const [fishId, arr] of m) {
     const r = arr.find((x) => x.baitId === baitId);
     if (!r) continue;
-    const h = unpackHist(chum ? (r.ch ?? null) : (r.h ?? null));
+    const h = unpackHist(chum ? r.ch : r.h);
     const lo = chum ? r.clo : r.lo, hi = chum ? r.chi : r.hi;
     if (lo == null && !h) continue;
     rows.push({ f: DB.fish[fishId], r, h, lo, hi });
   }
   if (!rows.length) {
-    return `<details class="gantt"><summary>ヒットタイム分布<span class="eyebrow">NO DATA</span></summary>
-      <div class="gbody"><div class="gempty">${chum ? '撒き餌ありの実測がありません。' : '実測がありません。'}</div></div></details>`;
+    return wrap(bar + `<div class="gempty">${chum ? T('noChum') : T('noBite')}</div>`, T('noData'));
   }
   rows.sort((a, b) => (a.f?.tugRank ?? 9) - (b.f?.tugRank ?? 9) || (a.lo ?? 99) - (b.lo ?? 99));
 
@@ -1091,38 +1260,26 @@ function biteChartHTML(spot) {
   for (let sec = 0; sec <= maxSec; sec += step) {
     axis.push(`<span style="left:${(sec / maxSec) * 100}%">${sec}${sec === maxSec ? 's' : ''}</span>`);
   }
-  const TUGC = { 1: 'var(--mist)', 2: 'var(--amber)', 3: 'var(--coral)' };
+  const TUGC = { 1: 'var(--aqua)', 2: 'var(--gold)', 3: 'var(--coral)' };
 
-  return `<details class="gantt" open>
-    <summary>ヒットタイム分布<span class="eyebrow">${rows.length} 種 · 実測</span></summary>
-    <div class="gbody">
-      <div class="baitbar">
-        <span class="eyebrow">エサ</span>
-        ${totals.slice(0, 8).map(([b, n]) => `<button class="chipbtn" data-cb="${b}"
-            aria-pressed="${b === baitId}" title="${n} 件">${esc(baitName(b))}</button>`).join('')}
-        <span style="width:10px"></span>
-        <button class="chipbtn" data-cc="0" aria-pressed="${!chum}">撒き餌なし</button>
-        <button class="chipbtn" data-cc="1" aria-pressed="${chum}">撒き餌あり</button>
-      </div>
-      <div class="baxis">${axis.join('')}</div>
-      ${rows.map(({ f, r, h, lo, hi }) => {
-        const col = TUGC[f?.tugRank] ?? 'var(--mist)';
-        return `<div class="brow" data-fish="${f?.id ?? ''}">
-          <div class="bname" title="${esc(f?.nameJa ?? '')}">${esc(f?.nameJa ?? '?')}</div>
-          <div class="btug" style="color:${col}">${f?.tugJa ?? ''}</div>
-          <div class="btrack">
-            <svg viewBox="0 0 350 24" preserveAspectRatio="none" aria-hidden="true">
-              ${lo != null ? `<rect x="${((lo / maxSec) * 350).toFixed(1)}" y="0" width="${(((hi - lo) / maxSec) * 350).toFixed(1)}" height="24" fill="${col}" opacity=".12"/>` : ''}
-              ${h ? `<path d="${histPath(h, maxSec)}" fill="${col}" opacity=".75"/>` : ''}
-            </svg>
-            ${lo != null ? `<span class="brange" style="left:${Math.min((hi / maxSec) * 100, 82)}%">${lo}–${hi}s</span>` : ''}
-          </div>
-          <div class="brate">${r.rate != null ? r.rate + '%' : '—'}<small>${r.n}件</small></div>
-        </div>`;
-      }).join('')}
-      <div class="bnote">出典：Lodinn の集計（Teamcraft の Allagan Reports に集まった実測）。
-        釣果率はそのエサを使ったキャスト全体に占める割合。</div>
-    </div></details>`;
+  const body = bar + `<div class="baxis">${axis.join('')}</div>` +
+    rows.map(({ f, r, h, lo, hi }) => {
+      const col = TUGC[f?.tugRank] ?? 'var(--mist)';
+      return `<div class="brow" data-fish="${f?.id ?? ''}">
+        <div class="bname" title="${esc(nm(f?.n))}">${esc(nm(f?.n)) || '?'}</div>
+        <div class="btug" style="color:${col}">${f?.tugJa ?? ''}</div>
+        <div class="btrack">
+          <svg viewBox="0 0 350 24" preserveAspectRatio="none" aria-hidden="true">
+            ${lo != null ? `<rect x="${((lo / maxSec) * 350).toFixed(1)}" y="0" width="${(((hi - lo) / maxSec) * 350).toFixed(1)}" height="24" fill="${col}" opacity=".12"/>` : ''}
+            ${h ? `<path d="${histPath(h, maxSec)}" fill="${col}" opacity=".75"/>` : ''}
+          </svg>
+          ${lo != null ? `<span class="brange" style="left:${Math.min((hi / maxSec) * 100, 82)}%">${lo}–${hi}s</span>` : ''}
+        </div>
+        <div class="brate">${r.rate != null ? r.rate + '%' : '—'}<small>${r.n}</small></div>
+      </div>`;
+    }).join('') +
+    `<div class="bnote">${T('biteSource')}</div>`;
+  return wrap(body, `${rows.length} · ${T('samples')}`);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1137,7 +1294,7 @@ function renderSpot(keepScroll = false) {
   if (state.condOnly) fishes = fishes.filter((f) => isConditional(f) && f.hasConditions);
   if (state.liveOnly) fishes = fishes.filter((f) => isUp(f, spot.territoryId, Date.now()));
   fishes.sort((a, b) => (b.stars - a.stars) || (a.level ?? 99) - (b.level ?? 99) ||
-                        a.nameJa.localeCompare(b.nameJa, 'ja'));
+                        nm(a.n).localeCompare(nm(b.n), state.lang));
 
   // 天候予報 8 枠
   let fc = '';
@@ -1158,15 +1315,15 @@ function renderSpot(keepScroll = false) {
 
   $('#stage').innerHTML = `<div class="wrap">
     <div class="spot-head">
-      <h1>${esc(spot.nameJa)}${spot.spear ? '<span class="gigmark">銛</span>' : ''}</h1>
+      <h1>${esc(nm(spot.n))}${spot.spear ? `<span class="gigmark">${T('spearMark')}</span>` : ''}</h1>
       <div class="meta">
-        ${esc(spot.area)}${spot.region ? ' · ' + esc(spot.region) : ''}
+        ${esc(nm(spot.area))}${spot.region ? ' · ' + esc(nm(spot.region)) : ''}
         ${spot.level ? ' · <b>Lv' + spot.level + '</b>' : ''}
         ${spot.x != null ? ` · X:<b>${spot.x.toFixed(1)}</b> Y:<b>${spot.y.toFixed(1)}</b>` : ''}
         ${spot.spear ? ' · <b>銛</b>' : ''}
       </div>
     </div>
-    <div class="eyebrow">${esc(spot.nameEn)}</div>
+    <div class="eyebrow">${esc(spot.n.en)}</div>
     ${fc}
     ${ganttHTML(spot.fishes.map((id) => DB.fish[id]).filter(Boolean), spot)}
     ${biteChartHTML(spot)}
@@ -1175,10 +1332,10 @@ function renderSpot(keepScroll = false) {
         unknownCount ? ` · 条件未収録 ${unknownCount} 種` : ''}</span>
     </div>
     <div class="thead">
-      <div>魚</div><div>エサ</div><div>時間帯 (ET)</div><div>天候</div><div>引き</div><div style="text-align:right">ヒット</div>
+      <div>${T('fish')}</div><div>${T('bait')}</div><div>${T('hours')} (ET)</div><div>${T('weather')}</div><div>${T('tug')}</div><div style="text-align:right">${T('bite')}</div>
     </div>
     <div id="rows">${fishes.map((f) => fishRow(f, spot)).join('') ||
-      '<div class="gempty" style="padding:26px 12px">条件に合う魚がいません。フィルタを外してみてください。</div>'}</div>
+      `<div class="gempty" style="padding:26px 12px">${state.lang === 'ja' ? '条件に合う魚がいません。フィルタを外してみてください。' : 'Nothing matches. Try clearing the filters.'}</div>`}</div>
     ${creditHTML()}
   </div>`;
   $('#stage').scrollTop = scrollY;
@@ -1189,13 +1346,11 @@ function renderSpot(keepScroll = false) {
    ══════════════════════════════════════════════════════════ */
 function renderSearch() {
   const q = state.query.toLowerCase();
+  // どの言語で打っても引けるように、全言語を対象に探す
   const hitSpots = DB.spots.filter((s) =>
-    s.nameJa.toLowerCase().includes(q) || s.nameEn.toLowerCase().includes(q) ||
-    s.area.toLowerCase().includes(q)).slice(0, 12);
-  const hitFish = Object.values(DB.fish).filter((f) =>
-    f.nameJa.toLowerCase().includes(q) || f.nameEn.toLowerCase().includes(q)).slice(0, 40);
-  const hitBaits = Object.values(DB.baits).filter((b) =>
-    b.nameJa.toLowerCase().includes(q) || b.nameEn.toLowerCase().includes(q)).slice(0, 8);
+    nmAll(s.n).includes(q) || nmAll(s.area).includes(q)).slice(0, 12);
+  const hitFish = Object.values(DB.fish).filter((f) => nmAll(f.n).includes(q)).slice(0, 40);
+  const hitBaits = Object.values(DB.baits).filter((b) => nmAll(b.n).includes(q)).slice(0, 8);
 
   const baitFish = hitBaits.length
     ? Object.values(DB.fish).filter((f) => f.baitPath.some((id) => hitBaits.some((b) => b.id === id))).slice(0, 40)
@@ -1205,17 +1360,17 @@ function renderSearch() {
 
   $('#stage').innerHTML = `<div class="wrap">
     <div class="spot-head"><h1>「${esc(state.query)}」</h1></div>
-    ${sec('釣り場', hitSpots.map((s) => `<div class="result" data-spot="${s.id}">
-        <span class="kind">SPOT</span><span>${esc(s.nameJa)}</span>
-        <span class="sub">${esc(s.area)}${s.level ? ' · Lv' + s.level : ''}</span></div>`).join(''))}
-    ${sec('魚', hitFish.map((f) => `<div class="result" data-fish="${f.id}">
-        ${iconImg(f, 'ficon sm')}<span>${esc(f.nameJa)}</span>
-        <span class="sub">${f.spots.map((id) => spotById.get(id)?.nameJa).filter(Boolean).slice(0, 3).join(' / ')}</span></div>`).join(''))}
-    ${sec('このエサで釣れる魚', baitFish.map((f) => `<div class="result" data-fish="${f.id}">
-        ${iconImg(f, 'ficon sm')}<span>${esc(f.nameJa)}</span>
+    ${sec(T('spot'), hitSpots.map((s) => `<div class="result" data-spot="${s.id}">
+        <span class="kind">SPOT</span><span>${esc(nm(s.n))}</span>
+        <span class="sub">${esc(nm(s.area))}${s.level ? ' · Lv' + s.level : ''}</span></div>`).join(''))}
+    ${sec(T('fish'), hitFish.map((f) => `<div class="result" data-fish="${f.id}">
+        ${iconImg(f, 'ficon sm')}<span>${esc(nm(f.n))}</span>
+        <span class="sub">${f.spots.map((id) => nm(spotById.get(id)?.n)).filter(Boolean).slice(0, 3).join(' / ')}</span></div>`).join(''))}
+    ${sec(state.lang === 'ja' ? 'このエサで釣れる魚' : 'Fish caught with this bait', baitFish.map((f) => `<div class="result" data-fish="${f.id}">
+        ${iconImg(f, 'ficon sm')}<span>${esc(nm(f.n))}</span>
         <span class="sub">${f.baitPath.map(baitName).join(' ▸ ')}</span></div>`).join(''))}
     ${!hitSpots.length && !hitFish.length && !baitFish.length
-      ? '<p style="color:var(--mist)">該当なし。ひらがな・カタカナ・英名のいずれかで試してみてください。</p>' : ''}
+      ? `<p style="color:var(--mist)">${state.lang === 'ja' ? '該当なし。ひらがな・カタカナ・英名のいずれかで試してみてください。' : 'No matches. Try another spelling, or another language.'}</p>` : ''}
     ${creditHTML()}
   </div>`;
   $('#stage').scrollTop = 0;
@@ -1228,18 +1383,24 @@ function renderSearch() {
    そのまま人に渡せる。
    ══════════════════════════════════════════════════════════ */
 const favBtn = (id) => `<button class="fav" data-fav="${id}" aria-pressed="${state.favs.has(id)}"
-  title="タイムラインに出す" aria-label="お気に入り">${state.favs.has(id) ? '★' : '☆'}</button>`;
+  title="★" aria-label="favourite">${state.favs.has(id) ? '★' : '☆'}</button>`;
 
 function syncHash() {
   const base = state.view === 'nushi' ? 'nushi'
     : state.view === 'ocean' ? 'ocean'
     : state.spotId ? `spot/${state.spotId}` : '';
   const f = state.favs.size ? `|f=${[...state.favs].join('.')}` : '';
-  history.replaceState(null, '', `#${base}${f}`);
+  const l = state.lang !== 'ja' ? `|l=${state.lang}` : '';
+  const z = state.tz !== 'auto' ? `|z=${state.tz}` : '';
+  history.replaceState(null, '', `#${base}${f}${l}${z}`);
 }
 function readHash() {
   const m = location.hash.match(/\|f=([\d.]+)/);
   if (m) state.favs = new Set(m[1].split('.').map(Number).filter(Boolean));
+  const l = location.hash.match(/\|l=(\w+)/);
+  if (l && LANGS.some((x) => x.id === l[1])) state.lang = l[1];
+  const z = location.hash.match(/\|z=([\w-]+)/);
+  if (z && ZONES.some((x) => x.id === z[1])) state.tz = z[1];
 }
 function toggleFav(id) {
   state.favs.has(id) ? state.favs.delete(id) : state.favs.add(id);
@@ -1249,41 +1410,44 @@ function toggleFav(id) {
 /* ══════════════════════════════════════════════════════════
    ヌシ・オオヌシ一覧
    ══════════════════════════════════════════════════════════ */
+const fmtMin = (m) => {
+  if (m < 60) return `${m}${T('minutes')}`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}${T('hoursU')}${m % 60 ? (m % 60) + T('minutes') : ''}`;
+  return `${Math.floor(h / 24)}${T('days')}${h % 24 ? (h % 24) + T('hoursU') : ''}`;
+};
 function relTime(ms) {
   const d = ms - Date.now();
-  if (d <= 60000) return 'まもなく';
-  const m = Math.round(d / 60000);
-  if (m < 60) return `あと ${m}分`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `あと ${h}時間${m % 60 ? m % 60 + '分' : ''}`;
-  return `あと ${Math.floor(h / 24)}日${h % 24 ? h % 24 + '時間' : ''}`;
+  if (d <= 60000) return T('soon');
+  return T('ago') + fmtMin(Math.round(d / 60000));
 }
-function absTime(ms) {
-  const d = new Date(ms), n = new Date();
-  const sameYear = d.getFullYear() === n.getFullYear();
-  return `${sameYear ? '' : d.getFullYear() + '/'}${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+const absTime = (ms) => `${md(ms)} ${hhmm(ms)}`;
+/** 「〜まで」「until 〜」の語順を言語に合わせる */
+const untilText = (ms) => (state.lang === 'ja' ? `${absTime(ms)} まで` : `until ${absTime(ms)}`);
+/** 「残り 5分」「5min left」 */
+const remainText = (m) => (state.lang === 'ja' ? `残り ${fmtMin(m)}` : `${fmtMin(m)} left`);
 
 function condChips(f, spotId) {
   const c = [];
-  const b = spotId != null ? bestBite(f.id, spotId, f.baitPath[f.baitPath.length - 1]) : null;
+  const b = spotId != null ? bestBite(f.id, spotId, baitKey(f.baitPath[f.baitPath.length - 1])) : null;
   if (b?.lo != null) c.push(`<span class="wchip bite" title="${esc(baitName(b.baitId))}で ${b.n} 件">${b.lo}–${b.hi}s</span>`);
   if (f.startHour !== 0 || f.endHour !== 24) c.push(`<span class="wchip">ET ${etShort(f.startHour)}–${etShort(f.endHour)}</span>`);
-  f.prevWeather.forEach((w) => c.push(`<span class="wchip prev">前:${esc(wName(w))}</span>`));
+  f.prevWeather.forEach((w) => c.push(`<span class="wchip prev">${T('prev')}${esc(wName(w))}</span>`));
   f.weather.forEach((w) => c.push(`<span class="wchip">${esc(wName(w))}</span>`));
-  if (f.predators.length) c.push(`<span class="wchip" style="color:var(--amber)">直感</span>`);
-  if (f.folklore) c.push(`<span class="wchip" style="color:var(--violet)">伝承録</span>`);
-  if (f.snagging) c.push(`<span class="wchip">スナッグ</span>`);
-  if (!c.length) c.push('<span class="any">条件なし</span>');
+  if (f.predators.length) c.push(`<span class="wchip" style="color:var(--gold)">${T('intuition')}</span>`);
+  if (f.folklore) c.push(`<span class="wchip" style="color:var(--violet)">${T('folklore')}</span>`);
+  if (f.snagging) c.push(`<span class="wchip">${T('snagging')}</span>`);
+  if (!c.length) c.push(`<span class="any">${T('anytime')}</span>`);
   return `<div class="ncond">${c.join('')}</div>`;
 }
 
 /** 選んだヌシだけを実時間で並べたタイムライン */
 function favTimelineHTML(hours = 24) {
   if (!state.favs.size) {
-    return `<details class="gantt"><summary>タイムライン<span class="eyebrow">☆ で追加</span></summary>
-      <div class="gbody"><div class="gempty">行の左の ☆ を押すと、その魚だけをここに並べます。
-        追いかけているヌシを数匹選んでおくと、次にどれが来るか一目で分かります。</div></div></details>`;
+    return `<details class="gantt"><summary>${T('timeline')}<span class="eyebrow">☆</span></summary>
+      <div class="gbody"><div class="gempty">${state.lang === 'ja'
+        ? '行の左の ☆ を押すと、その魚だけをここに並べます。追いかけているヌシを数匹選んでおくと、次にどれが来るか一目で分かります。'
+        : 'Star a row below to pin it here. Pick the few you are chasing and you can see at a glance which comes next.'}</div></div></details>`;
   }
   const t0 = Date.now(), span = hours * 3600 * 1000;
   const axis = [];
@@ -1300,17 +1464,17 @@ function favTimelineHTML(hours = 24) {
       const l = Math.max(0, (a - t0) / span) * 100;
       const w = Math.max(0.4, ((b - a) / span) * 100);
       return `<div class="gbar${a > t0 ? ' soon' : ''}" style="left:${l}%;width:${Math.min(w, 100 - l)}%"
-        title="${dayLabel(a)}${hhmm(a)}–${hhmm(b)}（${mins(a, b)}分）"></div>`;
+        title="${dayLabel(a)}${hhmm(a)}–${hhmm(b)} (${fmtMin(mins(a, b))})"></div>`;
     }).join('');
     return `<div class="grow">
-      <div class="gname" data-fish="${f.id}" data-fishspot="${spot?.id ?? ''}" title="${esc(spot?.nameJa ?? '')}">
-        ${f.oonushi ? '<span class="dot oo"></span>' : f.nushi ? '<span class="dot"></span>' : ''}${esc(f.nameJa)}</div>
+      <div class="gname" data-fish="${f.id}" data-fishspot="${spot?.id ?? ''}" title="${esc(nm(spot?.n))}">
+        ${f.oonushi ? '<span class="dot oo"></span>' : f.nushi ? '<span class="dot"></span>' : ''}${esc(nm(f.n))}</div>
       <div class="gtrack">${bars}<div class="gnow" style="left:0"></div></div>
       <button class="fav mini" data-fav="${f.id}" aria-pressed="true" aria-label="外す">★</button>
     </div>`;
   }).join('');
   return `<details class="gantt" open>
-    <summary>タイムライン<span class="eyebrow">${list.length} 匹 · NEXT ${hours}H</span></summary>
+    <summary>${T('timeline')}<span class="eyebrow">${list.length} · NEXT ${hours}H</span></summary>
     <div class="gbody"><div class="gaxis">${axis.join('')}</div>${rows}</div></details>`;
 }
 
@@ -1335,16 +1499,18 @@ function renderNushi() {
   if (state.liveOnly) rows.splice(0, rows.length, ...rows.filter((r) => r.live));
   const ORDER = { open: 0, soon: 1, always: 2, none: 3, unknown: 4 };
   rows.sort((a, b) => {
-    if (state.nushiSort === 'name') return a.f.nameJa.localeCompare(b.f.nameJa, 'ja');
+    if (state.nushiSort === 'name') return nm(a.f.n).localeCompare(nm(b.f.n), state.lang);
     if (ORDER[a.st] !== ORDER[b.st]) return ORDER[a.st] - ORDER[b.st];
     if (a.st === 'open') return a.w[1] - b.w[1];        // 締切が近い順
     if (a.st === 'soon') return a.w[0] - b.w[0];        // 始まるのが早い順
-    return a.f.nameJa.localeCompare(b.f.nameJa, 'ja');
+    return nm(a.f.n).localeCompare(nm(b.f.n), state.lang);
   });
 
   const patches = [...new Set(Object.values(DB.fish).filter((f) => f.nushi)
     .map((f) => Math.floor(f.patch || 0)))].sort((a, b) => a - b);
-  const EXP = { 2: '新生', 3: '蒼天', 4: '紅蓮', 5: '漆黒', 6: '暁月', 7: '黄金' };
+  const EXP = state.lang === 'ja'
+    ? { 2: '新生', 3: '蒼天', 4: '紅蓮', 5: '漆黒', 6: '暁月', 7: '黄金' }
+    : { 2: 'ARR', 3: 'HW', 4: 'STB', 5: 'ShB', 6: 'EW', 7: 'DT' };
 
   const liveNow = rows.filter((r) => r.st === 'open').length;
   const alwaysN = rows.filter((r) => r.st === 'always').length;
@@ -1358,44 +1524,44 @@ function renderNushi() {
     ${favTimelineHTML()}
 
     <div class="toolbar">
-      <button class="chipbtn" data-nk="all"     aria-pressed="${state.nushiKind === 'all'}">すべて</button>
-      <button class="chipbtn" data-nk="oonushi" aria-pressed="${state.nushiKind === 'oonushi'}">オオヌシのみ</button>
+      <button class="chipbtn" data-nk="all"     aria-pressed="${state.nushiKind === 'all'}">${T('all')}</button>
+      <button class="chipbtn" data-nk="oonushi" aria-pressed="${state.nushiKind === 'oonushi'}">${T('oonushiOnly')}</button>
       <span style="width:8px"></span>
-      <button class="chipbtn" data-np="all" aria-pressed="${state.nushiPatch === 'all'}">全拡張</button>
+      <button class="chipbtn" data-np="all" aria-pressed="${state.nushiPatch === 'all'}">${T('allPatches')}</button>
       ${patches.map((p) => `<button class="chipbtn" data-np="${p}" aria-pressed="${state.nushiPatch == p}">${EXP[p] ?? 'P' + p}</button>`).join('')}
       <span style="width:8px"></span>
-      <button class="chipbtn" data-ns="next" aria-pressed="${state.nushiSort === 'next'}">次回順</button>
-      <button class="chipbtn" data-ns="name" aria-pressed="${state.nushiSort === 'name'}">名前順</button>
+      <button class="chipbtn" data-ns="next" aria-pressed="${state.nushiSort === 'next'}">${T('byNext')}</button>
+      <button class="chipbtn" data-ns="name" aria-pressed="${state.nushiSort === 'name'}">${T('byName')}</button>
       <span style="width:8px"></span>
-      <button class="chipbtn" data-nf="1" aria-pressed="${state.favOnly}">★ お気に入り${state.favs.size ? ` ${state.favs.size}` : ''}</button>
+      <button class="chipbtn" data-nf="1" aria-pressed="${state.favOnly}">${T('favOnly')}${state.favs.size ? ` ${state.favs.size}` : ''}</button>
     </div>
 
     <div class="toolbar" style="margin-top:2px">
-      <span class="eyebrow">${rows.length} 匹を表示 · 窓が開いている ${liveNow} 匹 · 時間天候不問 ${alwaysN} 匹${state.fishEyes ? ' · フィッシュアイ有効' : ''}</span>
+      <span class="eyebrow">${rows.length} ${T('showing')} · ${T('open')} ${liveNow} · ${T('anytime')} ${alwaysN}${state.fishEyes ? ' · ' + T('fishEyes') : ''}</span>
     </div>
 
     <div class="nhead">
-      <div>種別</div><div>魚</div><div>釣り場</div><div>条件</div><div>次に釣れる</div><div style="text-align:right">継続</div>
+      <div>${T('kind')}</div><div>${T('fish')}</div><div>${T('spot')}</div><div>${T('cond')}</div><div>${T('next')}</div><div style="text-align:right">${T('dur')}</div>
     </div>
     <div>${rows.map(({ f, spot, w, st }) => `
       <div class="nrow${st === 'open' ? ' open' : ''}${st === 'always' ? ' always' : ''}" data-fish="${f.id}" data-fishspot="${spot?.id ?? ''}" tabindex="0" role="button">
-        <div><span class="kind${f.oonushi ? ' oo' : ''}">${f.oonushi ? 'オオヌシ' : 'ヌシ'}</span></div>
-        <div class="nname">${favBtn(f.id)}${iconImg(f, 'ficon sm')}<span class="nm">${esc(f.nameJa)}</span>
+        <div><span class="kind${f.oonushi ? ' oo' : ''}">${f.oonushi ? T('oonushi') : T('nushiOne')}</span></div>
+        <div class="nname">${favBtn(f.id)}${iconImg(f, 'ficon sm')}<span class="nm">${esc(nm(f.n))}</span>
           ${f.fishEyes && state.fishEyes ? '<span class="tag coll">FE</span>' : ''}</div>
-        <div class="nspot">${esc(spot?.nameJa ?? '—')}</div>
+        <div class="nspot">${esc(nm(spot?.n)) || '—'}</div>
         ${condChips(f, spot?.id)}
         <div class="nnext">${
-          st === 'unknown' ? '<span class="never">条件未収録</span>'
-          : st === 'always' ? '<span class="anytime">時間・天候は不問</span>'
-          : st === 'open' ? `<span class="live">窓が開いている</span><br><span class="rel">${absTime(w[1])} まで</span>`
+          st === 'unknown' ? `<span class="never">${T('condMissing')}</span>`
+          : st === 'always' ? `<span class="anytime">${T('anytime')}</span>`
+          : st === 'open' ? `<span class="live">${T('nowBiting')}</span><br><span class="rel">${untilText(w[1])}</span>`
           : st === 'soon' ? `<span class="abs">${absTime(w[0])}</span><br><span class="rel">${relTime(w[0])}</span>`
-          : '<span class="never">400日以内になし</span>'}</div>
+          : `<span class="never">${T('notFound')}</span>`}</div>
         <div class="ndur">${
-          st === 'open' ? '残り' + mins(Date.now(), w[1]) + '分'
-          : st === 'soon' ? mins(w[0], w[1]) + '分'
+          st === 'open' ? remainText(mins(Date.now(), w[1]))
+          : st === 'soon' ? fmtMin(mins(w[0], w[1]))
           : '—'}</div>
       </div>`).join('') ||
-      '<div class="gempty" style="padding:26px 12px">条件に合うヌシがいません。</div>'}
+      `<div class="gempty" style="padding:26px 12px">${state.lang === 'ja' ? '条件に合うヌシがいません。' : 'No big fish match.'}</div>`}
     </div>
     ${creditHTML()}
   </div>`;
@@ -1415,25 +1581,31 @@ const voyageAt = (chunk) => {
   return { indigo: DB.ocean.routes[i], ruby: DB.ocean.routes[r] };
 };
 
+// 時間帯コード 1=夜 2=昼 3=夕
+const TIME_KEY = { 1: 'night', 2: 'day', 3: 'sunset' };
+const TIME_CLS = { 1: 'tn', 2: 'td', 3: 'ts' };
+const timeLabel = (t) => T(TIME_KEY[t] ?? 'day');
+
 function stopsHTML(route) {
   if (!route) return '<span class="odim">—</span>';
   return route.stops.map((st) => `
     <span class="ostop${st.spotId ? '' : ' plain'}" ${st.spotId ? `data-spot="${st.spotId}"` : ''}>
-      ${esc(st.nameJa)}<i class="t${st.time === '昼' ? 'd' : st.time === '夕' ? 's' : 'n'}">${st.time}</i>
+      ${esc(nm(st.n))}<i class="${TIME_CLS[st.time] ?? 'td'}">${timeLabel(st.time)}</i>
     </span>`).join('<span class="oarrow">→</span>');
 }
 
 function renderOcean() {
   const now = Date.now();
   const cur = chunkOf(now);
-  const dests = [...new Set(Object.values(DB.ocean.routes).map((r) => r.dest))];
+  const dests = [];
+  for (const r of Object.values(DB.ocean.routes)) if (!dests.some((d) => d.ja === r.dest.ja)) dests.push(r.dest);
   const rows = [];
   for (let i = 0; i < 24; i++) {
     const c = cur + i;
     const dep = c * VOYAGE_SEC * 1000;
     const v = voyageAt(c);
     if (state.oceanDest !== 'all' &&
-        v.indigo?.dest !== state.oceanDest && v.ruby?.dest !== state.oceanDest) continue;
+        v.indigo?.dest.ja !== state.oceanDest && v.ruby?.dest.ja !== state.oceanDest) continue;
     rows.push({ c, dep, v, boarding: now >= dep && now < dep + 15 * 60000 });
   }
 
@@ -1445,31 +1617,31 @@ function renderOcean() {
     <div class="eyebrow">OCEAN FISHING — VOYAGE SCHEDULE</div>
 
     <div class="toolbar" style="margin-top:18px">
-      <button class="chipbtn" data-od="all" aria-pressed="${state.oceanDest === 'all'}">すべて</button>
-      ${dests.map((d) => `<button class="chipbtn" data-od="${esc(d)}"
-        aria-pressed="${state.oceanDest === d}">${esc(d)}</button>`).join('')}
+      <button class="chipbtn" data-od="all" aria-pressed="${state.oceanDest === 'all'}">${T('all')}</button>
+      ${dests.map((d) => `<button class="chipbtn" data-od="${esc(d.ja)}"
+        aria-pressed="${state.oceanDest === d.ja}">${esc(nm(d))}</button>`).join('')}
     </div>
 
     <div class="ohead">
-      <div>出航</div><div>藍の航路</div><div>紅の航路</div>
+      <div>${T('depart')}</div><div>${T('indigoRoute')}</div><div>${T('rubyRoute')}</div>
     </div>
     <div>${rows.map(({ dep, v, boarding }) => `
       <div class="orow${boarding ? ' now' : ''}">
         <div class="otime">
           <b>${dayLabel(dep)}${hhmm(dep)}</b>
-          <span>${boarding ? '受付中' : relTime(dep) ?? 'まもなく'}</span>
+          <span>${boarding ? T('boarding') : relTime(dep)}</span>
         </div>
         <div class="oroute">
-          <div class="oname indigo">${esc(v.indigo?.nameJa ?? '—')}
-            <em>${esc(v.indigo?.destTime ?? '')}着</em></div>
+          <div class="oname indigo">${esc(nm(v.indigo?.n)) || '—'}
+            <em>${v.indigo ? esc(timeLabel(v.indigo.destTime)) : ''}</em></div>
           <div class="opath">${stopsHTML(v.indigo)}</div>
         </div>
         <div class="oroute">
-          <div class="oname ruby">${esc(v.ruby?.nameJa ?? '—')}
-            <em>${esc(v.ruby?.destTime ?? '')}着</em></div>
+          <div class="oname ruby">${esc(nm(v.ruby?.n)) || '—'}
+            <em>${v.ruby ? esc(timeLabel(v.ruby.destTime)) : ''}</em></div>
           <div class="opath">${stopsHTML(v.ruby)}</div>
         </div>
-      </div>`).join('') || '<div class="gempty" style="padding:26px 12px">この行き先の便は48時間以内にありません。</div>'}
+      </div>`).join('') || `<div class="gempty" style="padding:26px 12px">${state.lang === 'ja' ? 'この行き先の便は48時間以内にありません。' : 'No voyage to this destination within 48 hours.'}</div>`}
     </div>
 
     <div class="credit" style="margin-top:24px;border-top:none;padding-top:0">
@@ -1485,34 +1657,57 @@ function renderOcean() {
    最初の画面
    ══════════════════════════════════════════════════════════ */
 function renderWelcome() {
+  const ja = state.lang === 'ja';
+  const m = DB.meta;
+  const lines = ja ? [
+    `${m.spotCount} の釣り場、${m.fishCount} 種の魚を収録`,
+    `うち ${m.conditionCount} 種は時間帯・天候・エサの条件まで判明`,
+    '天候は実際のアルゴリズムで計算しているので、予報も出現ウィンドウも実時間で正確です',
+    `${m.nushiCount} 匹のヌシ（うちオオヌシ ${m.oonushiCount} 匹）の次回釣り日時を、実時間で計算します`,
+    `ヒットタイムは実測 ${m.biteTimeCount} 件（${m.biteSpots} 釣り場）。撒き餌あり・なし別のレンジと分布、釣果率まで出ます`,
+    'ヌシは ☆ で選ぶとタイムラインに並びます。選んだ状態は URL に残るので、ブックマークも共有もできます',
+    'オーシャンフィッシングの運行表も、次の便から48時間ぶん出します',
+  ] : [
+    `${m.spotCount} fishing spots and ${m.fishCount} fish`,
+    `${m.conditionCount} of them with time, weather and bait conditions`,
+    'Weather uses the actual in-game algorithm, so forecasts and windows are exact',
+    `Next catch times for ${m.nushiCount} big fish (${m.oonushiCount} legendary), in real time`,
+    `${m.biteTimeCount} bite-time measurements across ${m.biteSpots} spots, with and without chum`,
+    'Star a big fish to pin it to the timeline. Your picks live in the URL, so you can bookmark or share them',
+    'Ocean fishing voyages for the next 48 hours',
+  ];
   $('#stage').innerHTML = `<div class="empty">
     <span class="eyebrow">EORZEAN FISH GUIDE</span>
-    <h2 style="margin-top:8px">どの釣り場で、いつ、何が、何で釣れるか。</h2>
-    <p>左の一覧から釣り場を選ぶか、上の検索窓に魚・釣り場・エサの名前を入れてください。
-       いま条件が揃っている魚には左端に光る線が入ります。</p>
-    <ul>
-      <li><b>${DB.meta.spotCount}</b> の釣り場、<b>${DB.meta.fishCount}</b> 種の魚を収録</li>
-      <li>うち <b>${DB.meta.conditionCount}</b> 種は時間帯・天候・エサの条件まで判明</li>
-      <li>天候は実際のアルゴリズムで計算しているので、予報も出現ウィンドウも実時間で正確です</li>
-      <li><b>${DB.meta.nushiCount}</b> 匹のヌシ（うちオオヌシ <b>${DB.meta.oonushiCount}</b> 匹）の次回釣り日時を、実時間で計算します</li>
-      <li>ヒットタイムは実測 <b>${DB.meta.biteTimeCount}</b> 件（${DB.meta.biteSpots} 釣り場）。撒き餌あり・なし別のレンジと分布、釣果率まで出ます</li>
-      <li>ヌシは ☆ で選ぶとタイムラインに並びます。選んだ状態は URL に残るので、ブックマークも共有もできます</li>
-      <li>オーシャンフィッシングの運行表も、次の便から48時間ぶん出します</li>
-    </ul>
+    <h2 style="margin-top:8px">${ja
+      ? 'どの釣り場で、いつ、何が、何で釣れるか。'
+      : 'Where, when, what, and on which bait.'}</h2>
+    <p>${ja
+      ? '左の一覧から釣り場を選ぶか、上の検索窓に魚・釣り場・エサの名前を入れてください。いま条件が揃っている魚には左端に光る線が入ります。'
+      : 'Pick a spot from the list, or search for a fish, spot or bait. Rows with a glowing left edge are available right now.'}</p>
+    <ul>${lines.map((l) => `<li>${l}</li>`).join('')}</ul>
     ${creditHTML()}
   </div>`;
 }
 
 function creditHTML() {
+  const ja = state.lang === 'ja';
   return `<div class="credit">
-    <b>データ出典</b><br>
+    <b>${ja ? 'データ出典' : 'Data sources'}</b><br>
     ${DB.meta.sources.map(esc).join('<br>')}<br>
-    ゲーム内の名称・説明文・アイコンは FINAL FANTASY XIV のものです。<br><br>
-    最終ビルド：${new Date(DB.meta.generatedAt).toLocaleString('ja-JP')}<br><br>
+    ${ja
+      ? 'ゲーム内の名称・説明文・アイコンは FINAL FANTASY XIV のものです。'
+      : 'In-game names, descriptions and icons belong to FINAL FANTASY XIV.'}<br><br>
+    ${ja ? '最終ビルド' : 'Last build'}：${ymd(new Date(DB.meta.generatedAt))}<br><br>
     <span class="sqex">© SQUARE ENIX</span><br>
-    当サイトは非公式のファンサイトです。スクウェア・エニックスとは一切関係ありません。<br>
-    商用・営利目的での運営はしていません。<br>
-    掲載内容の正確性は保証しません。ゲーム内の表示を優先してください。
+    ${ja ? [
+      '当サイトは非公式のファンサイトです。スクウェア・エニックスとは一切関係ありません。',
+      '商用・営利目的での運営はしていません。',
+      '掲載内容の正確性は保証しません。ゲーム内の表示を優先してください。',
+    ].join('<br>') : [
+      'An unofficial fan site. Not affiliated with Square Enix in any way.',
+      'Run on a non-commercial basis.',
+      'Accuracy is not guaranteed. The game always wins.',
+    ].join('<br>')}
   </div>`;
 }
 
@@ -1533,17 +1728,17 @@ function openFish(fishId, fromSpotId) {
     : ws.length ? ws.map(([a, b], i) => `
     <div class="win${i === 0 && a <= Date.now() ? ' active' : ''}">
       <time>${dayLabel(a)}${hhmm(a)} – ${dayLabel(b)}${hhmm(b)}</time>
-      <span class="dur">${mins(a, b)}分</span></div>`).join('')
+      <span class="dur">${fmtMin(mins(a, b))}</span></div>`).join('')
     : '<p style="color:var(--dim);font-size:12px">72時間以内にウィンドウなし、または条件が未判明です。</p>';
 
   // ヒットタイム：この釣り場でのエサ別実測
   const bites = (spot && biteIndex.get(spot.id)?.get(f.id)) ?? [];
-  const key = `${spot?.id ?? 0}:${f.id}:${f.baitPath[f.baitPath.length - 1] ?? 0}`;
+  const key = `${spot?.id ?? 0}:${f.id}:${baitKey(f.baitPath[f.baitPath.length - 1]) ?? 0}`;
   const snippet = `"${key}": { "lo": 0, "hi": 0, "n": 1 }`;
 
   const biteSec = bites.length ? `
     <table class="btab">
-      <thead><tr><th>エサ</th><th>ヒット秒数</th><th>撒き餌</th><th>釣果率</th><th>件数</th></tr></thead>
+      <thead><tr><th>${T('baitCol')}</th><th>${T('biteSec')}</th><th>${T('chumCol')}</th><th>${T('rate')}</th><th>${T('samples')}</th></tr></thead>
       <tbody>${(() => {
       const hs = bites.map((b) => unpackHist(b.h));
       const dmax = Math.ceil(Math.max(20, ...bites.map((b) => b.hi ?? 0),
@@ -1573,48 +1768,48 @@ function openFish(fishId, fromSpotId) {
       <div class="dhead">
         ${iconImg(f, 'ficon lg')}
         <div style="min-width:0">
-          <h2>${esc(f.nameJa)}</h2>
-          <div class="eyebrow" style="margin-top:3px">${esc(f.nameEn)}</div>
+          <h2>${esc(nm(f.n))}</h2>
+          <div class="eyebrow" style="margin-top:3px">${esc(f.n.en)}</div>
         </div>
         ${f.nushi ? `<button class="fav big" data-fav="${f.id}" aria-pressed="${state.favs.has(f.id)}"
-          title="タイムラインに出す">${state.favs.has(f.id) ? '★' : '☆'}</button>` : ''}
+          title="★">${state.favs.has(f.id) ? '★' : '☆'}</button>` : ''}
       </div>
-      ${f.desc ? `<p class="ddesc">${esc(f.desc)}</p>` : ''}
+      ${f.desc ? `<p class="ddesc">${esc(f.desc[state.lang] ?? f.desc.en ?? f.desc.ja)}</p>` : ''}
     </header>
     <div class="dbody">
       <div class="dsec">
-        <span class="eyebrow">釣り方</span>
+        <span class="eyebrow">${T('howTo')}</span>
         <dl class="kv">
-          <dt>エサ</dt><dd>${f.baitPath.length ? f.baitPath.map(baitName).map(esc).join(' ▸ ') : '—'}</dd>
-          ${f.predators.length ? `<dt>直感</dt><dd>${f.predators.map(([id, n]) =>
-            `${esc(DB.fish[id]?.nameJa ?? baitName(id))} ×${n}`).join(' + ')}${f.intuition ? `（${f.intuition}秒）` : ''}</dd>` : ''}
-          <dt>時間帯</dt><dd>${!f.hasConditions ? '未収録' : (f.startHour === 0 && f.endHour === 24 ? '終日' : `ET ${etLabel(f.startHour)} – ${etLabel(f.endHour)}`)}</dd>
-          <dt>天候</dt><dd>${!f.hasConditions ? '未収録' : (f.weather.length ? f.weather.map(wName).map(esc).join('・') : (f.unknownWeather ? '未判明' : '不問'))}
-            ${f.prevWeather.length ? `<br><span style="color:var(--mist)">直前：${f.prevWeather.map(wName).map(esc).join('・')}</span>` : ''}</dd>
-          <dt>引き</dt><dd>${f.tugJa ?? '—'} ${f.hookset ? `／ ${esc(f.hookset)}` : ''}
-            ${f.tugFromStats ? '<span style="color:var(--dim);font-size:11px">（実測統計より）</span>' : ''}</dd>
-          ${f.snagging ? '<dt>その他</dt><dd>スナッグ必須</dd>' : ''}
-          ${f.folklore ? `<dt>伝承録</dt><dd>${esc(f.folklore)}</dd>` : ''}
+          <dt>${T('bait')}</dt><dd>${f.baitPath.length ? f.baitPath.map(baitName).map(esc).join(' ▸ ') : '—'}</dd>
+          ${f.predators.length ? `<dt>${T('intuition')}</dt><dd>${f.predators.map(([id, n]) =>
+            `${esc(nm(DB.fish[id]?.n) || baitName(id))} ×${n}`).join(' + ')}${f.intuition ? `（${f.intuition}s）` : ''}</dd>` : ''}
+          <dt>${T('hours')}</dt><dd>${!f.hasConditions ? T('unknown') : (f.startHour === 0 && f.endHour === 24 ? T('allDay') : `ET ${etLabel(f.startHour)} – ${etLabel(f.endHour)}`)}</dd>
+          <dt>${T('weather')}</dt><dd>${!f.hasConditions ? T('unknown') : (f.weather.length ? f.weather.map(wName).map(esc).join(' / ') : T('anyWeather'))}
+            ${f.prevWeather.length ? `<br><span style="color:var(--mist)">${T('prev')} ${f.prevWeather.map(wName).map(esc).join(' / ')}</span>` : ''}</dd>
+          <dt>${T('tug')}</dt><dd>${f.tugJa ?? '—'} ${f.hookset ? `／ ${esc(f.hookset)}` : ''}
+            ${f.tugFromStats ? `<span style="color:var(--dim);font-size:11px">${T('fromStats')}</span>` : ''}</dd>
+          ${f.snagging ? `<dt>${T('snagging')}</dt><dd>✓</dd>` : ''}
+          ${f.folklore ? `<dt>${T('folklore')}</dt><dd>${esc(nm(f.folklore))}</dd>` : ''}
           ${f.fishEyes ? '<dt>フィッシュアイ</dt><dd>有効</dd>' : ''}
-          ${f.patch ? `<dt>実装</dt><dd>Patch ${f.patch}</dd>` : ''}
+          ${f.patch ? `<dt>${T('released')}</dt><dd>Patch ${f.patch}</dd>` : ''}
         </dl>
       </div>
 
       <div class="dsec">
-        <span class="eyebrow">ヒットタイム${spot ? ' · ' + esc(spot.nameJa) : ''}</span>
+        <span class="eyebrow">${T('bite')}${spot ? ' · ' + esc(nm(spot.n)) : ''}</span>
         ${biteSec}
       </div>
 
       <div class="dsec">
-        <span class="eyebrow">次の出現ウィンドウ${spot ? ' · ' + esc(spot.nameJa) : ''}</span>
+        <span class="eyebrow">${T('windows')}${spot ? ' · ' + esc(nm(spot.n)) : ''}</span>
         ${winHTML}
       </div>
 
       <div class="dsec">
-        <span class="eyebrow">釣れる場所 ${f.spots.length}</span>
+        <span class="eyebrow">${T('place')} ${f.spots.length}</span>
         ${f.spots.map((id) => { const s = spotById.get(id); return s ? `
-          <button class="spotchip" data-spot="${s.id}">${esc(s.nameJa)}
-            <small>${esc(s.area)}${s.level ? ' · Lv' + s.level : ''}</small></button>` : ''; }).join('')}
+          <button class="spotchip" data-spot="${s.id}">${esc(nm(s.n))}
+            <small>${esc(nm(s.area))}${s.level ? ' · Lv' + s.level : ''}</small></button>` : ''; }).join('')}
       </div>
     </div>`;
   $('#drawer').classList.add('open');
@@ -1734,12 +1929,26 @@ $('#t-cond').addEventListener('click', (e) => {
   e.currentTarget.setAttribute('aria-pressed', state.condOnly);
   render();
 });
+$('#lang').addEventListener('change', (e) => {
+  state.lang = e.target.value;
+  fmtCache.clear();
+  syncHash(); renderChrome(); renderSide(); render();
+});
+$('#tz').addEventListener('change', (e) => {
+  state.tz = e.target.value;
+  fmtCache.clear();
+  syncHash(); renderChrome(); render(); drawRing();
+});
 $('#menubtn').addEventListener('click', () => $('#side').classList.toggle('open'));
 
 /* ══════════════════════════════════════════════════════════
    起動
    ══════════════════════════════════════════════════════════ */
 (function init() {
+  // ハッシュ指定が無ければブラウザの言語に寄せる
+  const pref = (navigator.languages ?? [navigator.language ?? 'ja']).map((x) => x.slice(0, 2));
+  const hit = pref.find((x) => LANGS.some((l) => l.id === x));
+  if (hit) state.lang = hit;
   readHash();
   if (location.hash.startsWith('#nushi')) state.view = 'nushi';
   if (location.hash.startsWith('#ocean')) state.view = 'ocean';
@@ -1751,6 +1960,7 @@ $('#menubtn').addEventListener('click', () => $('#side').classList.toggle('open'
   } else {
     state.openAreas.add(DB.areaOrder[0]);
   }
+  renderChrome();
   renderSide();
   render();
   drawRing();
