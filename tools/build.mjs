@@ -338,6 +338,12 @@ async function main() {
   // ICE のプリセットは base64 + gzip で埋め込まれている。展開してエサと対象魚を取り出す。
   const missionFishing = {};
   let iceMissions = 0;
+  const PLANET = {
+    'ice-sinus.cs': { ja: 'シヌス・アルドルム', en: 'Sinus Ardorum' },
+    'ice-phaenna.cs': { ja: 'ファエンナ', en: 'Phaenna' },
+    'ice-oizys.cs': { ja: 'オイジュス', en: 'Oizys' },
+    'ice-aux.cs': { ja: 'アウクセシア', en: 'Auxesia' },
+  };
   for (const key of ['ice-sinus.cs', 'ice-phaenna.cs', 'ice-oizys.cs', 'ice-aux.cs']) {
     const src = raw[key];
     if (!src) continue;
@@ -380,10 +386,21 @@ async function main() {
         }
         const baits = steps.map((x) => x.bait);
         const fishes = (j.ListOfFish ?? []).map((x) => Number(x.Fish?.Id)).filter(Boolean);
-        const targets = (j.ListOfFish ?? []).filter((x) => x.Enabled)
-          .map((x) => Number(x.Fish?.Id)).filter(Boolean);
+        // 魚ごとの立ち回り。セイムキャスト＝当たりを引いたら同じ魚を狙い続ける指示。
+        const targets = (j.ListOfFish ?? []).filter((x) => x.Enabled).map((x) => {
+          const acts = [];
+          if (x.IdenticalCast?.Enabled) acts.push('identical');   // セイムキャスト
+          if (x.SurfaceSlap?.Enabled) acts.push('slap');          // 撒き餌
+          if (x.Mooch?.Enabled) acts.push('mooch');               // 泳がせ
+          if (x.SparefulHand?.Enabled) acts.push('spare');
+          if (x.Multihook?.Enabled) acts.push('multi');
+          const nh = x.NormalHook ?? {};
+          if (nh.UseDoubleHook) acts.push('double');
+          if (nh.UseTripleHook) acts.push('triple');
+          return { id: Number(x.Fish?.Id), acts };
+        }).filter((x) => x.id);
         if (!baits.length && !fishes.length) continue;
-        missionFishing[id] = { baits, fishes, targets, steps };
+        missionFishing[id] = { baits, fishes, targets, steps, planet: PLANET[key] };
         iceMissions++;
       } catch { /* 壊れているものは飛ばす */ }
     }
@@ -411,6 +428,8 @@ async function main() {
       id: Number(mid), n, place: placeN(pn), placeId: pn,
       silver: Number(ja.SilverStarRequirement) || null,
       gold: Number(ja.GoldStarRequirement) || null,
+      rank: Number(ja.LevelGroup) || null,
+      planet: data.planet ? fill(data.planet) : null,
       ...data,
     });
   }
@@ -759,6 +778,8 @@ async function main() {
     }
   }
   for (const key of Object.keys(biteTimes)) baitIds.add(Number(key.split(':')[2]));
+  // コスモのミッションで使うエサ（アイテム名からしか引けないものがある）
+  for (const m of Object.values(missionFishing)) for (const b of m.baits ?? []) baitIds.add(b);
   const baits = {};
   for (const id of baitIds) {
     if (!id) continue;
@@ -799,6 +820,16 @@ async function main() {
     usableSpots.length = 0; usableSpots.push(...keep);
     if (n0 !== usableSpots.length) log(`spot   同じ地名の釣り場 ${n0 - usableSpots.length} 件を統合`);
   }
+
+  // ディアデム諸島の第二次・第三次復興は終了したコンテンツで、
+  // 専用エサも入手できない。魚は残っているが釣れないので印を付ける。
+  let retired = 0;
+  for (const f of Object.values(fish)) {
+    if (!/^第[二三]次復興用/.test(f.n.ja)) continue;
+    f.retired = true;
+    retired++;
+  }
+  if (retired) log(`spot   終了したコンテンツの魚 ${retired} 種に印`);
 
   // 情報が何も無い釣り場を落とす
   const before = usableSpots.length;

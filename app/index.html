@@ -278,6 +278,14 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 }
 .csfchip:hover{background:rgba(46,74,125,.7)}
 .csfchip i{font-family:var(--mono);font-size:9.5px;color:var(--dim);font-style:normal}
+.csact{
+  font-style:normal;font-size:9px;font-weight:700;padding:1px 6px;border-radius:var(--pill);
+  background:rgba(143,232,112,.16);color:var(--lime);margin-left:2px;
+}
+.csact.a-identical{background:rgba(245,197,99,.18);color:var(--gold)}
+.csact.a-triple,.csact.a-double{background:rgba(255,126,126,.16);color:var(--coral)}
+.csplanet{font-size:10.5px;color:var(--aqua)}
+.csrank{font-family:var(--mono);font-size:9.5px;color:var(--dim);background:rgba(46,74,125,.45);padding:1px 6px;border-radius:var(--pill)}
 .csicon{width:16px;height:16px;border-radius:3px}
 .nv-i.moon{color:var(--violet)}
 .missions{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:10px}
@@ -473,6 +481,8 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .tag.bonus{color:var(--lime);background:rgba(143,232,112,.12)}
 .tag.trigger{color:var(--violet);background:rgba(187,147,245,.14)}
 .tag.rarefish{color:var(--rose);background:rgba(255,159,208,.14)}
+.tag.retired{color:var(--dim);background:rgba(46,74,125,.35)}
+.fishrow:has(.tag.retired) .nm{opacity:.6}
 .rank{
   font-family:var(--mono);font-size:10px;font-weight:800;padding:2px 7px;border-radius:var(--pill);
   margin-left:6px;background:rgba(46,74,125,.5);color:var(--mist);
@@ -1177,11 +1187,15 @@ const STR = {
     uses: '使い道', craftUse: '素材', gcUse: 'GC納品', collectUse: '収集品',
     lureAmb: 'アンビ', lureMod: 'モデスト', lureOnly: 'ルアー必須', lure: 'ルアー',
     condUnknown: 'データ不明', trigger: '幻海流トリガー', rareFish: '稀少魚',
+    retired: '終了', retiredBait: '専用エサ入手不可',
+    retiredTip: '第二次・第三次復興は終了したコンテンツで、専用エサが手に入りません',
     missions: 'ミッション', cosmo: 'コスモ', cosmoMissions: 'コスモのミッション',
     cosmoSearch: 'ミッション・場所・魚で絞り込む', noMatch: '該当なし',
     csTarget: '狙う魚', csCandidates: '釣れる魚', gold: '金',
     hookPrecision: 'プレシジョン', hookPowerful: 'ストロング', hookNormal: 'ノーマル', hookStellar: 'ステラー',
-    doubleHook: 'ダブル', tripleHook: 'トリプル', shadow: '魚影', shadowSmall: '小', shadowNormal: '中', shadowLarge: '大', gigSpeed: '泳ぐ速さ',
+    doubleHook: 'ダブル', tripleHook: 'トリプル', planet: '惑星', rank: 'ランク',
+    act_identical: 'セイム', act_slap: '撒き餌', act_mooch: '泳がせ', act_spare: 'スペアフル',
+    act_multi: 'マルチ', act_double: 'ダブル', act_triple: 'トリプル', shadow: '魚影', shadowSmall: '小', shadowNormal: '中', shadowLarge: '大', gigSpeed: '泳ぐ速さ',
     highScore: '高得点', rankTip: '高得点の狙いやすさ（Sarimile Fon 氏の評価を参照）',
     sortBy: '並び替え', filter: '絞り込み', reset: 'すべて解除', status: '状態',
     expansion: '拡張', hookset: 'フッキング', band: '時間帯',
@@ -1245,11 +1259,15 @@ const STR = {
     uses: 'Used for', craftUse: 'Ingredient', gcUse: 'GC delivery', collectUse: 'Collectable',
     lureAmb: 'Amb', lureMod: 'Mod', lureOnly: 'Lure required', lure: 'Lure',
     condUnknown: 'Unknown', trigger: 'Spectral trigger', rareFish: 'Rare',
+    retired: 'Retired', retiredBait: 'bait unobtainable',
+    retiredTip: 'Second/Third Restoration has ended; its baits can no longer be obtained',
     missions: 'Missions', cosmo: 'Cosmic', cosmoMissions: 'Cosmic missions',
     cosmoSearch: 'Filter by mission, place or fish', noMatch: 'No match',
     csTarget: 'Target', csCandidates: 'Catchable', gold: 'Gold',
     hookPrecision: 'Precision', hookPowerful: 'Powerful', hookNormal: 'Normal', hookStellar: 'Stellar',
-    doubleHook: 'Double', tripleHook: 'Triple', shadow: 'Shadow', shadowSmall: 'S', shadowNormal: 'M', shadowLarge: 'L', gigSpeed: 'Speed',
+    doubleHook: 'Double', tripleHook: 'Triple', planet: 'Planet', rank: 'Rank',
+    act_identical: 'Identical', act_slap: 'Chum', act_mooch: 'Mooch', act_spare: 'Spareful',
+    act_multi: 'Multi', act_double: 'Double', act_triple: 'Triple', shadow: 'Shadow', shadowSmall: 'S', shadowNormal: 'M', shadowLarge: 'L', gigSpeed: 'Speed',
     highScore: 'high score', rankTip: 'How easy high scores are (community rating)',
     sortBy: 'Sort', filter: 'Filter', reset: 'Clear all', status: 'Status',
     expansion: 'Expansion', hookset: 'Hookset', band: 'Time of day',
@@ -1746,6 +1764,8 @@ const state = {
   oceanDest: 'all',
   oceanTargets: true,
   cosmoQuery: '',
+  cosmoPlanet: 'all',
+  cosmoRank: 'all',
   guideOpen: false,
   oceanLegendOnly: false,
   openFish: null,         // 詳細を開いている魚（URLに載せて共有できるように）
@@ -1957,7 +1977,7 @@ function baitHTML(f, spotId) {
         ${parts.join('')}<span class="brate-inline">${b.rate}%</span></div>`;
     }
     if (f.predators.length) return `<div class="bait">${predatorHTML(f)}</div>`;
-    return `<div class="bait"><span class="none">—</span></div>`;
+    return `<div class="bait"><span class="none">${f.retired ? T('retiredBait') : '—'}</span></div>`;
   }
   const parts = f.baitPath.map((id, i) =>
     `${i ? '<span class="arrow">▸</span>' : ''}<span class="b${i ? ' prey' : ''}">${esc(baitName(id))}</span>`);
@@ -2002,6 +2022,7 @@ function fishRow(f, spot) {
     lureTag(f),
     f.oceanLegend ? `<span class="tag legend">${T('legendFish')}</span>` : '',
     f.oceanRare ? `<span class="tag rarefish">${T('rareFish')}</span>` : '',
+    f.retired ? `<span class="tag retired" title="${T('retiredTip')}">${T('retired')}</span>` : '',
     f.spectralTrigger ? `<span class="tag trigger">${T('trigger')}</span>` : '',
     f.oceanTimes ? `<span class="tag otime">${f.oceanTimes.map(timeLabel).join('/')}${T('onlySuffix')}</span>` : '',
     f.oceanPoints != null ? `<span class="tag pts">${f.oceanPoints}${T('ptsUnit')}</span>` : '',
@@ -2953,8 +2974,14 @@ const HOOK_NAME = { Precision: 'プレシジョン', Powerful: 'ストロング'
 function renderCosmo() {
   const list = DB.cosmoMissions ?? [];
   const q = state.cosmoQuery.trim().toLowerCase();
-  const rows = list.filter((m) => !q || nmAll(m.n).includes(q) || nmAll(m.place).includes(q) ||
-    m.fishes.some((id) => nmAll(DB.fish[id]?.n).includes(q)));
+  const planets = [];
+  for (const m of list) if (m.planet && !planets.some((p) => p.ja === m.planet.ja)) planets.push(m.planet);
+  const ranks = [...new Set(list.map((m) => m.rank).filter(Boolean))].sort((a, b) => a - b);
+  const rows = list.filter((m) =>
+    (state.cosmoPlanet === 'all' || m.planet?.ja === state.cosmoPlanet) &&
+    (state.cosmoRank === 'all' || m.rank === Number(state.cosmoRank)) &&
+    (!q || nmAll(m.n).includes(q) || nmAll(m.place).includes(q) ||
+      m.fishes.some((id) => nmAll(DB.fish[id]?.n).includes(q))));
 
   const step = (st) => {
     const tugs = (st.tugs ?? []).map((t) => `<span class="cstug t${t.tug}">${'！'.repeat(t.tug)}</span>
@@ -2976,23 +3003,38 @@ function renderCosmo() {
     <div class="ctlbar">
       <input id="cosmoq" class="csq" type="search" placeholder="${T('cosmoSearch')}" value="${esc(state.cosmoQuery)}">
     </div>
+    <div class="fpanel" style="grid-template-columns:1fr 1fr">
+      <div class="fgrp"><span class="flabel">${T('planet')}</span><div class="fopts">
+        <button class="chipbtn sm" data-cp="all" aria-pressed="${state.cosmoPlanet === 'all'}">${T('all')}</button>
+        ${planets.map((p) => `<button class="chipbtn sm" data-cp="${esc(p.ja)}"
+          aria-pressed="${state.cosmoPlanet === p.ja}">${esc(nm(p))}</button>`).join('')}
+      </div></div>
+      <div class="fgrp"><span class="flabel">${T('rank')}</span><div class="fopts">
+        <button class="chipbtn sm" data-cr="all" aria-pressed="${state.cosmoRank === 'all'}">${T('all')}</button>
+        ${ranks.map((r) => `<button class="chipbtn sm" data-cr="${r}"
+          aria-pressed="${state.cosmoRank == r}">${r}</button>`).join('')}
+      </div></div>
+    </div>
 
     <div class="cslist">${rows.map((m) => `
       <div class="csrow">
         <div class="cshead">
           <span class="csname">${esc(nm(m.n))}</span>
-          <span class="csplace" ${m.spotId ? `data-gospot="${m.spotId}"` : ''}>${esc(nm(m.place))}</span>
+          <span class="csplace">${esc(nm(m.place))}</span>
+          ${m.planet ? `<span class="csplanet">${esc(nm(m.planet))}</span>` : ''}
+          ${m.rank ? `<span class="csrank">R${m.rank}</span>` : ''}
           ${m.gold ? `<span class="csgold">${T('gold')} ${m.gold.toLocaleString()}</span>` : ''}
         </div>
         ${(m.steps ?? []).map(step).join('')}
         <div class="csfish">
           <span class="eyebrow">${m.targets?.length ? T('csTarget') : T('csCandidates')}</span>
-          ${(m.targets?.length ? m.targets : m.fishes).map((id) => {
-            const f = DB.fish[id];
+          ${(m.targets?.length ? m.targets : m.fishes.map((id) => ({ id, acts: [] }))).map((t) => {
+            const f = DB.fish[t.id];
             if (!f) return '';
             const b = f.ahBite ? `<i>${f.ahBite[0]}–${f.ahBite[1]}s</i>` : '';
-            return `<span class="csfchip" data-fish="${id}">${iconImg(f, 'csicon')}${esc(nm(f.n))}${
-              f.tugJa ? `<b class="cstug t${f.tugRank}">${f.tugJa}</b>` : ''}${b}</span>`;
+            const acts = (t.acts ?? []).map((a) => `<em class="csact a-${a}">${T('act_' + a)}</em>`).join('');
+            return `<span class="csfchip" data-fish="${t.id}">${iconImg(f, 'csicon')}${esc(nm(f.n))}${
+              f.tugJa ? `<b class="cstug t${f.tugRank}">${f.tugJa}</b>` : ''}${b}${acts}</span>`;
           }).join('')}
         </div>
       </div>`).join('') || `<p class="gempty">${T('noMatch')}</p>`}</div>
@@ -3428,6 +3470,10 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('#dash-more')) {
     state.view = 'nushi'; syncHash(true); renderSide(); render(); return;
   }
+  const cp = e.target.closest('[data-cp]');
+  if (cp) { state.cosmoPlanet = cp.dataset.cp; renderCosmo(); return; }
+  const cr = e.target.closest('[data-cr]');
+  if (cr) { state.cosmoRank = cr.dataset.cr; renderCosmo(); return; }
   if (e.target.closest('#nav-cosmo')) {
     state.view = 'cosmo'; state.query = ''; $('#q').value = '';
     syncHash(true); renderSide(); render(); closeDrawer();
