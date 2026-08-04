@@ -212,6 +212,22 @@ async function main() {
   const oceanSub = new Set(ikdSpot.map((r) => Number(r.SpotSub)).filter(Boolean));
   // Teamcraft が特殊コンテンツ用に割り当てる合成ID。通常の釣り場と混ざらないよう境界にする。
   const SPECIAL_ID_FROM = 10000;
+  // 航路のどちら側の寄港地か。IKDRoute の 1-12 が近海、13 以降が遠洋。
+  const spotById2 = new Map(ikdSpot.map((r) => [r['#'], r]));
+  const sideOfSpot = new Map();
+  for (const r of ikdRoute.en) {
+    const rid = Number(r['#']);
+    if (!rid) continue;
+    const side = rid <= 12 ? 'near' : 'far';
+    for (const k of [0, 1, 2]) {
+      const sp = spotById2.get(r[`Spot[${k}]`]);
+      for (const v of [Number(sp?.SpotMain), Number(sp?.SpotSub)]) {
+        if (v && !sideOfSpot.has(v)) sideOfSpot.set(v, side);
+      }
+    }
+  }
+  const routeSide = (id) => sideOfSpot.get(id) ?? 'near';
+
   const exOfSpot = (id, territoryId, placeId, zoneId) => {
     if (oceanMain.has(id) || oceanSub.has(id)) return OCEAN_EX;
     const sp = id >= SPECIAL_ID_FROM ? specialOf(zoneId) : null;
@@ -423,7 +439,10 @@ async function main() {
     const ja = missionRows.ja.find((x) => x['#'] === mid);
     const en = missionRows.en.find((x) => x['#'] === mid);
     if (!ja?.Name) continue;
-    const n = fill({ ja: ja.Name, en: en?.Name || ja.Name });
+    // 名前の先頭にゲーム内のランクアイコン（私用領域の文字）が入っているので落とす。
+    // ランクはバッジで別に出す。
+    const strip = (x) => (x ?? '').replace(/[\uE000-\uF8FF]/g, '').trim();
+    const n = fill({ ja: strip(ja.Name), en: strip(en?.Name) || strip(ja.Name) });
     if (!fishingMissionsByPlace.has(pn)) fishingMissionsByPlace.set(pn, []);
     fishingMissionsByPlace.get(pn).push({ n, ...data });
     cosmoMissions.push({
@@ -453,12 +472,19 @@ async function main() {
       id: s.id,
       n,
       // コスモは「どのミッションで行くか」が実用的なので、釣りミッションだけを添える
+      zoneKey: Number(s.zoneId) || null,
       missions: fishingMissionsByPlace.get(Number(s.zoneId))?.map((m) => m.n)
         ?? missionsByPlace.get(Number(s.zoneId)) ?? null,
       // 船上や特殊エリアは地図を出しても意味がないので抑止する
       noMap: (groupCfg.noMap ?? []).includes(String(s.zoneId)) ||
              (groupCfg.noMap ?? []).includes(String(s.placeId)),
       area: (() => {
+        // オーシャンフィッシングは「エンデバー号」でまとめず、近海／遠洋で分ける
+        if (oceanMain.has(s.id) || oceanSub.has(s.id)) {
+          return routeSide(s.id) === 'far'
+            ? fill({ ja: '遠洋航路', en: 'Ruby Route', de: 'Rubinroute', fr: 'Route Rubis' })
+            : fill({ ja: '近海航路', en: 'Indigo Route', de: 'Indigoroute', fr: 'Route Indigo' });
+        }
         const sp = s.id >= 10000 ? specialOf(s.zoneId) : null;
         if (sp?.area) return fill(sp.area);
         // Teamcraft が親をディアデムにしてしまう合成釣り場は、自分の地名を親にも使う
@@ -473,6 +499,9 @@ async function main() {
       spear: spearIds.has(s.id),
       // 合成釣り場は mapId が実際と違うので、振り分け表の指定を優先する
       mapId: groupCfg.maps?.[s.zoneId]?.mapId ?? s.mapId ?? null,
+      // ミッションのある釣り場は、その地名から座標を引き直す
+      x: s.coords?.x ?? null,
+      y: s.coords?.y ?? null,
       ex: exOfSpot(s.id, territoryId, s.placeId, s.zoneId),
       ocean: oceanMain.has(s.id) || oceanSub.has(s.id),
       spectral: oceanSub.has(s.id),
@@ -521,7 +550,7 @@ async function main() {
   const dropGroups = new Set((groupCfg.drop ?? []).map((k) => groupIds[k]));
   const usableSpots = spots.filter((s) => s.fishes.length > 0 && !dropGroups.has(s.ex));
   // 中身が何も分からない釣り場（魚に条件もエサも実測も無い）は出さない
-  const informative = (s) => s.fishes.some((id) => {
+  const informative = (s) => s.missions?.length || s.fishes.some((id) => {
     const f = fish[id];
     return f && (f.hasConditions || f.baitPath.length || f.ahBite);
   });
@@ -845,6 +874,23 @@ async function main() {
   usableSpots.push(...kept);
   if (before !== usableSpots.length) log(`spot   情報の無い釣り場 ${before - usableSpots.length} 件を除外`);
 
+  // ListOfFish が空のミッションは「エサだけ指定して何でも釣る」形。
+  // その場合は同じ地名の釣り場にいる魚を候補として出す。
+  const fishByPlace = new Map();
+  for (const sp of usableSpots) {
+    const pn = Number(sp.zoneKey ?? 0);
+    if (!pn) continue;
+    if (!fishByPlace.has(pn)) fishByPlace.set(pn, new Set());
+    for (const id of sp.fishes) fishByPlace.get(pn).add(id);
+  }
+  const spotByZone = new Map();
+  for (const sp of usableSpots) if (sp.zoneKey) spotByZone.set(sp.zoneKey, sp.id);
+  for (const m of cosmoMissions) m.spotId = spotByZone.get(m.placeId) ?? null;
+  for (const m of cosmoMissions) {
+    if (m.fishes.length) continue;
+    m.fishes = [...(fishByPlace.get(m.placeId) ?? [])];
+    m.anyFish = true;
+  }
   // ─── 拡張 → エリア の並び（ゲーム内の順に近づける） ────────
   const expansions = {
     [OCEAN_EX]: {

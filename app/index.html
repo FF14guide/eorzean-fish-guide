@@ -3039,7 +3039,8 @@ function renderCosmo() {
       <div class="csrow">
         <div class="cshead">
           <span class="csname">${esc(nm(m.n))}</span>
-          <span class="csplace">${esc(nm(m.place))}</span>
+          <span class="csplace"${m.spotId ? ` data-gospot="${m.spotId}"` : ''}>${esc(nm(m.place))}${
+            m.spotId ? ' ◎' : ''}</span>
           ${m.planet ? `<span class="csplanet">${esc(nm(m.planet))}</span>` : ''}
           ${m.rankLabel ? `<span class="csrank r${m.rank}">${m.rankLabel}</span>` : ''}
           ${m.gold ? `<span class="csgold">${T('gold')} ${m.gold.toLocaleString()}</span>` : ''}
