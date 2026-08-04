@@ -16,6 +16,7 @@
  * パッチ後はこれを流すだけで釣り場と魚が追従する。
  */
 
+import { gunzipSync } from 'node:zlib';
 import { mkdir, readFile, writeFile, access, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -40,6 +41,10 @@ const OF = 'https://raw.githubusercontent.com/momokotomoko/ffxivStreamDeckOceanF
 // AutoHook（Dalamud プラグイン / BSD 3-Clause）が銛の魚影サイズと速さを持っている。
 // ゲームデータにも他のコミュニティデータにも無い情報なので、ここから借りる。
 const AH = 'https://raw.githubusercontent.com/PunishXIV/AutoHook/main/AutoHook/Data/FishData';
+// Ice's Cosmic Exploration（GPL-3.0）はコスモのミッションごとに AutoHook のプリセットを持っている。
+// そこにエサと対象魚が入っているので、コスモ唯一のデータ源として使う。
+const ICE = 'https://raw.githubusercontent.com/LeontopodiumNivale14/Ices-Cosmic-Exploration/Main-Branch'
+  + '/ICE/Utilities/GatheringHelper';
 
 const SOURCES = {
   'fishing-spots.json': `${TC}/fishing-spots.json`,
@@ -72,6 +77,10 @@ const SOURCES = {
   'IKDFishParam.csv': `${DM}/en/IKDFishParam.csv`,
   'autohook-fish.json': `${AH}/fish_list.json`,
   'autohook-sources.json': `${AH}/fishing-sources.json`,
+  'ice-sinus.cs': `${ICE}/Fishing_Sinus.cs`,
+  'ice-phaenna.cs': `${ICE}/Fishing_Phaenna.cs`,
+  'ice-oizys.cs': `${ICE}/Fishing_Oizys.cs`,
+  'ice-aux.cs': `${ICE}/Fishing_Aux.cs`,
   'WKSMissionUnit_ja.csv': `${DM}/ja/WKSMissionUnit.csv`,
   'WKSMissionUnit_en.csv': `${DM}/en/WKSMissionUnit.csv`,
   'IKDContentBonus_ja.csv': `${DM}/ja/IKDContentBonus.csv`,
@@ -114,6 +123,23 @@ async function fetchSource(name, url) {
 }
 
 /** 1行目がヘッダの CSV を、引用符を尊重して行オブジェクトの配列にする */
+
+/** 1秒刻みのヒストグラムを、こちらの 0.5 秒刻み・base36 形式に詰め直す */
+function packHist(hist) {
+  const secs = Object.keys(hist).map(Number).sort((a, b) => a - b);
+  if (!secs.length) return null;
+  const start = Math.round(secs[0] / 0.5);
+  const end = Math.round(secs[secs.length - 1] / 0.5);
+  const peak = Math.max(...Object.values(hist));
+  const vals = [];
+  for (let bin = start; bin <= end; bin++) {
+    const sec = bin * 0.5;
+    const v = hist[sec] ?? hist[Math.floor(sec)] ?? 0;
+    vals.push(Math.round((v / peak) * 35).toString(36));
+  }
+  return `${start}:${vals.join('')}`;
+}
+
 function parseCsv(text) {
   const rows = [];
   let row = [], cell = '', quoted = false;
@@ -308,6 +334,49 @@ async function main() {
     missionsByPlace.get(pn).push(fill({ ja: r.Name, en: en?.Name || r.Name }));
   }
 
+  // ─── コスモエクスプローラー：ミッションごとの釣り方 ────────
+  // ICE のプリセットは base64 + gzip で埋め込まれている。展開してエサと対象魚を取り出す。
+  const missionFishing = {};
+  let iceMissions = 0;
+  for (const key of ['ice-sinus.cs', 'ice-phaenna.cs', 'ice-oizys.cs', 'ice-aux.cs']) {
+    const src = raw[key];
+    if (!src) continue;
+    // FishingPreset[番号] … "AH6_……" の組を素直に拾う
+    for (const chunk of src.split('FishingPreset[').slice(1)) {
+      const id = chunk.slice(0, chunk.indexOf(']'));
+      const at = chunk.indexOf('"AH6_');
+      if (!/^\d+$/.test(id) || at < 0 || at > 120) continue;
+      const b64 = chunk.slice(at + 5, chunk.indexOf('"', at + 5));
+      try {
+        const j = JSON.parse(gunzipSync(Buffer.from(b64, 'base64')).toString('utf8'));
+        const baits = (j.ListOfBaits ?? []).filter((b) => b.Enabled)
+          .map((b) => Number(b.BaitFish?.Id)).filter((x) => x > 0);
+        const fishes = (j.ListOfFish ?? []).map((x) => Number(x.Fish?.Id)).filter(Boolean);
+        if (!baits.length && !fishes.length) continue;
+        missionFishing[id] = { baits, fishes };
+        iceMissions++;
+      } catch { /* 壊れているものは飛ばす */ }
+    }
+  }
+  if (iceMissions) log(`ice    コスモのミッション ${iceMissions} 件から釣り方を取得`);
+
+  // ミッションIDから釣り場を割り出し、コスモの釣り場はミッション名で見せる
+  const missionPlace = new Map();
+  for (const r of missionRows.ja) {
+    const pn = Number(r.PlaceName);
+    if (pn && r.Name) missionPlace.set(r['#'], pn);
+  }
+  const fishingMissionsByPlace = new Map();
+  for (const [mid, data] of Object.entries(missionFishing)) {
+    const pn = missionPlace.get(mid);
+    if (!pn) continue;
+    const ja = missionRows.ja.find((x) => x['#'] === mid);
+    const en = missionRows.en.find((x) => x['#'] === mid);
+    if (!ja?.Name) continue;
+    if (!fishingMissionsByPlace.has(pn)) fishingMissionsByPlace.set(pn, []);
+    fishingMissionsByPlace.get(pn).push({ n: fill({ ja: ja.Name, en: en?.Name || ja.Name }), ...data });
+  }
+
   // ─── 釣り場 ──────────────────────────────────────────────────
   const spearIds = new Set(Object.keys(D.SPEARFISHING_SPOTS).map(Number));
   const spots = [];
@@ -322,7 +391,9 @@ async function main() {
     spots.push({
       id: s.id,
       n,
-      missions: missionsByPlace.get(Number(s.zoneId)) ?? null,
+      // コスモは「どのミッションで行くか」が実用的なので、釣りミッションだけを添える
+      missions: fishingMissionsByPlace.get(Number(s.zoneId))?.map((m) => m.n)
+        ?? missionsByPlace.get(Number(s.zoneId)) ?? null,
       // 船上や特殊エリアは地図を出しても意味がないので抑止する
       noMap: (groupCfg.noMap ?? []).includes(String(s.zoneId)) ||
              (groupCfg.noMap ?? []).includes(String(s.placeId)),
@@ -492,12 +563,27 @@ async function main() {
     log(`gig    魚影の大きさ・速さ ${gigCount} 種`);
   } catch (e) { log(`gig    取り込み失敗: ${e.message}`); }
 
+  // 取り出したエサを魚に反映する
+  let iceBait = 0;
+  for (const { baits, fishes } of Object.values(missionFishing)) {
+    if (!baits.length) continue;
+    for (const id of fishes) {
+      const f = fish[id];
+      if (!f || f.baitPath.length) continue;
+      f.baitPath = [baits[0]];
+      iceBait++;
+    }
+  }
+  if (iceBait) log(`ice    エサ ${iceBait} 種を補完`);
+
   // ─── AutoHook の実測（エサ・引き・フッキング・ヒットタイム）────
   // Lodinn が扱っていない釣り場（ディアデムなど）の穴を埋める。
   // 既に値があるものは触らない。
   let ahBait = 0, ahTug = 0, ahBite = 0;
   try {
-    const AH_TUG = { 1: 'light', 2: 'medium', 3: 'heavy' };
+    // AutoHook の tug は 0=！！(medium) / 1=！！！(heavy) / 2=！(light)。
+    // hookset は 1=ストロング / 2=プレシジョン。Fish Tracker と 821 種で突き合わせて確認済み。
+    const AH_TUG = { 0: ['medium', 2], 1: ['heavy', 3], 2: ['light', 1] };
     const sources = JSON.parse(raw['autohook-sources.json']);
     for (const [itemId, list] of Object.entries(sources)) {
       const f = fish[itemId];
@@ -505,9 +591,10 @@ async function main() {
       const top = list[0];
       if (!f.baitPath.length && top.bait) { f.baitPath = [top.bait]; ahBait++; }
       if (!f.tug && AH_TUG[top.tug]) {
-        f.tug = AH_TUG[top.tug];
-        f.tugRank = top.tug;
-        f.tugJa = '！'.repeat(top.tug);
+        const [tug, rank] = AH_TUG[top.tug];
+        f.tug = tug;
+        f.tugRank = rank;
+        f.tugJa = '！'.repeat(rank);
         ahTug++;
       }
       // AutoHook の hookset は 1=ストロング / 2=プレシジョン（Lodinn と同じ並び）
@@ -517,12 +604,39 @@ async function main() {
       }
       if (top.snagging) f.snagging = true;
     }
+    // ヒットタイムのヒストグラム。Lodinn が持っていない釣り場×魚だけを足す。
+    // AutoHook 側は 1 秒刻み、こちらは 0.5 秒刻みなので、ビン位置を合わせて詰め直す。
+    let ahHist = 0;
     for (const r of JSON.parse(raw['autohook-fish.json'])) {
       const f = fish[r.ItemId];
-      if (!f || f.bite || !r.BiteTimeMin || !r.BiteTimeMax) continue;
-      f.ahBite = [r.BiteTimeMin, r.BiteTimeMax];
-      ahBite++;
+      if (!f) continue;
+      if (r.BiteTimeMin && r.BiteTimeMax && !f.bite) {
+        f.ahBite = [r.BiteTimeMin, r.BiteTimeMax];
+        ahBite++;
+      }
+      for (const [spotId, hist] of Object.entries(r.BiteTimeHistogram ?? {})) {
+        const bait = r.InitialBait || 0;
+        const key = `${spotId}:${r.ItemId}:${bait}`;
+        if (biteTimes[key]) continue;                 // 実測統計があるならそちらを優先
+        const secs = Object.keys(hist).map(Number).sort((a, b) => a - b);
+        if (!secs.length) continue;
+        const total = Object.values(hist).reduce((a, b) => a + b, 0);
+        if (total < 30) continue;                     // 少なすぎるものは採らない
+        // 2〜98 パーセンタイルでレンジを取り、外れ値を落とす
+        let acc = 0; let lo = null; let hi = secs[secs.length - 1];
+        for (const sec of secs) {
+          acc += hist[sec];
+          if (lo == null && acc >= total * 0.02) lo = sec;
+          if (acc >= total * 0.98) { hi = sec; break; }
+        }
+        biteTimes[key] = {
+          lo: lo ?? secs[0], hi, n: total, rate: null,
+          h: packHist(hist), src: 'autohook',
+        };
+        ahHist++;
+      }
     }
+    if (ahHist) log(`autohook ヒストグラム ${ahHist} 件を追加`);
     log(`autohook エサ ${ahBait} / 引き ${ahTug} / ヒットタイム ${ahBite} 種を補完`);
   } catch (e) { log(`autohook 取り込み失敗: ${e.message}`); }
 
@@ -626,6 +740,24 @@ async function main() {
   const weatherRates = {};
   for (const [tid, wr] of Object.entries(D.WEATHER_RATES)) {
     weatherRates[tid] = { rates: wr.weather_rates, zoneId: wr.zone_id, regionId: wr.region_id };
+  }
+
+  // コスモは同じ地名の釣り場が何本も並ぶので、魚をまとめて 1 本にする
+  const cosmoEx = groupIds.cosmo;
+  if (cosmoEx != null) {
+    const merged = new Map();
+    for (const sp of usableSpots.filter((x) => x.ex === cosmoEx)) {
+      const key = sp.n.ja;
+      if (!merged.has(key)) { merged.set(key, sp); continue; }
+      const head = merged.get(key);
+      for (const id of sp.fishes) if (!head.fishes.includes(id)) head.fishes.push(id);
+      head.missions = head.missions ?? sp.missions;
+      sp.merged = true;
+    }
+    const n0 = usableSpots.length;
+    const keep = usableSpots.filter((x) => !x.merged);
+    usableSpots.length = 0; usableSpots.push(...keep);
+    if (n0 !== usableSpots.length) log(`ice    重複する釣り場 ${n0 - usableSpots.length} 件を統合`);
   }
 
   // 情報が何も無い釣り場を落とす
@@ -895,7 +1027,8 @@ async function main() {
         'xivapi/ffxiv-datamining — 銛・説明文・オーシャンフィッシングの運行表',
         ...(biteMeta?.source ? ['Lodinn — ヒットタイムと釣果率の実測統計'] : []),
         'momokotomoko / StreamDeck Ocean Fishing — 伝説魚と時間限定魚',
-        'PunishXIV / AutoHook (BSD 3-Clause) — 銛の魚影の大きさと速さ',
+        'PunishXIV / AutoHook (BSD 3-Clause) — 銛の魚影、エサ、ヒットタイム',
+        "Ice's Cosmic Exploration (GPL-3.0) — コスモエクスプローラーの釣り方",
       ],
     },
     areaOrder,
