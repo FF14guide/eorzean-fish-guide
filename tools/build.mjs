@@ -130,7 +130,8 @@ const SOURCES = {
   'IKDContentBonus_en.csv': `${DM}/en/IKDContentBonus.csv`,
   'Recipe.csv': `${DM}/en/Recipe.csv`,
   'GCSupplyDuty.csv': `${DM}/en/GCSupplyDuty.csv`,
-  'GatheringLeve.csv': `${DM}/en/GatheringLeve.csv`,
+  'Leve.csv': `${DM}/en/Leve.csv`,
+  'CraftLeve.csv': `${DM}/en/CraftLeve.csv`,
 };
 
 /**
@@ -1236,12 +1237,20 @@ async function main() {
       if (f && !f.gc) { f.gc = true; gcCount++; }
     }
   }
-  // ギルドリーヴ（採集リーヴ）納品
+  // ギルドリーヴ納品。
+  // GatheringLeve の RequiredItem はリーヴ専用のイベントアイテムを指していて辿れない。
+  // 正しくは Leve.DataId → CraftLeve の Item 列。LeveAssignmentType 4 が漁師。
   let leveCount = 0;
-  for (const r of parseCsv(raw['GatheringLeve.csv'])) {
-    for (let i = 0; i < 4; i++) {
-      const f = fish[Number(r[`RequiredItem[${i}]`])];
-      if (f && !f.leve) { f.leve = true; leveCount++; }
+  {
+    const craftByLeve = new Map(parseCsv(raw['CraftLeve.csv']).map((r) => [r.Leve, r]));
+    for (const r of parseCsv(raw['Leve.csv'])) {
+      if (r.LeveAssignmentType !== '4' || !r.Name) continue;   // 漁師リーヴだけ
+      const c = craftByLeve.get(r['#']);
+      if (!c) continue;
+      for (let i = 0; i < 4; i++) {
+        const f = fish[Number(c[`Item[${i}]`])];
+        if (f && !f.leve) { f.leve = true; leveCount++; }
+      }
     }
   }
 
