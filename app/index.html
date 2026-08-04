@@ -277,6 +277,11 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
   background:rgba(46,74,125,.4);cursor:pointer;
 }
 .csfchip:hover{background:rgba(46,74,125,.7)}
+.csfchip.target{background:rgba(245,197,99,.16);color:var(--gold);border:1px solid rgba(245,197,99,.4);font-weight:700}
+.csrank{font-weight:800}
+.csrank.r5{color:var(--gold);background:rgba(245,197,99,.18)}
+.csrank.r6{color:var(--coral);background:rgba(255,126,126,.18)}
+.spotlist.flat{border-top:1px solid var(--edge-soft)}
 .csfchip i{font-family:var(--mono);font-size:9.5px;color:var(--dim);font-style:normal}
 .csact{
   font-style:normal;font-size:9px;font-weight:700;padding:1px 6px;border-radius:var(--pill);
@@ -1878,7 +1883,9 @@ function renderSide() {
     </button>
   </div>`;
 
-  const html = nav + [...byEx.entries()].map(([ex, areas]) => {
+  // コスモはミッションページに集約したので、釣り場ツリーからは外す
+  const cosmoExId = Object.values(DB.expansions).find((e) => e.n.ja === 'コスモエクスプローラー')?.id;
+  const html = nav + [...byEx.entries()].filter(([ex]) => Number(ex) !== cosmoExId).map(([ex, areas]) => {
     const exp = DB.expansions[ex];
     const count = areas.reduce((n, a) => n + (byArea.get(`${ex}\u0001${a.ja}`)?.length ?? 0), 0);
     const exOpen = state.openEx.has(String(ex));
@@ -1889,6 +1896,17 @@ function renderSide() {
       </summary>
       <div>${areas.map((area) => {
         const list = byArea.get(`${ex}\u0001${area.ja}`) ?? [];
+        // エリア名と釣り場名が同じ（1件だけ）なら、中間の階層を作らず直接ボタンにする
+        if (list.length === 1 && list[0].n.ja === area.ja) {
+          const sp = list[0];
+          return `<div class="spotlist flat"><button type="button" data-spot="${sp.id}"
+            ${sp.id === state.spotId ? 'aria-current="true"' : ''}>
+            ${sp.spear ? '<span class="gig" title="spear">⚵</span>' : ''}
+            <span>${esc(nm(sp.n))}</span>
+            ${sp.missions ? `<span class="lv ms">${sp.missions.length}</span>` : ''}
+            ${sp.level ? `<span class="lv">Lv${sp.level}</span>` : ''}
+          </button></div>`;
+        }
         const open = state.openAreas.has(area.ja);
         return `<details class="area" data-area="${esc(area.ja)}"${open ? ' open' : ''}>
           <summary>
@@ -2970,6 +2988,7 @@ function bonusGuideHTML() {
  * 釣り場から入るより「どのミッションをやるか」から入るほうが実際の流れに合う。
  * 釣り方は ICE のプリセット（AutoHook 設定）から読み取ったもの。
  */
+const RANK_LABEL = { 1: 'D', 2: 'C', 3: 'B', 4: 'A', 5: 'EX', 6: 'EX+' };
 const HOOK_NAME = { Precision: 'プレシジョン', Powerful: 'ストロング', Normal: 'ノーマル', Stellar: 'ステラー' };
 function renderCosmo() {
   const list = DB.cosmoMissions ?? [];
@@ -3012,7 +3031,7 @@ function renderCosmo() {
       <div class="fgrp"><span class="flabel">${T('rank')}</span><div class="fopts">
         <button class="chipbtn sm" data-cr="all" aria-pressed="${state.cosmoRank === 'all'}">${T('all')}</button>
         ${ranks.map((r) => `<button class="chipbtn sm" data-cr="${r}"
-          aria-pressed="${state.cosmoRank == r}">${r}</button>`).join('')}
+          aria-pressed="${state.cosmoRank == r}">${RANK_LABEL[r] ?? r}</button>`).join('')}
       </div></div>
     </div>
 
@@ -3022,18 +3041,23 @@ function renderCosmo() {
           <span class="csname">${esc(nm(m.n))}</span>
           <span class="csplace">${esc(nm(m.place))}</span>
           ${m.planet ? `<span class="csplanet">${esc(nm(m.planet))}</span>` : ''}
-          ${m.rank ? `<span class="csrank">R${m.rank}</span>` : ''}
+          ${m.rankLabel ? `<span class="csrank r${m.rank}">${m.rankLabel}</span>` : ''}
           ${m.gold ? `<span class="csgold">${T('gold')} ${m.gold.toLocaleString()}</span>` : ''}
         </div>
         ${(m.steps ?? []).map(step).join('')}
         <div class="csfish">
-          <span class="eyebrow">${m.targets?.length ? T('csTarget') : T('csCandidates')}</span>
-          ${(m.targets?.length ? m.targets : m.fishes.map((id) => ({ id, acts: [] }))).map((t) => {
+          <span class="eyebrow">${T('csCandidates')}</span>
+          ${(() => {
+            const byId = new Map((m.targets ?? []).map((t) => [t.id, t.acts ?? []]));
+            const all = [...new Set([...(m.targets ?? []).map((t) => t.id), ...m.fishes])];
+            return all.map((id) => ({ id, acts: byId.get(id) ?? [], target: byId.has(id) }));
+          })().map((t) => {
             const f = DB.fish[t.id];
             if (!f) return '';
             const b = f.ahBite ? `<i>${f.ahBite[0]}–${f.ahBite[1]}s</i>` : '';
             const acts = (t.acts ?? []).map((a) => `<em class="csact a-${a}">${T('act_' + a)}</em>`).join('');
-            return `<span class="csfchip" data-fish="${t.id}">${iconImg(f, 'csicon')}${esc(nm(f.n))}${
+            return `<span class="csfchip${t.target ? ' target' : ''}" data-fish="${t.id}"
+              title="${t.target ? T('csTarget') : ''}">${iconImg(f, 'csicon')}${esc(nm(f.n))}${
               f.tugJa ? `<b class="cstug t${f.tugRank}">${f.tugJa}</b>` : ''}${b}${acts}</span>`;
           }).join('')}
         </div>

@@ -414,6 +414,8 @@ async function main() {
     if (pn && r.Name) missionPlace.set(r['#'], pn);
   }
   const fishingMissionsByPlace = new Map();
+  // ランクはゲーム内の表記に合わせる（LevelGroup 1〜6 → D/C/B/A/EX/EX+）
+  const RANK_LABEL = { 1: 'D', 2: 'C', 3: 'B', 4: 'A', 5: 'EX', 6: 'EX+' };
   const cosmoMissions = [];
   for (const [mid, data] of Object.entries(missionFishing)) {
     const pn = missionPlace.get(mid);
@@ -429,6 +431,7 @@ async function main() {
       silver: Number(ja.SilverStarRequirement) || null,
       gold: Number(ja.GoldStarRequirement) || null,
       rank: Number(ja.LevelGroup) || null,
+      rankLabel: RANK_LABEL[Number(ja.LevelGroup)] ?? null,
       planet: data.planet ? fill(data.planet) : null,
       ...data,
     });
@@ -823,13 +826,17 @@ async function main() {
 
   // ディアデム諸島の第二次・第三次復興は終了したコンテンツで、
   // 専用エサも入手できない。魚は残っているが釣れないので印を付ける。
+  // 第二次・第三次復興は終了したコンテンツで専用エサも入手できない。魚ごと外す。
   let retired = 0;
+  const retiredIds = new Set();
   for (const f of Object.values(fish)) {
     if (!/^第[二三]次復興用/.test(f.n.ja)) continue;
-    f.retired = true;
+    retiredIds.add(f.id);
+    delete fish[f.id];
     retired++;
   }
-  if (retired) log(`spot   終了したコンテンツの魚 ${retired} 種に印`);
+  for (const sp of usableSpots) sp.fishes = sp.fishes.filter((id) => !retiredIds.has(id));
+  if (retired) log(`spot   終了したコンテンツの魚 ${retired} 種を除外`);
 
   // 情報が何も無い釣り場を落とす
   const before = usableSpots.length;
