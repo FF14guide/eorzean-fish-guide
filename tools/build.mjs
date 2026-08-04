@@ -349,11 +349,41 @@ async function main() {
       const b64 = chunk.slice(at + 5, chunk.indexOf('"', at + 5));
       try {
         const j = JSON.parse(gunzipSync(Buffer.from(b64, 'base64')).toString('utf8'));
-        const baits = (j.ListOfBaits ?? []).filter((b) => b.Enabled)
-          .map((b) => Number(b.BaitFish?.Id)).filter((x) => x > 0);
+        // どのエサで、どの引きを、どのフッキングで獲るか
+        const HOOK_ACTION = { 4179: 'Precision', 4103: 'Powerful', 296: 'Normal', 26871: 'Stellar' };
+        const TUG_KEY = { PatienceWeak: 1, PatienceStrong: 2, PatienceLegendary: 3 };
+        const steps = [];
+        for (const b of j.ListOfBaits ?? []) {
+          if (!b.Enabled) continue;
+          const baitId = Number(b.BaitFish?.Id);
+          if (!(baitId > 0)) continue;
+          const nh = b.NormalHook ?? {};
+          const tugs = [];
+          for (const [key, rank] of Object.entries(TUG_KEY)) {
+            const cfg = nh[key];
+            if (!cfg?.HooksetEnabled) continue;
+            tugs.push({
+              tug: rank,
+              hookset: HOOK_ACTION[cfg.HooksetType] ?? null,
+              // 秒数指定があるものだけ拾う（多くは指定なし）
+              min: cfg.PrecisionHookTypeMin || cfg.PowerfulHookTypeMin || cfg.NormalHookTypeMin || null,
+              max: cfg.PrecisionHookTypeMax || cfg.PowerfulHookTypeMax || cfg.NormalHookTypeMax || null,
+            });
+          }
+          steps.push({
+            bait: baitId,
+            tugs,
+            double: !!nh.UseDoubleHook,
+            triple: !!nh.UseTripleHook,
+            timeout: nh.TimeoutMax || null,
+          });
+        }
+        const baits = steps.map((x) => x.bait);
         const fishes = (j.ListOfFish ?? []).map((x) => Number(x.Fish?.Id)).filter(Boolean);
+        const targets = (j.ListOfFish ?? []).filter((x) => x.Enabled)
+          .map((x) => Number(x.Fish?.Id)).filter(Boolean);
         if (!baits.length && !fishes.length) continue;
-        missionFishing[id] = { baits, fishes };
+        missionFishing[id] = { baits, fishes, targets, steps };
         iceMissions++;
       } catch { /* 壊れているものは飛ばす */ }
     }
@@ -367,15 +397,24 @@ async function main() {
     if (pn && r.Name) missionPlace.set(r['#'], pn);
   }
   const fishingMissionsByPlace = new Map();
+  const cosmoMissions = [];
   for (const [mid, data] of Object.entries(missionFishing)) {
     const pn = missionPlace.get(mid);
     if (!pn) continue;
     const ja = missionRows.ja.find((x) => x['#'] === mid);
     const en = missionRows.en.find((x) => x['#'] === mid);
     if (!ja?.Name) continue;
+    const n = fill({ ja: ja.Name, en: en?.Name || ja.Name });
     if (!fishingMissionsByPlace.has(pn)) fishingMissionsByPlace.set(pn, []);
-    fishingMissionsByPlace.get(pn).push({ n: fill({ ja: ja.Name, en: en?.Name || ja.Name }), ...data });
+    fishingMissionsByPlace.get(pn).push({ n, ...data });
+    cosmoMissions.push({
+      id: Number(mid), n, place: placeN(pn), placeId: pn,
+      silver: Number(ja.SilverStarRequirement) || null,
+      gold: Number(ja.GoldStarRequirement) || null,
+      ...data,
+    });
   }
+  cosmoMissions.sort((a, b) => a.id - b.id);
 
   // ─── 釣り場 ──────────────────────────────────────────────────
   const spearIds = new Set(Object.keys(D.SPEARFISHING_SPOTS).map(Number));
@@ -742,22 +781,23 @@ async function main() {
     weatherRates[tid] = { rates: wr.weather_rates, zoneId: wr.zone_id, regionId: wr.region_id };
   }
 
-  // コスモは同じ地名の釣り場が何本も並ぶので、魚をまとめて 1 本にする
-  const cosmoEx = groupIds.cosmo;
-  if (cosmoEx != null) {
+  // コスモと蒼天街は同じ地名の釣り場が何本も並ぶので、魚をまとめて 1 本にする
+  for (const groupEx of [groupIds.cosmo, groupIds.diadem]) {
+    if (groupEx == null) continue;
     const merged = new Map();
-    for (const sp of usableSpots.filter((x) => x.ex === cosmoEx)) {
+    for (const sp of usableSpots.filter((x) => x.ex === groupEx)) {
       const key = sp.n.ja;
       if (!merged.has(key)) { merged.set(key, sp); continue; }
       const head = merged.get(key);
       for (const id of sp.fishes) if (!head.fishes.includes(id)) head.fishes.push(id);
       head.missions = head.missions ?? sp.missions;
+      head.fishes = [...new Set(head.fishes)];
       sp.merged = true;
     }
     const n0 = usableSpots.length;
     const keep = usableSpots.filter((x) => !x.merged);
     usableSpots.length = 0; usableSpots.push(...keep);
-    if (n0 !== usableSpots.length) log(`ice    重複する釣り場 ${n0 - usableSpots.length} 件を統合`);
+    if (n0 !== usableSpots.length) log(`spot   同じ地名の釣り場 ${n0 - usableSpots.length} 件を統合`);
   }
 
   // 情報が何も無い釣り場を落とす
@@ -1033,6 +1073,7 @@ async function main() {
     },
     areaOrder,
     expansions,
+    cosmoMissions,
     spots: usableSpots,
     fish,
     baits,

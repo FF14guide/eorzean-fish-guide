@@ -249,6 +249,37 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
   margin-top:14px;
 }
 .spotmap:hover{box-shadow:0 0 0 1px var(--gold)}
+.csq{
+  flex:1;background:rgba(8,16,30,.6);border:1px solid var(--edge-soft);border-radius:var(--pill);
+  padding:8px 14px;font-size:12.5px;color:var(--foam);
+}
+.csq:focus{outline:none;border-color:var(--gold)}
+.cslist{display:grid;gap:8px;margin-top:10px}
+.csrow{background:rgba(21,35,64,.55);border:1px solid var(--edge-soft);border-radius:var(--r);padding:12px 14px}
+.cshead{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px;margin-bottom:8px}
+.csname{font-size:13.5px;font-weight:700}
+.csplace{font-size:11px;color:var(--violet);cursor:pointer;border-bottom:1px dotted currentColor}
+.csgold{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--gold)}
+.csstep{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11.5px;margin-bottom:5px}
+.csbait{color:var(--lime)}
+.csarrow{color:var(--dim)}
+.cstug{font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:-.05em;padding:1px 5px;border-radius:3px}
+.cstug.t1{color:var(--aqua);background:rgba(79,220,236,.14)}
+.cstug.t2{color:var(--gold);background:rgba(245,197,99,.16)}
+.cstug.t3{color:var(--coral);background:rgba(255,126,126,.16)}
+.cshook{font-size:10.5px;color:var(--mist)}
+.cshook.dh{color:var(--gold);background:rgba(245,197,99,.14);padding:1px 7px;border-radius:var(--pill)}
+.cssec{font-family:var(--mono);font-size:10px;color:var(--dim)}
+.csstep i{color:var(--dim);font-style:normal;margin:0 3px}
+.csfish{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid var(--edge-soft)}
+.csfchip{
+  display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 9px;border-radius:var(--pill);
+  background:rgba(46,74,125,.4);cursor:pointer;
+}
+.csfchip:hover{background:rgba(46,74,125,.7)}
+.csfchip i{font-family:var(--mono);font-size:9.5px;color:var(--dim);font-style:normal}
+.csicon{width:16px;height:16px;border-radius:3px}
+.nv-i.moon{color:var(--violet)}
 .missions{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:10px}
 .mschip{
   font-size:10.5px;padding:3px 9px;border-radius:var(--pill);white-space:nowrap;
@@ -1146,7 +1177,11 @@ const STR = {
     uses: '使い道', craftUse: '素材', gcUse: 'GC納品', collectUse: '収集品',
     lureAmb: 'アンビ', lureMod: 'モデスト', lureOnly: 'ルアー必須', lure: 'ルアー',
     condUnknown: 'データ不明', trigger: '幻海流トリガー', rareFish: '稀少魚',
-    missions: 'ミッション', shadow: '魚影', shadowSmall: '小', shadowNormal: '中', shadowLarge: '大', gigSpeed: '泳ぐ速さ',
+    missions: 'ミッション', cosmo: 'コスモ', cosmoMissions: 'コスモのミッション',
+    cosmoSearch: 'ミッション・場所・魚で絞り込む', noMatch: '該当なし',
+    csTarget: '狙う魚', csCandidates: '釣れる魚', gold: '金',
+    hookPrecision: 'プレシジョン', hookPowerful: 'ストロング', hookNormal: 'ノーマル', hookStellar: 'ステラー',
+    doubleHook: 'ダブル', tripleHook: 'トリプル', shadow: '魚影', shadowSmall: '小', shadowNormal: '中', shadowLarge: '大', gigSpeed: '泳ぐ速さ',
     highScore: '高得点', rankTip: '高得点の狙いやすさ（Sarimile Fon 氏の評価を参照）',
     sortBy: '並び替え', filter: '絞り込み', reset: 'すべて解除', status: '状態',
     expansion: '拡張', hookset: 'フッキング', band: '時間帯',
@@ -1210,7 +1245,11 @@ const STR = {
     uses: 'Used for', craftUse: 'Ingredient', gcUse: 'GC delivery', collectUse: 'Collectable',
     lureAmb: 'Amb', lureMod: 'Mod', lureOnly: 'Lure required', lure: 'Lure',
     condUnknown: 'Unknown', trigger: 'Spectral trigger', rareFish: 'Rare',
-    missions: 'Missions', shadow: 'Shadow', shadowSmall: 'S', shadowNormal: 'M', shadowLarge: 'L', gigSpeed: 'Speed',
+    missions: 'Missions', cosmo: 'Cosmic', cosmoMissions: 'Cosmic missions',
+    cosmoSearch: 'Filter by mission, place or fish', noMatch: 'No match',
+    csTarget: 'Target', csCandidates: 'Catchable', gold: 'Gold',
+    hookPrecision: 'Precision', hookPowerful: 'Powerful', hookNormal: 'Normal', hookStellar: 'Stellar',
+    doubleHook: 'Double', tripleHook: 'Triple', shadow: 'Shadow', shadowSmall: 'S', shadowNormal: 'M', shadowLarge: 'L', gigSpeed: 'Speed',
     highScore: 'high score', rankTip: 'How easy high scores are (community rating)',
     sortBy: 'Sort', filter: 'Filter', reset: 'Clear all', status: 'Status',
     expansion: 'Expansion', hookset: 'Hookset', band: 'Time of day',
@@ -1706,6 +1745,7 @@ const state = {
   nfOpen: false,
   oceanDest: 'all',
   oceanTargets: true,
+  cosmoQuery: '',
   guideOpen: false,
   oceanLegendOnly: false,
   openFish: null,         // 詳細を開いている魚（URLに載せて共有できるように）
@@ -1803,6 +1843,12 @@ function renderSide() {
       <span>${T('nushi')}</span>
       <span class="count">${DB.meta.nushiCount}</span>
     </button>
+    ${DB.cosmoMissions?.length ? `<button type="button" id="nav-cosmo" ${state.view === 'cosmo' ? 'aria-current="true"' : ''}>
+      <span class="nv-i moon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.5 14.6A8.6 8.6 0 1 1 9.4 3.5a6.8 6.8 0 0 0 11.1 11.1Z"/></svg></span>
+      <span>${T('cosmo')}</span>
+      <span class="count">${DB.cosmoMissions.length}</span>
+    </button>` : ''}
     <button type="button" id="nav-ocean" ${state.view === 'ocean' ? 'aria-current="true"' : ''}>
       <span class="nv-i sea"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4 17.5h16M3 14l1.6-4.4h14.8L21 14"/><path d="M12 9.6V4M8.5 4h7"/>
@@ -2300,7 +2346,8 @@ const store = {
  * 言語やお気に入りのような設定変更は積まずに書き換えるだけにする。
  */
 function syncHash(push = false) {
-  const base = state.view === 'nushi' ? 'nushi'
+  const base = state.view === 'cosmo' ? 'cosmo'
+    : state.view === 'nushi' ? 'nushi'
     : state.view === 'ocean' ? 'ocean'
     : state.spotId ? `spot/${state.spotId}` : '';
   const f = state.favs.size ? `|f=${[...state.favs].join('.')}` : '';
@@ -2897,6 +2944,64 @@ function bonusGuideHTML() {
   </details>`;
 }
 
+/**
+ * コスモエクスプローラーのミッション一覧。
+ * 釣り場から入るより「どのミッションをやるか」から入るほうが実際の流れに合う。
+ * 釣り方は ICE のプリセット（AutoHook 設定）から読み取ったもの。
+ */
+const HOOK_NAME = { Precision: 'プレシジョン', Powerful: 'ストロング', Normal: 'ノーマル', Stellar: 'ステラー' };
+function renderCosmo() {
+  const list = DB.cosmoMissions ?? [];
+  const q = state.cosmoQuery.trim().toLowerCase();
+  const rows = list.filter((m) => !q || nmAll(m.n).includes(q) || nmAll(m.place).includes(q) ||
+    m.fishes.some((id) => nmAll(DB.fish[id]?.n).includes(q)));
+
+  const step = (st) => {
+    const tugs = (st.tugs ?? []).map((t) => `<span class="cstug t${t.tug}">${'！'.repeat(t.tug)}</span>
+      <span class="cshook">${T('hook' + (t.hookset ?? 'Normal'))}</span>${
+      t.min ? `<span class="cssec">${t.min}${t.max ? `–${t.max}` : '~'}s</span>` : ''}`).join('<i>/</i>');
+    return `<div class="csstep">
+      ${baitIcon(st.bait)}<span class="csbait">${esc(baitName(st.bait))}</span>
+      <span class="csarrow">→</span>${tugs || `<span class="dim">—</span>`}
+      ${st.double ? `<span class="cshook dh">${T('doubleHook')}</span>` : ''}
+      ${st.triple ? `<span class="cshook dh">${T('tripleHook')}</span>` : ''}
+    </div>`;
+  };
+
+  $('#stage').innerHTML = `<div class="wrap">
+    <div class="spot-head"><h1>${T('cosmoMissions')}</h1>
+      <span class="meta">${rows.length} / ${list.length}</span></div>
+    <div class="eyebrow">COSMIC EXPLORATION</div>
+
+    <div class="ctlbar">
+      <input id="cosmoq" class="csq" type="search" placeholder="${T('cosmoSearch')}" value="${esc(state.cosmoQuery)}">
+    </div>
+
+    <div class="cslist">${rows.map((m) => `
+      <div class="csrow">
+        <div class="cshead">
+          <span class="csname">${esc(nm(m.n))}</span>
+          <span class="csplace" ${m.spotId ? `data-gospot="${m.spotId}"` : ''}>${esc(nm(m.place))}</span>
+          ${m.gold ? `<span class="csgold">${T('gold')} ${m.gold.toLocaleString()}</span>` : ''}
+        </div>
+        ${(m.steps ?? []).map(step).join('')}
+        <div class="csfish">
+          <span class="eyebrow">${m.targets?.length ? T('csTarget') : T('csCandidates')}</span>
+          ${(m.targets?.length ? m.targets : m.fishes).map((id) => {
+            const f = DB.fish[id];
+            if (!f) return '';
+            const b = f.ahBite ? `<i>${f.ahBite[0]}–${f.ahBite[1]}s</i>` : '';
+            return `<span class="csfchip" data-fish="${id}">${iconImg(f, 'csicon')}${esc(nm(f.n))}${
+              f.tugJa ? `<b class="cstug t${f.tugRank}">${f.tugJa}</b>` : ''}${b}</span>`;
+          }).join('')}
+        </div>
+      </div>`).join('') || `<p class="gempty">${T('noMatch')}</p>`}</div>
+
+    ${creditHTML()}
+  </div>`;
+  $('#stage').scrollTop = 0;
+}
+
 function renderOcean() {
   const now = Date.now();
   const cur = chunkOf(now);
@@ -3275,6 +3380,7 @@ function render() {
   if (state.query.trim()) { state.view = 'search'; return renderSearch(); }
   if (state.view === 'nushi') return renderNushi();
   if (state.view === 'ocean') return renderOcean();
+  if (state.view === 'cosmo') return renderCosmo();
   return renderSpot();
 }
 function selectSpot(id) {
@@ -3321,6 +3427,12 @@ document.addEventListener('click', (e) => {
   }
   if (e.target.closest('#dash-more')) {
     state.view = 'nushi'; syncHash(true); renderSide(); render(); return;
+  }
+  if (e.target.closest('#nav-cosmo')) {
+    state.view = 'cosmo'; state.query = ''; $('#q').value = '';
+    syncHash(true); renderSide(); render(); closeDrawer();
+    $('#side').classList.remove('open'); $('#scrim').classList.remove('side');
+    return;
   }
   if (e.target.closest('#nav-ocean')) {
     state.view = 'ocean'; state.query = ''; $('#q').value = '';
@@ -3480,6 +3592,13 @@ $('#t-cond').addEventListener('click', (e) => {
   e.currentTarget.setAttribute('aria-pressed', state.condOnly);
   render();
 });
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'cosmoq') {
+    state.cosmoQuery = e.target.value;
+    clearTimeout(window.__cq);
+    window.__cq = setTimeout(() => { renderCosmo(); $('#cosmoq')?.focus(); }, 150);
+  }
+});
 document.addEventListener('change', (e) => {
   if (e.target.id === 'nsort') { state.nushiSort = e.target.value; renderNushi(true); }
 });
@@ -3516,6 +3635,7 @@ function applyRoute() {
   const h = location.hash;
   const m = h.match(/^#spot\/(\d+)/);
   if (h.startsWith('#nushi')) { state.view = 'nushi'; state.spotId = null; }
+  else if (h.startsWith('#cosmo')) { state.view = 'cosmo'; state.spotId = null; }
   else if (h.startsWith('#ocean')) { state.view = 'ocean'; state.spotId = null; }
   else if (m && spotById.has(Number(m[1]))) {
     state.view = 'spot';
@@ -3549,6 +3669,7 @@ window.addEventListener('popstate', applyRoute);
   readHash();
   if (location.hash.startsWith('#nushi')) state.view = 'nushi';
   if (location.hash.startsWith('#ocean')) state.view = 'ocean';
+  if (location.hash.startsWith('#cosmo')) state.view = 'cosmo';
   const m = location.hash.match(/spot\/(\d+)/);
   if (m && spotById.has(Number(m[1]))) {
     state.view = 'spot';
@@ -3582,6 +3703,7 @@ window.addEventListener('popstate', applyRoute);
     if (state.query.trim()) return;
     if (state.view === 'nushi') renderNushi(true);
     else if (state.view === 'ocean') renderOcean();
+    else if (state.view === 'cosmo') renderCosmo();
     else if (state.spotId) renderSpot(true);
   }, 60 * 1000);
 })();
