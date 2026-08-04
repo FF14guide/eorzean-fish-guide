@@ -445,12 +445,23 @@ async function main() {
   for (const [id, c] of Object.entries(manualCond.fish ?? {})) {
     const f = fish[id];
     if (!f) { log(`cond   ID ${id} (${c.name ?? ''}) は魚に見つからず`); continue; }
-    if (f.hasConditions && !f.unknownTime && !f.unknownWeather) continue;   // 上流が持っているなら触らない
+    // 上流が条件を持っているなら触らない。ただしエサや直感だけの補完は通す。
+    const upstreamHasCond = f.hasConditions && !f.unknownTime && !f.unknownWeather;
+    if (upstreamHasCond && c.start == null && !c.weather) {
+      if (c.bait && !f.baitPath.length) f.baitPath = c.bait;
+      if (c.predators && !f.predators.length) f.predators = c.predators;
+      if (c.intuition != null) f.intuition = c.intuition;
+      if (c.note) { f.condNote = c.note; f.condManual = true; f.condVerified = c.verified !== false; }
+      manualApplied++;
+      continue;
+    }
+    if (upstreamHasCond) continue;
     if (c.start != null) { f.startHour = c.start; f.endHour = c.end ?? 24; }
     if (c.weather) f.weather = c.weather;
     if (c.prevWeather) f.prevWeather = c.prevWeather;
     if (c.bait) f.baitPath = c.bait;
     if (c.predators) f.predators = c.predators;
+    if (c.intuition != null) f.intuition = c.intuition;
     if (c.lure) f.lure = LURE[c.lure] ?? null;
     f.hasConditions = true;
     f.unknownTime = false;
@@ -605,6 +616,19 @@ async function main() {
     }
   }
   if (unmatched.length) log(`ocean  名前が照合できなかった魚: ${unmatched.join(', ')}`);
+
+  // 通常海域の稀少魚。ゲームデータでは伝説魚以外と区別が付かない（どちらも OceanStars 4/5・IsHidden）ので、
+  // 「通常海域にいて漁師の直感が要る魚」で判定する。条件は data/fish-conditions.json 由来。
+  let rares = 0;
+  for (const sp of usableSpots) {
+    if (!sp.ocean || sp.spectral) continue;
+    for (const id of sp.fishes) {
+      const f = fish[id];
+      if (!f || f.oceanLegend || !f.predators?.length) continue;
+      if (!f.oceanRare) { f.oceanRare = true; rares++; }
+    }
+  }
+  log(`ocean  稀少魚 ${rares} 種`);
 
   // 幻海流のトリガーになる魚は、名前に「スペクトラル」「幻海」または Spectral が入る
   let triggers = 0;

@@ -342,7 +342,6 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .glink small{font-size:9.5px;color:var(--dim)}
 .bt-general{margin-top:14px;display:flex;flex-direction:column;gap:3px}
 .bt-general .eyebrow{margin-bottom:3px}
-.obchip.near{background:transparent;color:var(--dim);border-color:var(--edge-soft);font-weight:400}
 .obchip i{font-style:normal;font-family:var(--mono);font-size:9px;opacity:.75}
 .nrow.rare{background:linear-gradient(90deg,rgba(255,159,208,.10),transparent 55%)}
 .nrow.rare.open{background:linear-gradient(90deg,rgba(255,159,208,.14),rgba(143,232,112,.07) 55%)}
@@ -432,6 +431,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .tag.otime{color:var(--aqua);background:rgba(79,220,236,.12)}
 .tag.bonus{color:var(--lime);background:rgba(143,232,112,.12)}
 .tag.trigger{color:var(--violet);background:rgba(187,147,245,.14)}
+.tag.rarefish{color:var(--rose);background:rgba(255,159,208,.14)}
 .rank{
   font-family:var(--mono);font-size:10px;font-weight:800;padding:2px 7px;border-radius:var(--pill);
   margin-left:6px;background:rgba(46,74,125,.5);color:var(--mist);
@@ -1122,7 +1122,7 @@ const STR = {
     caughtAll: '表示中を釣獲済みに', caughtClear: '釣獲記録を消す',
     uses: '使い道', craftUse: '素材', gcUse: 'GC納品', collectUse: '収集品',
     lureAmb: 'アンビ', lureMod: 'モデスト', lureOnly: 'ルアー必須', lure: 'ルアー',
-    condUnknown: 'データ不明', trigger: '幻海流トリガー',
+    condUnknown: 'データ不明', trigger: '幻海流トリガー', rareFish: '稀少魚',
     shadow: '魚影', shadowSmall: '小', shadowNormal: '中', shadowLarge: '大',
     highScore: '高得点', rankTip: '高得点の狙いやすさ（Sarimile Fon 氏の評価を参照）',
     sortBy: '並び替え', filter: '絞り込み', reset: 'すべて解除', status: '状態',
@@ -1141,7 +1141,7 @@ const STR = {
     estimated: '推定', fromPredator: ' の条件から推定',
     byRate: '実測でいちばん釣りやすいエサ（信頼度で補正）', swimOnly: '泳がせ専用',
     rivals: 'このエサに反応する魚', confidence: '信頼下限', spectral: '幻海流', normal: '通常',
-    targets: '狙える魚', legendOnly: '伝説魚が狙える便', bonusAim: '狙える称号', bonusNear: '惜しい',
+    targets: '狙える魚', legendOnly: '伝説魚が狙える便', bonusAim: '狙える称号',
     titles: '称号と釣り方', generalGuides: '全般',
     guideNote: '達成条件と得点倍率はゲームデータより。具体的な釣り方（秒数の見極め、多重フッキングの判断、マクロ）は、まとめてくださっている方の記事へのリンクを置いています。数値の転記はしていないので、詳しくはリンク先をご覧ください。',
     legendFish: '伝説魚', onlySuffix: '限定',
@@ -1186,7 +1186,7 @@ const STR = {
     caughtAll: 'Mark shown as caught', caughtClear: 'Clear caught',
     uses: 'Used for', craftUse: 'Ingredient', gcUse: 'GC delivery', collectUse: 'Collectable',
     lureAmb: 'Amb', lureMod: 'Mod', lureOnly: 'Lure required', lure: 'Lure',
-    condUnknown: 'Unknown', trigger: 'Spectral trigger',
+    condUnknown: 'Unknown', trigger: 'Spectral trigger', rareFish: 'Rare',
     shadow: 'Shadow', shadowSmall: 'S', shadowNormal: 'M', shadowLarge: 'L',
     highScore: 'high score', rankTip: 'How easy high scores are (community rating)',
     sortBy: 'Sort', filter: 'Filter', reset: 'Clear all', status: 'Status',
@@ -1205,7 +1205,7 @@ const STR = {
     estimated: 'Estimated', fromPredator: ' \u2014 derived from this predator',
     byRate: 'easiest bait by measured rate (confidence adjusted)', swimOnly: 'only via swimming bait',
     rivals: 'species biting this bait', confidence: 'lower bound', spectral: 'Spectral', normal: 'Normal',
-    targets: 'Targets', legendOnly: 'Legendary only', bonusAim: 'Bonuses', bonusNear: 'Close',
+    targets: 'Targets', legendOnly: 'Legendary only', bonusAim: 'Bonuses',
     titles: 'Achievements & guides', generalGuides: 'General',
     guideNote: 'Requirements and score multipliers come from game data. For the fine details (bite-time reads, when to multi-hook, macros) we link to community guides rather than copying their numbers.',
     legendFish: 'Legendary', onlySuffix: ' only',
@@ -1915,6 +1915,7 @@ function fishRow(f, spot) {
       SHADOW_MARK[f.gig] ?? ''}${T('shadow' + f.gig)}</span>` : '',
     lureTag(f),
     f.oceanLegend ? `<span class="tag legend">${T('legendFish')}</span>` : '',
+    f.oceanRare ? `<span class="tag rarefish">${T('rareFish')}</span>` : '',
     f.spectralTrigger ? `<span class="tag trigger">${T('trigger')}</span>` : '',
     f.oceanTimes ? `<span class="tag otime">${f.oceanTimes.map(timeLabel).join('/')}${T('onlySuffix')}</span>` : '',
     f.oceanPoints != null ? `<span class="tag pts">${f.oceanPoints}${T('ptsUnit')}</span>` : '',
@@ -2774,17 +2775,13 @@ function rankTag(route) {
 
 function bonusChips(route) {
   const best = bonusBestCounts();
-  const all = voyageBonuses(route);
-  const hit = all.filter((g) => g.fish.length === best.get(g.key));
-  // 最良の便でないときは、いちばん近い候補を「最良は◯匹」付きで控えめに出す
-  const near = hit.length ? [] : all.slice(0, 2);
-  if (!hit.length && !near.length) return '';
-  const chip = (g, dim) => `<span class="obchip${g.party ? ' party' : ''}${dim ? ' near' : ''}"
-    title="${esc(g.fish.map((f) => nm(f.n)).join('、'))}">${esc(nm(g.n))}<i>${g.fish.length}${
-    dim ? `/${best.get(g.key)}` : ''}</i></span>`;
+  // その称号にとって対象魚がいちばん多い航路だけを「狙える」として出す
+  const hit = voyageBonuses(route).filter((g) => g.fish.length === best.get(g.key));
+  if (!hit.length) return '';
   return `<div class="obonus">
-    <span class="oblabel">${hit.length ? T('bonusAim') : T('bonusNear')}</span>
-    ${hit.map((g) => chip(g, false)).join('')}${near.map((g) => chip(g, true)).join('')}
+    <span class="oblabel">${T('bonusAim')}</span>
+    ${hit.map((g) => `<span class="obchip${g.party ? ' party' : ''}"
+      title="${esc(g.fish.map((f) => nm(f.n)).join('、'))}">${esc(nm(g.n))}<i>${g.fish.length}</i></span>`).join('')}
   </div>`;
 }
 
