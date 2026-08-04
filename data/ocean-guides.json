@@ -8,35 +8,170 @@
   ],
   "guides": {
     "バルーンキャッチャー": [
-      { "title": "『バルーンキャッチャー』", "author": "Uzel Qestir", "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4842177/" },
-      { "title": "称号用フッキングマクロまとめ", "author": "まろのメモ", "url": "https://blog.maroro.net/2023/10/15/%E3%80%90ff14%E3%80%91%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B0-%E7%A7%B0%E5%8F%B7%E7%94%A8%E3%83%9E%E3%82%AF%E3%83%AD%E3%81%BE%E3%81%A8/" }
+      {
+        "title": "『バルーンキャッチャー』",
+        "author": "Uzel Qestir",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4842177/"
+      },
+      {
+        "title": "称号用フッキングマクロまとめ",
+        "author": "まろのメモ",
+        "url": "https://blog.maroro.net/2023/10/15/%E3%80%90ff14%E3%80%91%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B0-%E7%A7%B0%E5%8F%B7%E7%94%A8%E3%83%9E%E3%82%AF%E3%83%AD%E3%81%BE%E3%81%A8/"
+      },
+      {
+        "title": "バルーンキャッチャー [マクロ]",
+        "author": "Nanai Zitter",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/17034275/blog/5236675/"
+      }
     ],
     "蟹工船": [
-      { "title": "『蟹工船』", "author": "Uzel Qestir", "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4842262/" },
-      { "title": "称号用フッキングマクロまとめ", "author": "まろのメモ", "url": "https://blog.maroro.net/2023/10/15/%E3%80%90ff14%E3%80%91%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B0-%E7%A7%B0%E5%8F%B7%E7%94%A8%E3%83%9E%E3%82%AF%E3%83%AD%E3%81%BE%E3%81%A8/" }
+      {
+        "title": "『蟹工船』",
+        "author": "Uzel Qestir",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4842262/"
+      },
+      {
+        "title": "称号用フッキングマクロまとめ",
+        "author": "まろのメモ",
+        "url": "https://blog.maroro.net/2023/10/15/%E3%80%90ff14%E3%80%91%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B0-%E7%A7%B0%E5%8F%B7%E7%94%A8%E3%83%9E%E3%82%AF%E3%83%AD%E3%81%BE%E3%81%A8/"
+      },
+      {
+        "title": "【オーシャンフィッシング】蟹工船狙い",
+        "author": "Cota S'",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/26659608/event/52241/"
+      }
     ],
     "シャークハンター": [
-      { "title": "『シャークハンター』", "author": "Uzel Qestir", "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4840582/" }
+      {
+        "title": "『シャークハンター』",
+        "author": "Uzel Qestir",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4840582/"
+      },
+      {
+        "title": "シャークハンター [マクロ]",
+        "author": "Nanai Zitter",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/17034275/blog/5239866/"
+      }
     ],
     "オクトパストラベラー": [
-      { "title": "『オクトパストラベラー』", "author": "Uzel Qestir", "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4842314/" },
-      { "title": "簡単になった!? オーシャンフィッシングアチーブ", "author": "FF14でアチーブメントをあつめよう", "url": "https://asagi-w02.com/ff14octpustraveler/" }
+      {
+        "title": "『オクトパストラベラー』",
+        "author": "Uzel Qestir",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4842314/"
+      },
+      {
+        "title": "簡単になった!? オーシャンフィッシングアチーブ",
+        "author": "FF14でアチーブメントをあつめよう",
+        "url": "https://asagi-w02.com/ff14octpustraveler/"
+      },
+      {
+        "title": "オクトパストラベラーの攻略方法",
+        "author": "Ito Tama",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/2323882/blog/4395254/"
+      }
     ],
     "海老散らない": [
-      { "title": "『海老散らない』", "author": "Uzel Qestir", "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/5279579" },
-      { "title": "アチブ「海老散らない」の獲得方法", "author": "Randy Regnitz", "url": "https://jp.finalfantasyxiv.com/lodestone/character/16721208/blog/5270801/" }
+      {
+        "title": "『海老散らない』",
+        "author": "Uzel Qestir",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/5279579"
+      },
+      {
+        "title": "アチブ「海老散らない」の獲得方法",
+        "author": "Randy Regnitz",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/16721208/blog/5270801/"
+      },
+      {
+        "title": "遠洋航路自分用まとめ",
+        "author": "Alcyone Plumage",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/2311166/blog/5233279/"
+      }
     ],
     "クラゲマニア": [
-      { "title": "称号用フッキングマクロまとめ", "author": "まろのメモ", "url": "https://blog.maroro.net/2023/10/15/%E3%80%90ff14%E3%80%91%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B0-%E7%A7%B0%E5%8F%B7%E7%94%A8%E3%83%9E%E3%82%AF%E3%83%AD%E3%81%BE%E3%81%A8/" }
+      {
+        "title": "称号用フッキングマクロまとめ",
+        "author": "まろのメモ",
+        "url": "https://blog.maroro.net/2023/10/15/%E3%80%90ff14%E3%80%91%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B0-%E7%A7%B0%E5%8F%B7%E7%94%A8%E3%83%9E%E3%82%AF%E3%83%AD%E3%81%BE%E3%81%A8/"
+      },
+      {
+        "title": "『クラゲマニア』",
+        "author": "Uzel Qestir",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4842043/"
+      }
     ],
     "シードラゴンキラー": [
-      { "title": "称号用フッキングマクロまとめ", "author": "まろのメモ", "url": "https://blog.maroro.net/2023/10/15/%E3%80%90ff14%E3%80%91%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B0-%E7%A7%B0%E5%8F%B7%E7%94%A8%E3%83%9E%E3%82%AF%E3%83%AD%E3%81%BE%E3%81%A8/" }
+      {
+        "title": "称号用フッキングマクロまとめ",
+        "author": "まろのメモ",
+        "url": "https://blog.maroro.net/2023/10/15/%E3%80%90ff14%E3%80%91%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B0-%E7%A7%B0%E5%8F%B7%E7%94%A8%E3%83%9E%E3%82%AF%E3%83%AD%E3%81%BE%E3%81%A8/"
+      },
+      {
+        "title": "オーシャンフィッシングの指南色々〜特殊アチーブメント編〜",
+        "author": "Gatty Guy",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/2177500/blog/4430538/"
+      }
+    ],
+    "エイエイオー": [
+      {
+        "title": "【ソロで輝く】エイリアン攻略",
+        "author": "あひる",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/2465599/blog/4634845/"
+      }
+    ],
+    "貝殻収集家": [
+      {
+        "title": "【確定】6.4 遠洋航路アチーブメント取得条件纏め",
+        "author": "Windows Vista",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/8283/blog/5228800"
+      }
+    ],
+    "スルメドラグーン": [
+      {
+        "title": "【オーシャンフィッシング】イカ・アチーブメント用メモ",
+        "author": "Rewachi Ultra",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/39846081/blog/4944046"
+      }
+    ],
+    "古生物学者": [
+      {
+        "title": "『古生物学者』",
+        "author": "Uzel Qestir",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/5680815/"
+      }
+    ],
+    "シャコパンチャー": [
+      {
+        "title": "『シャコパンチャー』",
+        "author": "Uzel Qestir",
+        "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/5680813/"
+      }
     ]
   },
   "general": [
-    { "title": "オーシャンフィッシングアチーブメント情報まとめ", "author": "Uzel Qestir", "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4842340/" },
-    { "title": "2万点への基本戦略", "author": "ガッツの夜明け", "url": "https://gutsdawn.com/ff14%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B02%E4%B8%87%E7%82%B9/" },
-    { "title": "航路ごとの釣り方・餌", "author": "パママ (mtgames)", "url": "https://www.mtgames.jp/ff14/ocean_fishing/" },
-    { "title": "オーシャンフィッシング攻略", "author": "ゲームエイト", "url": "https://game8.jp/ff14/316052" }
+    {
+      "title": "（7.x対応）オーシャンフィッシング 真・楽して2万点講座",
+      "author": "Sarimile Fon",
+      "url": "https://jp.finalfantasyxiv.com/lodestone/character/19859416/blog/4842561"
+    },
+    {
+      "title": "オーシャンフィッシングアチーブメント情報まとめ",
+      "author": "Uzel Qestir",
+      "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4842340/"
+    },
+    {
+      "title": "2万点への基本戦略",
+      "author": "ガッツの夜明け",
+      "url": "https://gutsdawn.com/ff14%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B02%E4%B8%87%E7%82%B9/"
+    },
+    {
+      "title": "航路ごとの釣り方・餌",
+      "author": "パママ (mtgames)",
+      "url": "https://www.mtgames.jp/ff14/ocean_fishing/"
+    },
+    {
+      "title": "オーシャンフィッシング攻略",
+      "author": "ゲームエイト",
+      "url": "https://game8.jp/ff14/316052"
+    }
   ]
 }

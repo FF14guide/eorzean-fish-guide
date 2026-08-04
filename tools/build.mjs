@@ -215,7 +215,7 @@ async function main() {
     for (const r of groupCfg.rules ?? []) {
       const hit = r.zone != null ? z === r.zone : z >= r.from && z <= r.to;
       if (!hit) continue;
-      if (r.expansion != null) return { ex: r.expansion };
+      if (r.expansion != null) return { ex: r.expansion, area: r.area ?? null };
       return { ex: groupIds[r.group], area: r.area ?? null };
     }
     return null;
@@ -304,6 +304,8 @@ async function main() {
       area: (() => {
         const sp = s.id >= 10000 ? specialOf(s.zoneId) : null;
         if (sp?.area) return fill(sp.area);
+        // Teamcraft が親をディアデムにしてしまう合成釣り場は、自分の地名を親にも使う
+        if (s.id >= 10000) return placeN(s.zoneId) ?? fill({ en: 'Unknown', ja: '不明' });
         return placeN(s.placeId) ?? fill({ en: 'Unknown', ja: '不明' });
       })(),
       region: reg ? fill({ ja: reg.name_ja, en: reg.name_en, de: reg.name_de, fr: reg.name_fr }) : null,
@@ -355,8 +357,10 @@ async function main() {
     known.add(baseId);
   }
 
-  // 魚が1匹も紐づかない釣り場は落とす
-  const usableSpots = spots.filter((s) => s.fishes.length > 0);
+  // 魚が1匹も紐づかない釣り場は落とす。
+  // あわせて、上流に釣りデータがまったく無いグループ（コスモ・ディアデム）も外す。
+  const dropGroups = new Set((groupCfg.drop ?? []).map((k) => groupIds[k]));
+  const usableSpots = spots.filter((s) => s.fishes.length > 0 && !dropGroups.has(s.ex));
 
   // ─── 魚 ──────────────────────────────────────────────────────
   const spearFishIds = new Set(spearItems.map((r) => Number(r.Item)).filter(Boolean));
@@ -404,7 +408,7 @@ async function main() {
           })
         : null,
       collectable: !!c?.collectable,
-      gig: c?.gig ?? null,
+      gig: c?.gig && c.gig !== 'UNKNOWN' ? c.gig : null,
       patch: c?.patch ?? null,
       desc: fishDesc.get(id) ?? null,
       spear: !!spearFishIds.has(id),
@@ -502,6 +506,7 @@ async function main() {
     },
   };
   for (const [k, g] of Object.entries(groupCfg.groups ?? {})) {
+    if (!usableSpots.some((s) => s.ex === groupIds[k])) continue;   // 空の見出しは出さない
     expansions[groupIds[k]] = { id: groupIds[k], n: fill(g.n), order: g.order };
   }
   for (const r of exRows.en) {
@@ -573,6 +578,20 @@ async function main() {
   }
   if (unmatched.length) log(`ocean  名前が照合できなかった魚: ${unmatched.join(', ')}`);
 
+  // 幻海流のトリガーになる魚は、名前に「スペクトラル」「幻海」または Spectral が入る
+  let triggers = 0;
+  for (const sp of usableSpots) {
+    if (!sp.ocean || sp.spectral) continue;      // 通常海域にいるものだけ
+    for (const id of sp.fishes) {
+      const f = fish[id];
+      if (!f) continue;
+      if (/スペクトラル|幻海/.test(f.n.ja) || /^Spectral /i.test(f.n.en)) {
+        if (!f.spectralTrigger) { f.spectralTrigger = true; triggers++; }
+      }
+    }
+  }
+  log(`ocean  幻海流トリガー ${triggers} 種`);
+
   // ─── オーシャンのボーナス条件 ────────────────────────────
   // どの魚がどのミッション（サメ／タコ／クラゲ…）に数えられるかはゲームデータにある
   const bonusRows = { ja: parseCsv(raw['IKDContentBonus_ja.csv']), en: parseCsv(raw['IKDContentBonus_en.csv']) };
@@ -628,12 +647,21 @@ async function main() {
     if (n) log(`ocean  釣果点・匹数の手書きデータ ${n} 件`);
   } catch { /* 無くてよい */ }
 
+  // 航路の高得点しやすさ（外部評価）
+  let routeRanks = { ranks: {}, source: null };
+  try { routeRanks = JSON.parse(await readFile(path.join(ROOT, 'data', 'ocean-routes.json'), 'utf8')); }
+  catch { /* 無くてよい */ }
+  for (const [id, rank] of Object.entries(routeRanks.ranks ?? {})) {
+    if (oceanRoutes[id]) oceanRoutes[id].rank = rank;
+  }
+
   const ocean = {
     phase: OCEAN_PHASE,
     table: ikdTable.map((r) => [Number(r.IndigoRoute), Number(r.RubyRoute)]),
     routes: oceanRoutes,
     bonuses: bonusInfo,
     guides: bonusGuides.general ?? [],
+    rankSource: routeRanks.source ?? null,
   };
 
   // ─── 地図 ────────────────────────────────────────────────

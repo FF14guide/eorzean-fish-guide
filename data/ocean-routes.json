@@ -1,0 +1,27 @@
+{
+  "$comment": [
+    "航路ごとの高得点の狙いやすさ。ゲームデータには無い評価なので、",
+    "Sarimile Fon 氏の『真・楽して2万点講座』の評価を参照している（転記ではなく参照）。",
+    "key は IKDRoute の行番号。rank は S+ / S / A+ / A / B / C / D。"
+  ],
+  "source": {
+    "title": "（7.x対応）オーシャンフィッシング 真・楽して2万点講座",
+    "author": "Sarimile Fon",
+    "url": "https://jp.finalfantasyxiv.com/lodestone/character/19859416/blog/4842561"
+  },
+  "ranks": {
+    "1": "B",
+    "2": "A",
+    "3": "C",
+    "4": "D",
+    "5": "S",
+    "6": "S",
+    "7": "C",
+    "8": "A",
+    "9": "S+",
+    "10": "B",
+    "11": "A+",
+    "12": "S+",
+    "21": "S"
+  }
+}
