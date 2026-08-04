@@ -45,6 +45,12 @@ const AH = 'https://raw.githubusercontent.com/PunishXIV/AutoHook/main/AutoHook/D
 // そこにエサと対象魚が入っているので、コスモ唯一のデータ源として使う。
 const ICE = 'https://raw.githubusercontent.com/LeontopodiumNivale14/Ices-Cosmic-Exploration/Main-Branch'
   + '/ICE/Utilities/GatheringHelper';
+// GatherBuddy（Apache-2.0）は全パッチぶんの魚の定義をソースに直接書いている。
+// エサ・引き・フッキング・直感・銛の情報がまとまっているので、穴埋めに使う。
+const GB = 'https://raw.githubusercontent.com/Ottermandias/GatherBuddy/main/GatherBuddy.GameData/Data/Fish';
+// Distant Seas（AGPL-3.0）は Fisherman's Horizon の攻略シートを JSON 化している。
+// 釣果点と多重フッキングの匹数は、ここにしか無い。
+const DS = 'https://raw.githubusercontent.com/NotNite/DistantSeas/main/Data';
 
 const SOURCES = {
   'fishing-spots.json': `${TC}/fishing-spots.json`,
@@ -77,6 +83,43 @@ const SOURCES = {
   'IKDFishParam.csv': `${DM}/en/IKDFishParam.csv`,
   'autohook-fish.json': `${AH}/fish_list.json`,
   'autohook-sources.json': `${AH}/fishing-sources.json`,
+  'gb-2.0.cs': `${GB}/Data2.0.cs`,
+  'gb-2.1.cs': `${GB}/Data2.1.cs`,
+  'gb-2.2.cs': `${GB}/Data2.2.cs`,
+  'gb-2.3.cs': `${GB}/Data2.3.cs`,
+  'gb-2.4.cs': `${GB}/Data2.4.cs`,
+  'gb-2.5.cs': `${GB}/Data2.5.cs`,
+  'gb-3.0.cs': `${GB}/Data3.0.cs`,
+  'gb-3.1.cs': `${GB}/Data3.1.cs`,
+  'gb-3.3.cs': `${GB}/Data3.3.cs`,
+  'gb-3.4.cs': `${GB}/Data3.4.cs`,
+  'gb-3.5.cs': `${GB}/Data3.5.cs`,
+  'gb-4.0.cs': `${GB}/Data4.0.cs`,
+  'gb-4.1.cs': `${GB}/Data4.1.cs`,
+  'gb-4.2.cs': `${GB}/Data4.2.cs`,
+  'gb-4.3.cs': `${GB}/Data4.3.cs`,
+  'gb-4.4.cs': `${GB}/Data4.4.cs`,
+  'gb-4.5.cs': `${GB}/Data4.5.cs`,
+  'gb-5.0.cs': `${GB}/Data5.0.cs`,
+  'gb-5.1.cs': `${GB}/Data5.1.cs`,
+  'gb-5.2.cs': `${GB}/Data5.2.cs`,
+  'gb-5.3.cs': `${GB}/Data5.3.cs`,
+  'gb-5.4.cs': `${GB}/Data5.4.cs`,
+  'gb-5.5.cs': `${GB}/Data5.5.cs`,
+  'gb-6.0.cs': `${GB}/Data6.0.cs`,
+  'gb-6.1.cs': `${GB}/Data6.1.cs`,
+  'gb-6.2.cs': `${GB}/Data6.2.cs`,
+  'gb-6.3.cs': `${GB}/Data6.3.cs`,
+  'gb-6.4.cs': `${GB}/Data6.4.cs`,
+  'gb-6.5.cs': `${GB}/Data6.5.cs`,
+  'gb-7.0.cs': `${GB}/Data7.0.cs`,
+  'gb-7.1.cs': `${GB}/Data7.1.cs`,
+  'gb-7.2.cs': `${GB}/Data7.2.cs`,
+  'gb-7.3.cs': `${GB}/Data7.3.cs`,
+  'gb-7.4.cs': `${GB}/Data7.4.cs`,
+  'gb-7.5.cs': `${GB}/Data7.5.cs`,
+  'ds-indigo.json': `${DS}/indigo.json`,
+  'ds-ruby.json': `${DS}/ruby.json`,
   'ice-sinus.cs': `${ICE}/Fishing_Sinus.cs`,
   'ice-phaenna.cs': `${ICE}/Fishing_Phaenna.cs`,
   'ice-oizys.cs': `${ICE}/Fishing_Oizys.cs`,
@@ -666,6 +709,94 @@ async function main() {
   }
   if (iceBait) log(`ice    エサ ${iceBait} 種を補完`);
 
+  // ─── Distant Seas（オーシャンフィッシングの詳細）──────────
+  // 釣果点、ダブル／トリプルフッキングの匹数、幻海流トリガー、直感。
+  {
+    const span = (o) => {
+      if (!o?.Start) return null;
+      return o.End && o.End !== o.Start ? [o.Start, o.End] : [o.Start];
+    };
+    let dsPoints = 0, dsHook = 0;
+    for (const key of ['ds-indigo.json', 'ds-ruby.json']) {
+      if (!raw[key]) continue;
+      for (const loc of JSON.parse(raw[key])) {
+        for (const r of loc.Fish ?? []) {
+          const f = fish[r.ItemId];
+          if (!f) continue;
+          if (r.AveragePoints) { f.oceanPoints = r.AveragePoints; dsPoints++; }
+          const d = span(r.DoubleHook), t = span(r.TripleHook);
+          if (d || t) {
+            f.oceanHook = { double: d, triple: t };
+            dsHook++;
+          }
+          if (r.Stars) f.oceanStars = r.Stars;
+          if (r.CanCauseSpectral) f.spectralTrigger = true;
+          if (r.Hookset && !f.hookset) {
+            f.hookset = HOOKSET[r.Hookset === 'Precision' ? 'Precision' : 'Powerful'];
+          }
+        }
+      }
+    }
+    if (dsPoints) log(`ds     釣果点 ${dsPoints} / 多重フッキング ${dsHook} 種を取得`);
+  }
+
+  // ─── GatherBuddy の魚定義 ────────────────────────────────
+  // ソースに `data.Apply(ID).Bait(data, …).Bite(data, HookSet.X, BiteType.Y)` の形で
+  // 全パッチぶん書かれている。上流に無い魚の穴を埋めるのに使う。
+  {
+    const GB_HOOK = { Precise: 'Precision', Powerful: 'Powerful', Stellar: 'Powerful' };
+    const GB_BITE = { Weak: 1, Strong: 2, Legendary: 3 };
+    let gbBait = 0, gbBite = 0, gbPred = 0, gbSnag = 0;
+    const src = Object.entries(raw)
+      .filter(([k]) => k.startsWith('gb-'))
+      .map(([, v]) => v).join('\n');
+    for (const chunk of src.split('data.Apply').slice(1)) {
+      const id = Number(chunk.slice(chunk.indexOf('(') + 1, chunk.indexOf(',')));
+      const f = fish[id];
+      if (!f) continue;
+
+      // エサ。複数書かれていれば泳がせの道筋になる
+      const bait = chunk.match(/\.Bait\s*\(data,\s*([\d,\s]+)\)/);
+      if (bait && !f.baitPath.length) {
+        const ids = bait[1].split(',').map((x) => Number(x.trim())).filter(Boolean);
+        if (ids.length) { f.baitPath = ids; gbBait++; }
+      }
+      // 引きとフッキング
+      const bite = chunk.match(/\.Bite\s*\(data,\s*HookSet\.(\w+),\s*BiteType\.(\w+)/);
+      if (bite && !f.tugRank) {
+        const rank = GB_BITE[bite[2]];
+        if (rank) {
+          f.tugRank = rank;
+          f.tug = ['', 'light', 'medium', 'heavy'][rank];
+          f.tugJa = '！'.repeat(rank);
+          f.hookset = HOOKSET[GB_HOOK[bite[1]] ?? 'Powerful'] ?? f.hookset;
+          f.tugFromStats = true;
+          gbBite++;
+        }
+      }
+      // 漁師の直感
+      // .Predators (data, 直感の秒数, (魚ID, 匹数), …)
+      const pred = chunk.match(/\.Predators\s*\(data,\s*(\d+)\s*,([^;]*?)\)\s*(?:\.|;)/s);
+      if (pred) {
+        const pairs = [...pred[2].matchAll(/\((\d+),\s*(\d+)\)/g)].map((m) => [Number(m[1]), Number(m[2])]);
+        if (pairs.length && !f.predators.length) { f.predators = pairs; gbPred++; }
+        if (!f.intuition) f.intuition = Number(pred[1]) || null;
+      }
+      // .Mooch (data, エサ, 魚…) は泳がせの道筋
+      const mooch = chunk.match(/\.Mooch\s*\(data,\s*([\d,\s]+)\)/);
+      if (mooch && !f.baitPath.length) {
+        const ids = mooch[1].split(',').map((x) => Number(x.trim())).filter(Boolean);
+        if (ids.length > 1) { f.baitPath = ids; gbBait++; }
+      }
+      if (/\.Snag\s*\(data,\s*Snagging\.(Required|Always)/.test(chunk) && !f.snagging) {
+        f.snagging = true; gbSnag++;
+      }
+    }
+    if (gbBait || gbBite) {
+      log(`gb     エサ ${gbBait} / 引き ${gbBite} / 直感 ${gbPred} / スナッグ ${gbSnag} 種を補完`);
+    }
+  }
+
   // ─── AutoHook の実測（エサ・引き・フッキング・ヒットタイム）────
   // Lodinn が扱っていない釣り場（ディアデムなど）の穴を埋める。
   // 既に値があるものは触らない。
@@ -1153,6 +1284,8 @@ async function main() {
         'momokotomoko / StreamDeck Ocean Fishing — 伝説魚と時間限定魚',
         'PunishXIV / AutoHook (BSD 3-Clause) — 銛の魚影、エサ、ヒットタイム',
         "Ice's Cosmic Exploration (GPL-3.0) — コスモエクスプローラーの釣り方",
+        'Ottermandias / GatherBuddy (Apache-2.0) — 魚のエサ・引き・直感',
+        "NotNite / Distant Seas (AGPL-3.0) と Fisherman's Horizon — オーシャンの釣果点と多重フッキング",
       ],
     },
     areaOrder,

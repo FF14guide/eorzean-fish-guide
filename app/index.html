@@ -500,6 +500,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .nv-i svg{width:14px;height:14px}
 .dcard .fav{font-size:14px}
 .tag.pts{color:var(--gold);background:rgba(245,197,99,.14);font-family:var(--mono)}
+.tag.hook3{color:var(--coral);background:rgba(255,126,126,.16);font-family:var(--mono);font-weight:700}
 .odim{color:var(--dim)}
 
 
@@ -1211,7 +1212,7 @@ const STR = {
     assumedFree: '実測が十分にあり上流に制約の記載がないため、終日・天候不問とみなしています',
     unverified: '要検証', unverifiedTip: 'プレイヤーからの報告に基づく条件です。まだ裏取りができていません',
     manualCond: '上流にデータが無いため、プレイヤーからの報告をもとに手で入れた条件です',
-    points: '釣果点', bonus: 'ボーナス対象', ptsUnit: '点', multiHook: 'トリプル',
+    points: '釣果点', bonus: 'ボーナス対象', ptsUnit: '点', multiHook: '多重フッキング',
     biteSource: '出典：Lodinn の集計（Teamcraft の Allagan Reports に集まった実測）。釣果率はそのエサを使ったキャスト全体に占める割合。',
     minutes: '分', hoursU: '時間', days: '日', ago: 'あと ', secU: '秒',
     nushiOne: 'ヌシ', oonushi: 'オオヌシ',
@@ -1283,7 +1284,7 @@ const STR = {
     assumedFree: 'Plenty of catch data and no restriction upstream, so treated as always available',
     unverified: 'Unverified', unverifiedTip: 'Based on a player report, not yet confirmed',
     manualCond: 'Entered by hand from player reports, as upstream has no data yet',
-    points: 'Points', bonus: 'Bonus objectives', ptsUnit: 'pt', multiHook: 'triple hook',
+    points: 'Points', bonus: 'Bonus objectives', ptsUnit: 'pt', multiHook: 'Multi-hook',
     biteSource: 'Source: Lodinn\u2019s aggregation of player reports collected via Teamcraft Allagan Reports. Catch rate is the share of all casts with that bait.',
     minutes: 'min', hoursU: 'h', days: 'd', ago: 'in ', secU: 's',
     nushiOne: 'Big Fish', oonushi: 'Legendary',
@@ -2044,7 +2045,8 @@ function fishRow(f, spot) {
     f.spectralTrigger ? `<span class="tag trigger">${T('trigger')}</span>` : '',
     f.oceanTimes ? `<span class="tag otime">${f.oceanTimes.map(timeLabel).join('/')}${T('onlySuffix')}</span>` : '',
     f.oceanPoints != null ? `<span class="tag pts">${f.oceanPoints}${T('ptsUnit')}</span>` : '',
-    f.oceanMulti != null ? `<span class="tag pts">×${f.oceanMulti}</span>` : '',
+    f.oceanHook?.triple && f.oceanHook.triple[0] > 3
+      ? `<span class="tag hook3" title="${T('tripleHook')}">T${f.oceanHook.triple.join('–')}</span>` : '',
     ...(f.oceanBonus ?? []).map((b) => `<span class="tag bonus">${esc(nm(b.n))}</span>`),
     f.craft ? `<span class="tag use" title="${f.craft.map((c) => nm(DB.meta.craftNames[c])).join(' / ')}">${T('craftUse')}</span>` : '',
     f.gc ? `<span class="tag use">${T('gcUse')}</span>` : '',
@@ -3372,8 +3374,11 @@ function openFish(fishId, fromSpotId) {
             f.collectable ? T('collectUse') : '',
             f.gc ? T('gcUse') : '',
           ].filter(Boolean).join(' / ')}</dd>` : ''}
-          ${f.oceanPoints != null ? `<dt>${T('points')}</dt><dd>${f.oceanPoints}${T('ptsUnit')}${
-            f.oceanMulti != null ? ` / ${T('multiHook')} ×${f.oceanMulti}` : ''}</dd>` : ''}
+          ${f.oceanPoints != null ? `<dt>${T('points')}</dt><dd>${f.oceanPoints}${T('ptsUnit')}</dd>` : ''}
+          ${f.oceanHook ? `<dt>${T('multiHook')}</dt><dd>${
+            [f.oceanHook.double ? `${T('doubleHook')} ${f.oceanHook.double.join('–')}${T('fishUnit')}` : '',
+             f.oceanHook.triple ? `${T('tripleHook')} ${f.oceanHook.triple.join('–')}${T('fishUnit')}` : '',
+            ].filter(Boolean).join(' / ')}</dd>` : ''}
           ${f.oceanBonus ? `<dt>${T('bonus')}</dt><dd>${f.oceanBonus.map((b) => esc(nm(b.n))).join('<br>')}</dd>` : ''}
           ${f.patch ? `<dt>${T('released')}</dt><dd>Patch ${f.patch}</dd>` : ''}
         </dl>
