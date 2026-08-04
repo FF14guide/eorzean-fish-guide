@@ -1,0 +1,42 @@
+{
+  "$comment": [
+    "オーシャンフィッシングの称号ごとの参考記事。",
+    "多重フッキングの匹数や秒数の細かい詰めは、書き手の方の記事に委ねてリンクだけを置く。",
+    "数値を転記しないのは、断片的な表になって精度が落ちることと、",
+    "個人の記事の内容をこちらの主要コンテンツにしないため。",
+    "追加・削除は自由。url は必須、title と author は表示に使う。"
+  ],
+  "guides": {
+    "バルーンキャッチャー": [
+      { "title": "『バルーンキャッチャー』", "author": "Uzel Qestir", "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4842177/" },
+      { "title": "称号用フッキングマクロまとめ", "author": "まろのメモ", "url": "https://blog.maroro.net/2023/10/15/%E3%80%90ff14%E3%80%91%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B0-%E7%A7%B0%E5%8F%B7%E7%94%A8%E3%83%9E%E3%82%AF%E3%83%AD%E3%81%BE%E3%81%A8/" }
+    ],
+    "蟹工船": [
+      { "title": "『蟹工船』", "author": "Uzel Qestir", "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4842262/" },
+      { "title": "称号用フッキングマクロまとめ", "author": "まろのメモ", "url": "https://blog.maroro.net/2023/10/15/%E3%80%90ff14%E3%80%91%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B0-%E7%A7%B0%E5%8F%B7%E7%94%A8%E3%83%9E%E3%82%AF%E3%83%AD%E3%81%BE%E3%81%A8/" }
+    ],
+    "シャークハンター": [
+      { "title": "『シャークハンター』", "author": "Uzel Qestir", "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4840582/" }
+    ],
+    "オクトパストラベラー": [
+      { "title": "『オクトパストラベラー』", "author": "Uzel Qestir", "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4842314/" },
+      { "title": "簡単になった!? オーシャンフィッシングアチーブ", "author": "FF14でアチーブメントをあつめよう", "url": "https://asagi-w02.com/ff14octpustraveler/" }
+    ],
+    "海老散らない": [
+      { "title": "『海老散らない』", "author": "Uzel Qestir", "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/5279579" },
+      { "title": "アチブ「海老散らない」の獲得方法", "author": "Randy Regnitz", "url": "https://jp.finalfantasyxiv.com/lodestone/character/16721208/blog/5270801/" }
+    ],
+    "クラゲマニア": [
+      { "title": "称号用フッキングマクロまとめ", "author": "まろのメモ", "url": "https://blog.maroro.net/2023/10/15/%E3%80%90ff14%E3%80%91%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B0-%E7%A7%B0%E5%8F%B7%E7%94%A8%E3%83%9E%E3%82%AF%E3%83%AD%E3%81%BE%E3%81%A8/" }
+    ],
+    "シードラゴンキラー": [
+      { "title": "称号用フッキングマクロまとめ", "author": "まろのメモ", "url": "https://blog.maroro.net/2023/10/15/%E3%80%90ff14%E3%80%91%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B0-%E7%A7%B0%E5%8F%B7%E7%94%A8%E3%83%9E%E3%82%AF%E3%83%AD%E3%81%BE%E3%81%A8/" }
+    ]
+  },
+  "general": [
+    { "title": "オーシャンフィッシングアチーブメント情報まとめ", "author": "Uzel Qestir", "url": "https://jp.finalfantasyxiv.com/lodestone/character/29265719/blog/4842340/" },
+    { "title": "2万点への基本戦略", "author": "ガッツの夜明け", "url": "https://gutsdawn.com/ff14%E3%82%AA%E3%83%BC%E3%82%B7%E3%83%A3%E3%83%B3%E3%83%95%E3%82%A3%E3%83%83%E3%82%B7%E3%83%B3%E3%82%B02%E4%B8%87%E7%82%B9/" },
+    { "title": "航路ごとの釣り方・餌", "author": "パママ (mtgames)", "url": "https://www.mtgames.jp/ff14/ocean_fishing/" },
+    { "title": "オーシャンフィッシング攻略", "author": "ゲームエイト", "url": "https://game8.jp/ff14/316052" }
+  ]
+}

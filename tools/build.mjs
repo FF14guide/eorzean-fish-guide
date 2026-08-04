@@ -532,10 +532,29 @@ async function main() {
   // どの魚がどのミッション（サメ／タコ／クラゲ…）に数えられるかはゲームデータにある
   const bonusRows = { ja: parseCsv(raw['IKDContentBonus_ja.csv']), en: parseCsv(raw['IKDContentBonus_en.csv']) };
   const bonusName = new Map();
+  // 称号ごとの達成条件と倍率。パーティ人数による補正版が複数あるので、素の条件を採る。
+  const bonusInfo = {};
   for (const r of bonusRows.en) {
     if (!r.Objective) continue;
     const ja = bonusRows.ja.find((x) => x['#'] === r['#']);
-    bonusName.set(r['#'], fill({ ja: ja?.Objective || r.Objective, en: r.Objective }));
+    const n = fill({ ja: ja?.Objective || r.Objective, en: r.Objective });
+    bonusName.set(r['#'], n);
+    const req = ja?.Requirement ?? '';
+    if (req.includes('補正発動中')) continue;
+    bonusInfo[n.ja] ??= {
+      n,
+      multiplier: Number(r.BonusMultiplier) || 100,
+      req: fill({ ja: req, en: r.Requirement ?? '' }),
+    };
+  }
+  // 参考記事（転記はせず、リンクだけ持つ）
+  let bonusGuides = { guides: {}, general: [] };
+  try {
+    bonusGuides = JSON.parse(await readFile(path.join(ROOT, 'data', 'ocean-guides.json'), 'utf8'));
+    log(`ocean  参考記事 ${Object.values(bonusGuides.guides ?? {}).flat().length + (bonusGuides.general?.length ?? 0)} 件`);
+  } catch { /* 無くてよい */ }
+  for (const [k, list] of Object.entries(bonusGuides.guides ?? {})) {
+    if (bonusInfo[k]) bonusInfo[k].guides = list;
   }
   const fishParamRowToItem = new Map(fishSheet.map((r) => [r['#'], Number(r.Item)]));
   for (const r of parseCsv(raw['IKDFishParam.csv'])) {
@@ -568,6 +587,8 @@ async function main() {
     phase: OCEAN_PHASE,
     table: ikdTable.map((r) => [Number(r.IndigoRoute), Number(r.RubyRoute)]),
     routes: oceanRoutes,
+    bonuses: bonusInfo,
+    guides: bonusGuides.general ?? [],
   };
 
   // ─── 地図 ────────────────────────────────────────────────
@@ -729,6 +750,7 @@ async function main() {
       `\nオーシャン 伝説魚 ${Object.values(fish).filter((f) => f.oceanLegend).length}` +
       ` / 時間限定 ${Object.values(fish).filter((f) => f.oceanTimes).length}` +
       ` / ボーナス対象 ${Object.values(fish).filter((f) => f.oceanBonus).length}` +
+      ` / 称号の条件 ${Object.keys(bonusInfo).length}` +
       `\n地図 ${Object.keys(maps).length} 枚` +
       `\n用途: 素材 ${Object.values(fish).filter((f) => f.craft).length}` +
       ` / 収集品 ${Object.values(fish).filter((f) => f.collectable).length}` +
