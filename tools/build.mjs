@@ -177,8 +177,9 @@ async function main() {
   // 航路の寄港地（通常＋幻海流）だけが本当のオーシャンフィッシング
   const oceanMain = new Set(ikdSpot.map((r) => Number(r.SpotMain)).filter(Boolean));
   const oceanSub = new Set(ikdSpot.map((r) => Number(r.SpotSub)).filter(Boolean));
-  const exOfSpot = (id, territoryId, placeId) => {
+  const exOfSpot = (id, territoryId, placeId, areaJa) => {
     if (oceanMain.has(id) || oceanSub.has(id)) return OCEAN_EX;
+    if (areaJa === DIADEM_PLACE) return DIADEM_EX;
     if (territoryId != null && exOfTerritory.has(territoryId)) return exOfTerritory.get(territoryId);
     if (placeId != null && exOfPlace.has(Number(placeId))) return exOfPlace.get(Number(placeId));
     return 0;
@@ -194,7 +195,9 @@ async function main() {
     if (!pn || exOfPlace.has(pn)) continue;
     exOfPlace.set(pn, Number(r.ExVersion));
   }
-  const OCEAN_EX = -1;   // オーシャンフィッシングは拡張で括れないので独立させる
+  const OCEAN_EX = -1;    // オーシャンフィッシングは拡張で括れないので独立させる
+  const DIADEM_EX = -2;   // ディアデム諸島（蒼天街の復興）も釣り場が多いので分ける
+  const DIADEM_PLACE = 'ディアデム諸島';
   const exRows = { ja: parseCsv(raw['ExVersion_ja.csv']), en: parseCsv(raw['ExVersion_en.csv']),
                    de: parseCsv(raw['ExVersion_de.csv']), fr: parseCsv(raw['ExVersion_fr.csv']) };
   const spearItems = parseCsv(raw['SpearfishingItem.csv']);
@@ -284,7 +287,7 @@ async function main() {
       y: s.coords?.y ?? null,
       spear: spearIds.has(s.id),
       mapId: s.mapId ?? null,
-      ex: exOfSpot(s.id, territoryId, s.placeId),
+      ex: exOfSpot(s.id, territoryId, s.placeId, placeN(s.placeId)?.ja),
       ocean: oceanMain.has(s.id) || oceanSub.has(s.id),
       spectral: oceanSub.has(s.id),
       fishes: s.fishes.slice(),
@@ -320,7 +323,7 @@ async function main() {
       x: null,
       y: null,
       spear: true,
-      ex: exOfSpot(baseId, terr, note.PlaceName),
+      ex: exOfSpot(baseId, terr, note.PlaceName, placeN(note.PlaceName)?.ja),
       fishes,
     });
     known.add(baseId);
@@ -451,6 +454,10 @@ async function main() {
       id: OCEAN_EX,
       n: { ja: 'オーシャンフィッシング', en: 'Ocean Fishing', de: 'Ozeanfischen', fr: 'Pêche en mer' },
     },
+    [DIADEM_EX]: {
+      id: DIADEM_EX,
+      n: { ja: '蒼天街', en: 'The Firmament', de: 'Himmelsstadt', fr: 'Firmament' },
+    },
   };
   for (const r of exRows.en) {
     if (!r.Name) continue;
@@ -467,7 +474,7 @@ async function main() {
     }
   }
   // 拡張の若い順。オーシャンフィッシングは最後に回す
-  const exRank = (e) => (e === OCEAN_EX ? 99 : e);
+  const exRank = (e) => (e === OCEAN_EX ? 99 : e === DIADEM_EX ? 100 : e);
   areaOrder.sort((a, b) => exRank(a.ex) - exRank(b.ex));
 
   // ─── オーシャンフィッシング ──────────────────────────────
