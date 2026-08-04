@@ -469,6 +469,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .tag.lure.mod{color:var(--aqua);background:rgba(79,220,236,.14);border-color:rgba(79,220,236,.5)}
 .wchip.lurechip{background:rgba(255,176,92,.16);color:#FFB05C}
 .lureline{color:#FFB05C;font-weight:600}
+.assumed{color:var(--mist);font-size:11.5px;line-height:1.6}
 .maplink{color:inherit;text-decoration:none;cursor:pointer;border-bottom:1px dotted var(--dim)}
 .maplink:hover{color:var(--gold);border-bottom-color:var(--gold)}
 .grow .dot{
@@ -1111,7 +1112,8 @@ const STR = {
     need: '要る', noNeed: '不要', restricted: '縛りあり',
     dayBand: '昼 (ET6-18)', nightBand: '夜 (ET18-6)', byUptime: '出現率が低い順',
     scope: '対象', allFish: 'すべての魚', rarity: 'レア度', rare: 'レア', fishUnit: '匹',
-    collectable: '収集品', clearHere: 'ここの記録を消す',
+    collectable: '収集品', clearHere: 'ここの記録を消す', note: '備考',
+    assumedFree: '実測が十分にあり上流に制約の記載がないため、終日・天候不問とみなしています',
     points: '釣果点', bonus: 'ボーナス対象', ptsUnit: '点', multiHook: 'トリプル',
     biteSource: '出典：Lodinn の集計（Teamcraft の Allagan Reports に集まった実測）。釣果率はそのエサを使ったキャスト全体に占める割合。',
     minutes: '分', hoursU: '時間', days: '日', ago: 'あと ', secU: '秒',
@@ -1168,7 +1170,8 @@ const STR = {
     need: 'Required', noNeed: 'Not needed', restricted: 'Restricted',
     dayBand: 'Day (ET6-18)', nightBand: 'Night (ET18-6)', byUptime: 'Rarest first',
     scope: 'Scope', allFish: 'All fish', rarity: 'Rarity', rare: 'Rare', fishUnit: '',
-    collectable: 'Collectable', clearHere: 'Clear here',
+    collectable: 'Collectable', clearHere: 'Clear here', note: 'Note',
+    assumedFree: 'Plenty of catch data and no restriction upstream, so treated as always available',
     points: 'Points', bonus: 'Bonus objectives', ptsUnit: 'pt', multiHook: 'triple hook',
     biteSource: 'Source: Lodinn\u2019s aggregation of player reports collected via Teamcraft Allagan Reports. Catch rate is the share of all casts with that bait.',
     minutes: 'min', hoursU: 'h', days: 'd', ago: 'in ', secU: 's',
@@ -1762,7 +1765,8 @@ function ribbonHTML(f) {
 function weatherHTML(f, territoryId) {
   if (!f.hasConditions) return `<div class="weather"><span class="any">${T('unknown')}</span></div>`;
   if (!f.weather.length && !f.prevWeather.length) {
-    return `<div class="weather"><span class="any">${T('anyWeather')}</span></div>`;
+    return `<div class="weather"><span class="any"${f.condAssumed
+      ? ` title="${T('assumedFree')}${f.catches ? ` (${f.catches})` : ''}"` : ''}>${T('anyWeather')}</span></div>`;
   }
   const nowW = territoryId != null ? weatherAt(territoryId, Date.now()) : null;
   const prevW = territoryId != null ? weatherAt(territoryId, periodStart(Date.now()) - W_PERIOD * 1000) : null;
@@ -3031,6 +3035,8 @@ function openFish(fishId, fromSpotId) {
           ${f.predators.length ? `<dt>${T('intuition')}</dt><dd>${f.predators.map(([id, n]) =>
             `${esc(nm(DB.fish[id]?.n) || baitName(id))} ×${n}`).join(' + ')}${f.intuition ? `（${f.intuition}s）` : ''}</dd>` : ''}
           <dt>${T('hours')}</dt><dd>${!f.hasConditions ? T('unknown') : (f.startHour === 0 && f.endHour === 24 ? T('allDay') : `ET ${etLabel(f.startHour)} – ${etLabel(f.endHour)}`)}</dd>
+          ${f.condAssumed ? `<dt>${T('note')}</dt><dd class="assumed">${T('assumedFree')}${
+            f.catches ? `（${f.catches} ${T('samples')}）` : ''}</dd>` : ''}
           <dt>${T('weather')}</dt><dd>${!f.hasConditions ? T('unknown')
             : (f.weather.length ? f.weather.map((w) => wIcon(w) + esc(wName(w))).join(' / ') : T('anyWeather'))}
             ${f.prevWeather.length ? `<br><span style="color:var(--mist)">${T('prev')} ${f.prevWeather.map((w) => wIcon(w) + esc(wName(w))).join(' / ')}</span>` : ''}</dd>

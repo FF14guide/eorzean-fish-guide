@@ -1,0 +1,25 @@
+{
+  "$comment": [
+    "Teamcraft の釣り場データは、特別なコンテンツの釣り場をすべて「ディアデム諸島」に",
+    "まとめてしまっている（釣り場ID 10000 以降）。実際にはドマ町人地・無人島・",
+    "コスモエクスプローラーなどが混ざっているので、ここで振り分ける。",
+    "",
+    "key は釣り場の zoneId（その釣り場自体の地名ID）。from-to は範囲指定。",
+    "group は下の groups に定義した名前。パッチで新しいエリアが増えたら追記する。"
+  ],
+  "groups": {
+    "diadem":  { "order": 100, "n": { "ja": "蒼天街", "en": "The Firmament", "de": "Himmelsstadt", "fr": "Firmament" } },
+    "island":  { "order": 101, "n": { "ja": "無人島", "en": "Island Sanctuary", "de": "Sonneninsel", "fr": "Île déserte" } },
+    "cosmo":   { "order": 102, "n": { "ja": "コスモエクスプローラー", "en": "Cosmic Exploration", "de": "Kosmische Erkundung", "fr": "Exploration cosmique" } }
+  },
+  "rules": [
+    { "zone": 2507, "expansion": 2, "note": "ドマ町人地は紅蓮のコンテンツ" },
+    { "from": 2258, "to": 3533, "group": "diadem", "note": "ディアデム諸島と雲海" },
+    { "from": 4191, "to": 4195, "group": "island", "note": "エリュシオン（無人島）" },
+    { "from": 5200, "to": 5279, "group": "cosmo", "area": { "ja": "シヌス・アルドルム", "en": "Sinus Ardorum" } },
+    { "from": 5280, "to": 5399, "group": "cosmo", "area": { "ja": "ビーコンヴェール", "en": "Beaconveil" } },
+    { "from": 5400, "to": 5499, "group": "cosmo", "area": { "ja": "極界", "en": "The Magnetic Reach" } },
+    { "from": 5500, "to": 5599, "group": "cosmo", "area": { "ja": "翠土", "en": "The Verdant Expanse" } },
+    { "from": 5600, "to": 9999, "group": "cosmo", "note": "今後のコスモ追加分の受け皿" }
+  ]
+}

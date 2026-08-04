@@ -177,9 +177,12 @@ async function main() {
   // 航路の寄港地（通常＋幻海流）だけが本当のオーシャンフィッシング
   const oceanMain = new Set(ikdSpot.map((r) => Number(r.SpotMain)).filter(Boolean));
   const oceanSub = new Set(ikdSpot.map((r) => Number(r.SpotSub)).filter(Boolean));
-  const exOfSpot = (id, territoryId, placeId, areaJa) => {
+  // Teamcraft が特殊コンテンツ用に割り当てる合成ID。通常の釣り場と混ざらないよう境界にする。
+  const SPECIAL_ID_FROM = 10000;
+  const exOfSpot = (id, territoryId, placeId, zoneId) => {
     if (oceanMain.has(id) || oceanSub.has(id)) return OCEAN_EX;
-    if (areaJa === DIADEM_PLACE) return DIADEM_EX;
+    const sp = id >= SPECIAL_ID_FROM ? specialOf(zoneId) : null;
+    if (sp) return sp.ex;
     if (territoryId != null && exOfTerritory.has(territoryId)) return exOfTerritory.get(territoryId);
     if (placeId != null && exOfPlace.has(Number(placeId))) return exOfPlace.get(Number(placeId));
     return 0;
@@ -196,8 +199,27 @@ async function main() {
     exOfPlace.set(pn, Number(r.ExVersion));
   }
   const OCEAN_EX = -1;    // オーシャンフィッシングは拡張で括れないので独立させる
-  const DIADEM_EX = -2;   // ディアデム諸島（蒼天街の復興）も釣り場が多いので分ける
-  const DIADEM_PLACE = 'ディアデム諸島';
+
+  // Teamcraft は特殊コンテンツの釣り場をすべて「ディアデム諸島」に入れてしまうので、
+  // data/spot-groups.json の振り分け表で正しいグループに戻す。
+  let groupCfg = { groups: {}, rules: [] };
+  try {
+    groupCfg = JSON.parse(await readFile(path.join(ROOT, 'data', 'spot-groups.json'), 'utf8'));
+  } catch { /* 無くてよい */ }
+  const groupIds = {};                       // 'diadem' → -2, 'island' → -3 …
+  Object.keys(groupCfg.groups ?? {}).forEach((k, i) => { groupIds[k] = -2 - i; });
+  /** 釣り場の zoneId から、特別なグループとエリア名を引く */
+  function specialOf(zoneId) {
+    const z = Number(zoneId);
+    if (!z) return null;
+    for (const r of groupCfg.rules ?? []) {
+      const hit = r.zone != null ? z === r.zone : z >= r.from && z <= r.to;
+      if (!hit) continue;
+      if (r.expansion != null) return { ex: r.expansion };
+      return { ex: groupIds[r.group], area: r.area ?? null };
+    }
+    return null;
+  }
   const exRows = { ja: parseCsv(raw['ExVersion_ja.csv']), en: parseCsv(raw['ExVersion_en.csv']),
                    de: parseCsv(raw['ExVersion_de.csv']), fr: parseCsv(raw['ExVersion_fr.csv']) };
   const spearItems = parseCsv(raw['SpearfishingItem.csv']);
@@ -279,7 +301,11 @@ async function main() {
     spots.push({
       id: s.id,
       n,
-      area: placeN(s.placeId) ?? fill({ en: 'Unknown', ja: '不明' }),
+      area: (() => {
+        const sp = s.id >= 10000 ? specialOf(s.zoneId) : null;
+        if (sp?.area) return fill(sp.area);
+        return placeN(s.placeId) ?? fill({ en: 'Unknown', ja: '不明' });
+      })(),
       region: reg ? fill({ ja: reg.name_ja, en: reg.name_en, de: reg.name_de, fr: reg.name_fr }) : null,
       territoryId,
       level: s.level ?? null,
@@ -287,7 +313,7 @@ async function main() {
       y: s.coords?.y ?? null,
       spear: spearIds.has(s.id),
       mapId: s.mapId ?? null,
-      ex: exOfSpot(s.id, territoryId, s.placeId, placeN(s.placeId)?.ja),
+      ex: exOfSpot(s.id, territoryId, s.placeId, s.zoneId),
       ocean: oceanMain.has(s.id) || oceanSub.has(s.id),
       spectral: oceanSub.has(s.id),
       fishes: s.fishes.slice(),
@@ -323,7 +349,7 @@ async function main() {
       x: null,
       y: null,
       spear: true,
-      ex: exOfSpot(baseId, terr, note.PlaceName, placeN(note.PlaceName)?.ja),
+      ex: exOfSpot(baseId, terr, note.PlaceName, null),
       fishes,
     });
     known.add(baseId);
@@ -404,6 +430,26 @@ async function main() {
     fish[id] = entry;
   }
 
+  // ─── 制約なしとみなす魚 ──────────────────────────────────
+  // 上流の Fish Tracker は「時間や天候の制約がある魚」しか扱っていない。
+  // そこに載っていないのに実測が大量にある魚は、制約なしと考えるのが自然なので、
+  // 「未収録」ではなく「終日・不問」として扱う。ヌシは対象外。
+  const ASSUME_FREE_CATCHES = 100;
+  const catchTotal = {};
+  for (const [k, r] of Object.entries(biteTimes)) {
+    const fid = Number(k.split(':')[1]);
+    catchTotal[fid] = (catchTotal[fid] ?? 0) + (r.n ?? 0);
+  }
+  let assumedFree = 0;
+  for (const f of Object.values(fish)) {
+    if (f.hasConditions || f.bigFish) continue;
+    if ((catchTotal[f.id] ?? 0) < ASSUME_FREE_CATCHES) continue;
+    f.hasConditions = true;      // 終日・天候不問として扱う
+    f.condAssumed = true;        // 推定であることは残す
+    f.catches = catchTotal[f.id];
+    assumedFree++;
+  }
+
   // ─── ヌシ / オオヌシ の判別 ────────────────────────────────
   // 釣り手帳の並び順で、ひとつの釣り場に大物が2匹いるとき、後ろがオオヌシ。
   // （拡張ごとの数が実際のオオヌシ数と一致することを確認済み）
@@ -454,11 +500,10 @@ async function main() {
       id: OCEAN_EX,
       n: { ja: 'オーシャンフィッシング', en: 'Ocean Fishing', de: 'Ozeanfischen', fr: 'Pêche en mer' },
     },
-    [DIADEM_EX]: {
-      id: DIADEM_EX,
-      n: { ja: '蒼天街', en: 'The Firmament', de: 'Himmelsstadt', fr: 'Firmament' },
-    },
   };
+  for (const [k, g] of Object.entries(groupCfg.groups ?? {})) {
+    expansions[groupIds[k]] = { id: groupIds[k], n: fill(g.n), order: g.order };
+  }
   for (const r of exRows.en) {
     if (!r.Name) continue;
     const id = Number(r['#']);
@@ -474,7 +519,7 @@ async function main() {
     }
   }
   // 拡張の若い順。オーシャンフィッシングは最後に回す
-  const exRank = (e) => (e === OCEAN_EX ? 99 : e === DIADEM_EX ? 100 : e);
+  const exRank = (e) => (e === OCEAN_EX ? 99 : expansions[e]?.order ?? e);
   areaOrder.sort((a, b) => exRank(a.ex) - exRank(b.ex));
 
   // ─── オーシャンフィッシング ──────────────────────────────
@@ -657,6 +702,7 @@ async function main() {
       spotCount: usableSpots.length,
       fishCount: Object.keys(fish).length,
       conditionCount: Object.values(fish).filter((f) => f.hasConditions).length,
+      assumedFreeCount: assumedFree,
       biteTimeCount: Object.keys(biteTimes).length,
       biteSource: biteMeta?.source ?? null,
       biteImportedAt: biteMeta?.importedAt ?? null,
@@ -740,7 +786,7 @@ async function main() {
 
   console.log(
     `\n釣り場 ${out.meta.spotCount} / 魚 ${out.meta.fishCount}` +
-      `（条件判明 ${out.meta.conditionCount}）` +
+      `（条件判明 ${out.meta.conditionCount} / うち実測から制約なしとみなした ${assumedFree}）` +
       `\nヌシ ${out.meta.nushiCount}（うちオオヌシ ${out.meta.oonushiCount}）` +
       `\nヒットタイム ${out.meta.biteTimeCount} 件 / ${out.meta.biteSpots} 釣り場` +
       `\n引きを実測から補完 ${Object.values(fish).filter((f) => f.tugFromStats).length} 種` +
