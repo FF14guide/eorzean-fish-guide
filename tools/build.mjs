@@ -395,8 +395,8 @@ async function main() {
         entry.tugRank = TUG_RANK[st.tug];
         entry.tugFromStats = true;
       }
-      if (!entry.hookset && st.hookset) {
-        entry.hookset = st.hookset === 'プレシジョン' ? HOOKSET.Precision : HOOKSET.Powerful;
+      if (!entry.hookset && HOOKSET[st.hookset]) {
+        entry.hookset = HOOKSET[st.hookset];
         entry.tugFromStats = true;
       }
       if (!entry.snagging && st.snagging) entry.snagging = true;

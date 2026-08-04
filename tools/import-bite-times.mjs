@@ -129,7 +129,8 @@ async function main() {
     for (const [fid, f] of Object.entries(data.fish ?? {})) {
       fishStats[fid] ??= {
         tug: [null, 'light', 'medium', 'heavy'][f.tug] ?? null,
-        hookset: f.hookset === 1 ? 'プレシジョン' : f.hookset === 2 ? 'パワフル' : null,
+        // Lodinn 側は 1=ストロング / 2=プレシジョン。Fish Tracker と突き合わせて確認済み。
+        hookset: f.hookset === 2 ? 'Precision' : f.hookset === 1 ? 'Powerful' : null,
         snagging: !!f.snagging,
       };
     }
