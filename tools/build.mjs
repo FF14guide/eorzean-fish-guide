@@ -71,6 +71,9 @@ const SOURCES = {
   'ocean-ruby.json': `${OF}/oceanFishingDatabase%20-%20Ruby%20Route.json`,
   'IKDFishParam.csv': `${DM}/en/IKDFishParam.csv`,
   'autohook-fish.json': `${AH}/fish_list.json`,
+  'autohook-sources.json': `${AH}/fishing-sources.json`,
+  'WKSMissionUnit_ja.csv': `${DM}/ja/WKSMissionUnit.csv`,
+  'WKSMissionUnit_en.csv': `${DM}/en/WKSMissionUnit.csv`,
   'IKDContentBonus_ja.csv': `${DM}/ja/IKDContentBonus.csv`,
   'IKDContentBonus_en.csv': `${DM}/en/IKDContentBonus.csv`,
   'Recipe.csv': `${DM}/en/Recipe.csv`,
@@ -195,6 +198,8 @@ async function main() {
   // 釣り場がどの拡張のものかは TerritoryType.ExVersion で分かる
   const territories = parseCsv(raw['TerritoryType.csv']);
   const exOfTerritory = new Map(territories.map((r) => [Number(r['#']), Number(r.ExVersion)]));
+  // 銛の釣り場は Teamcraft に無く自前で組み立てるので、地図は territory から引く
+  const mapOfTerritory = new Map(territories.map((r) => [Number(r['#']), Number(r.Map)]).filter(([, m]) => m));
   // territory_id が分からない釣り場のために、地名からも拡張を引けるようにしておく
   const exOfPlace = new Map();
   for (const r of territories) {
@@ -291,6 +296,18 @@ async function main() {
   const placeN = (id) => (places[id] ? fill(places[id]) : null);
   const placeName = (id) => placeN(id)?.ja ?? null;
 
+  // ─── コスモエクスプローラーのミッション ────────────────
+  // 釣り場そのものより「どのミッションで行くか」が実用的なので、地名にミッション名を添える。
+  const missionRows = { ja: parseCsv(raw['WKSMissionUnit_ja.csv']), en: parseCsv(raw['WKSMissionUnit_en.csv']) };
+  const missionsByPlace = new Map();
+  for (const r of missionRows.ja) {
+    const pn = Number(r.PlaceName);
+    if (!pn || !r.Name) continue;
+    const en = missionRows.en.find((x) => x['#'] === r['#']);
+    if (!missionsByPlace.has(pn)) missionsByPlace.set(pn, []);
+    missionsByPlace.get(pn).push(fill({ ja: r.Name, en: en?.Name || r.Name }));
+  }
+
   // ─── 釣り場 ──────────────────────────────────────────────────
   const spearIds = new Set(Object.keys(D.SPEARFISHING_SPOTS).map(Number));
   const spots = [];
@@ -305,6 +322,10 @@ async function main() {
     spots.push({
       id: s.id,
       n,
+      missions: missionsByPlace.get(Number(s.zoneId)) ?? null,
+      // 船上や特殊エリアは地図を出しても意味がないので抑止する
+      noMap: (groupCfg.noMap ?? []).includes(String(s.zoneId)) ||
+             (groupCfg.noMap ?? []).includes(String(s.placeId)),
       area: (() => {
         const sp = s.id >= 10000 ? specialOf(s.zoneId) : null;
         if (sp?.area) return fill(sp.area);
@@ -356,6 +377,7 @@ async function main() {
       x: null,
       y: null,
       spear: true,
+      mapId: terr != null ? mapOfTerritory.get(terr) ?? null : null,
       ex: exOfSpot(baseId, terr, note.PlaceName, null),
       fishes,
     });
@@ -366,6 +388,11 @@ async function main() {
   // あわせて、上流に釣りデータがまったく無いグループ（コスモ・ディアデム）も外す。
   const dropGroups = new Set((groupCfg.drop ?? []).map((k) => groupIds[k]));
   const usableSpots = spots.filter((s) => s.fishes.length > 0 && !dropGroups.has(s.ex));
+  // 中身が何も分からない釣り場（魚に条件もエサも実測も無い）は出さない
+  const informative = (s) => s.fishes.some((id) => {
+    const f = fish[id];
+    return f && (f.hasConditions || f.baitPath.length || f.ahBite);
+  });
 
   // ─── 魚 ──────────────────────────────────────────────────────
   const spearFishIds = new Set(spearItems.map((r) => Number(r.Item)).filter(Boolean));
@@ -464,6 +491,40 @@ async function main() {
     }
     log(`gig    魚影の大きさ・速さ ${gigCount} 種`);
   } catch (e) { log(`gig    取り込み失敗: ${e.message}`); }
+
+  // ─── AutoHook の実測（エサ・引き・フッキング・ヒットタイム）────
+  // Lodinn が扱っていない釣り場（ディアデムなど）の穴を埋める。
+  // 既に値があるものは触らない。
+  let ahBait = 0, ahTug = 0, ahBite = 0;
+  try {
+    const AH_TUG = { 1: 'light', 2: 'medium', 3: 'heavy' };
+    const sources = JSON.parse(raw['autohook-sources.json']);
+    for (const [itemId, list] of Object.entries(sources)) {
+      const f = fish[itemId];
+      if (!f || !list.length) continue;
+      const top = list[0];
+      if (!f.baitPath.length && top.bait) { f.baitPath = [top.bait]; ahBait++; }
+      if (!f.tug && AH_TUG[top.tug]) {
+        f.tug = AH_TUG[top.tug];
+        f.tugRank = top.tug;
+        f.tugJa = '！'.repeat(top.tug);
+        ahTug++;
+      }
+      // AutoHook の hookset は 1=ストロング / 2=プレシジョン（Lodinn と同じ並び）
+      if (!f.hookset && top.hookset) {
+        f.hookset = top.hookset === 2 ? HOOKSET.Precision : HOOKSET.Powerful;
+        f.tugFromStats = true;
+      }
+      if (top.snagging) f.snagging = true;
+    }
+    for (const r of JSON.parse(raw['autohook-fish.json'])) {
+      const f = fish[r.ItemId];
+      if (!f || f.bite || !r.BiteTimeMin || !r.BiteTimeMax) continue;
+      f.ahBite = [r.BiteTimeMin, r.BiteTimeMax];
+      ahBite++;
+    }
+    log(`autohook エサ ${ahBait} / 引き ${ahTug} / ヒットタイム ${ahBite} 種を補完`);
+  } catch (e) { log(`autohook 取り込み失敗: ${e.message}`); }
 
   // ─── 手で補った条件 ──────────────────────────────────────
   // 上流がまだ持っていない魚（主に最新パッチのオオヌシ）を data/fish-conditions.json で補う。
@@ -566,6 +627,13 @@ async function main() {
   for (const [tid, wr] of Object.entries(D.WEATHER_RATES)) {
     weatherRates[tid] = { rates: wr.weather_rates, zoneId: wr.zone_id, regionId: wr.region_id };
   }
+
+  // 情報が何も無い釣り場を落とす
+  const before = usableSpots.length;
+  const kept = usableSpots.filter(informative);
+  usableSpots.length = 0;
+  usableSpots.push(...kept);
+  if (before !== usableSpots.length) log(`spot   情報の無い釣り場 ${before - usableSpots.length} 件を除外`);
 
   // ─── 拡張 → エリア の並び（ゲーム内の順に近づける） ────────
   const expansions = {

@@ -249,6 +249,12 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
   margin-top:14px;
 }
 .spotmap:hover{box-shadow:0 0 0 1px var(--gold)}
+.missions{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:10px}
+.mschip{
+  font-size:10.5px;padding:3px 9px;border-radius:var(--pill);white-space:nowrap;
+  background:rgba(187,147,245,.13);color:var(--violet);border:1px solid rgba(187,147,245,.3);
+}
+.lv.ms{color:var(--violet);background:rgba(187,147,245,.16)}
 .spotmap .mapzoom{
   position:absolute;right:6px;bottom:6px;z-index:2;font-size:12px;color:var(--foam);
   background:rgba(8,16,30,.8);border-radius:4px;padding:2px 6px;
@@ -1140,7 +1146,7 @@ const STR = {
     uses: '使い道', craftUse: '素材', gcUse: 'GC納品', collectUse: '収集品',
     lureAmb: 'アンビ', lureMod: 'モデスト', lureOnly: 'ルアー必須', lure: 'ルアー',
     condUnknown: 'データ不明', trigger: '幻海流トリガー', rareFish: '稀少魚',
-    shadow: '魚影', shadowSmall: '小', shadowNormal: '中', shadowLarge: '大', gigSpeed: '泳ぐ速さ',
+    missions: 'ミッション', shadow: '魚影', shadowSmall: '小', shadowNormal: '中', shadowLarge: '大', gigSpeed: '泳ぐ速さ',
     highScore: '高得点', rankTip: '高得点の狙いやすさ（Sarimile Fon 氏の評価を参照）',
     sortBy: '並び替え', filter: '絞り込み', reset: 'すべて解除', status: '状態',
     expansion: '拡張', hookset: 'フッキング', band: '時間帯',
@@ -1204,7 +1210,7 @@ const STR = {
     uses: 'Used for', craftUse: 'Ingredient', gcUse: 'GC delivery', collectUse: 'Collectable',
     lureAmb: 'Amb', lureMod: 'Mod', lureOnly: 'Lure required', lure: 'Lure',
     condUnknown: 'Unknown', trigger: 'Spectral trigger', rareFish: 'Rare',
-    shadow: 'Shadow', shadowSmall: 'S', shadowNormal: 'M', shadowLarge: 'L', gigSpeed: 'Speed',
+    missions: 'Missions', shadow: 'Shadow', shadowSmall: 'S', shadowNormal: 'M', shadowLarge: 'L', gigSpeed: 'Speed',
     highScore: 'high score', rankTip: 'How easy high scores are (community rating)',
     sortBy: 'Sort', filter: 'Filter', reset: 'Clear all', status: 'Status',
     expansion: 'Expansion', hookset: 'Hookset', band: 'Time of day',
@@ -1827,6 +1833,7 @@ function renderSide() {
             <button type="button" data-spot="${s.id}" ${s.id === state.spotId ? 'aria-current="true"' : ''}>
               ${s.spear ? '<span class="gig" title="spear">⚵</span>' : ''}
               <span>${esc(nm(s.n))}</span>
+              ${s.missions ? `<span class="lv ms">${s.missions.length}</span>` : ''}
               ${s.level ? `<span class="lv">Lv${s.level}</span>` : ''}
             </button>`).join('')}</div>
         </details>`;
@@ -2113,7 +2120,7 @@ function renderSpot(keepScroll = false) {
   $('#stage').innerHTML = `<div class="wrap">
     <div class="spothead-row"><div class="sh-main">
     <div class="spot-head">
-      <h1${spot.mapId != null ? ' class="hasmap" id="showmap" title="' + T('showMap') + '"' : ''}>${
+      <h1${spot.mapId != null && !spot.noMap ? ' class="hasmap" id="showmap" title="' + T('showMap') + '"' : ''}>${
         esc(nm(spot.n)).replace(/：幻海流|Spectral Current/i, '')}${
         spot.mapId != null ? '<span class="mapicon">◎</span>' : ''}${
         spot.spear ? `<span class="gigmark">${T('spearMark')}</span>` : ''}${
@@ -2126,9 +2133,13 @@ function renderSpot(keepScroll = false) {
       </div>
     </div>
     <div class="eyebrow">${esc(spot.n.en)}</div>
+    ${spot.missions ? `<div class="missions">
+      <span class="eyebrow">${T('missions')} ${spot.missions.length}</span>
+      ${spot.missions.map((m) => `<span class="mschip">${esc(nm(m))}</span>`).join('')}
+    </div>` : ''}
     ${fc}
     </div>
-    ${spot.mapId != null && DB.maps?.[spot.mapId] ? `<div class="spotmap" id="spotmap" title="${T('showMap')}">
+    ${spot.mapId != null && DB.maps?.[spot.mapId] && !spot.noMap ? `<div class="spotmap" id="spotmap" title="${T('showMap')}">
       ${mapHTML(spot, true)}<span class="mapzoom">⤢</span>
     </div>` : ''}
     </div>
@@ -2167,7 +2178,10 @@ function mapPct(coord, sizeFactor) {
 function mapHTML(spot, thumb = false) {
   const m = DB.maps?.[spot.mapId];
   if (!m) return '';
-  const x = mapPct(spot.x, m.sizeFactor), y = mapPct(spot.y, m.sizeFactor);
+  // 座標が分からない釣り場（銛や合成釣り場）はマーカーを出さず地図だけ見せる
+  const hasPos = spot.x != null && spot.y != null;
+  const x = hasPos ? mapPct(spot.x, m.sizeFactor) : 50;
+  const y = hasPos ? mapPct(spot.y, m.sizeFactor) : 50;
   // 縮小版も全体を出す。位置関係が分かるほうが役に立つ
   const imgStyle = 'width:100%;left:0;top:0';
   const px = x, py = y;
@@ -2175,8 +2189,8 @@ function mapHTML(spot, thumb = false) {
     <div class="mapinner">
       <img src="${esc(m.image)}" alt="" loading="lazy" style="${imgStyle}"
         onerror="this.closest('.mapwrap').classList.add('failed')">
-      <span class="mapdot" style="left:${px}%;top:${py}%"></span>
-      <span class="mapring" style="left:${px}%;top:${py}%"></span>
+      ${hasPos ? `<span class="mapdot" style="left:${px}%;top:${py}%"></span>
+      <span class="mapring" style="left:${px}%;top:${py}%"></span>` : ''}
     </div>
     <span class="mapfail">${T('mapFailed')}</span>
   </div>`;
