@@ -305,6 +305,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .chipbtn.bait{display:inline-flex;align-items:center;gap:5px}
 .baiticon{width:17px;height:17px;flex:none;border-radius:3px}
 .collicon{width:13px;height:13px;vertical-align:-2px;margin-right:3px}
+.shmark{width:12px;height:12px;vertical-align:-2px;margin-right:3px}
 .uptag{
   display:inline-block;font-family:var(--mono);font-size:10px;color:var(--dim);
   white-space:nowrap;line-height:1.5;
@@ -812,7 +813,9 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .dv{background:rgba(21,35,64,.6);border:1px solid var(--edge-soft);border-radius:var(--r);padding:11px 12px}
 .dv-t{font-family:var(--mono);font-size:14px;margin-bottom:7px}
 .dv-t .rel{font-size:10.5px;color:var(--mist);margin-left:6px}
-.dv-r{margin-top:7px}
+.dv-r{margin-top:10px;padding-top:10px;border-top:1px solid var(--edge-soft)}
+.dv-r:first-of-type{border-top:none;padding-top:0}
+.dv-r .oname{display:inline-flex;align-items:baseline;gap:6px}
 .dprog{display:grid;gap:6px;max-width:620px}
 .pbar{display:flex;align-items:center;gap:10px;font-size:11.5px}
 .pbar .pl{width:150px;flex:none;color:var(--mist)}
@@ -1129,12 +1132,15 @@ const STR = {
     scope: '対象', allFish: 'すべての魚', rarity: 'レア度', rare: 'レア', fishUnit: '匹',
     collectable: '収集品', clearHere: 'ここの記録を消す', note: '備考',
     assumedFree: '実測が十分にあり上流に制約の記載がないため、終日・天候不問とみなしています',
+    unverified: '要検証', unverifiedTip: 'プレイヤーからの報告に基づく条件です。まだ裏取りができていません',
+    manualCond: '上流にデータが無いため、プレイヤーからの報告をもとに手で入れた条件です',
     points: '釣果点', bonus: 'ボーナス対象', ptsUnit: '点', multiHook: 'トリプル',
     biteSource: '出典：Lodinn の集計（Teamcraft の Allagan Reports に集まった実測）。釣果率はそのエサを使ったキャスト全体に占める割合。',
     minutes: '分', hoursU: '時間', days: '日', ago: 'あと ', secU: '秒',
     nushiOne: 'ヌシ', oonushi: 'オオヌシ',
     estimated: '推定', fromPredator: ' の条件から推定',
-    byRate: '実測の釣果率が最も高いエサ', swimOnly: '泳がせ専用', spectral: '幻海流', normal: '通常',
+    byRate: '実測でいちばん釣りやすいエサ（信頼度で補正）', swimOnly: '泳がせ専用',
+    rivals: 'このエサに反応する魚', confidence: '信頼下限', spectral: '幻海流', normal: '通常',
     targets: '狙える魚', legendOnly: '伝説魚が狙える便', bonusAim: '狙える称号', bonusNear: '惜しい',
     titles: '称号と釣り方', generalGuides: '全般',
     guideNote: '達成条件と得点倍率はゲームデータより。具体的な釣り方（秒数の見極め、多重フッキングの判断、マクロ）は、まとめてくださっている方の記事へのリンクを置いています。数値の転記はしていないので、詳しくはリンク先をご覧ください。',
@@ -1190,12 +1196,15 @@ const STR = {
     scope: 'Scope', allFish: 'All fish', rarity: 'Rarity', rare: 'Rare', fishUnit: '',
     collectable: 'Collectable', clearHere: 'Clear here', note: 'Note',
     assumedFree: 'Plenty of catch data and no restriction upstream, so treated as always available',
+    unverified: 'Unverified', unverifiedTip: 'Based on a player report, not yet confirmed',
+    manualCond: 'Entered by hand from player reports, as upstream has no data yet',
     points: 'Points', bonus: 'Bonus objectives', ptsUnit: 'pt', multiHook: 'triple hook',
     biteSource: 'Source: Lodinn\u2019s aggregation of player reports collected via Teamcraft Allagan Reports. Catch rate is the share of all casts with that bait.',
     minutes: 'min', hoursU: 'h', days: 'd', ago: 'in ', secU: 's',
     nushiOne: 'Big Fish', oonushi: 'Legendary',
     estimated: 'Estimated', fromPredator: ' \u2014 derived from this predator',
-    byRate: 'highest measured catch rate', swimOnly: 'only via swimming bait', spectral: 'Spectral', normal: 'Normal',
+    byRate: 'easiest bait by measured rate (confidence adjusted)', swimOnly: 'only via swimming bait',
+    rivals: 'species biting this bait', confidence: 'lower bound', spectral: 'Spectral', normal: 'Normal',
     targets: 'Targets', legendOnly: 'Legendary only', bonusAim: 'Bonuses', bonusNear: 'Close',
     titles: 'Achievements & guides', generalGuides: 'General',
     guideNote: 'Requirements and score multipliers come from game data. For the fine details (bite-time reads, when to multi-hook, macros) we link to community guides rather than copying their numbers.',
@@ -1492,20 +1501,66 @@ for (const [key, rec] of Object.entries(DB.bite ?? {})) {
 for (const m of biteIndex.values()) for (const arr of m.values()) arr.sort((a, b) => b.n - a.n);
 
 /**
- * その釣り場・その魚で、いちばん釣果率の高いエサ。
- * オーシャンフィッシングの魚は上流にエサ情報が無いので、実測から選ぶ。
+ * 実測の釣果率は「そのエサで1回投げたとき、その魚がかかる確率」。
+ * 競合する魚が多いエサほど自然に下がるので、率そのものが「抽選の当たりやすさ」になっている。
+ *
+ * ただし観測回数が少ないと率が当てにならない（10回で3匹釣れて30%、など）。
+ * そこで Wilson の下側信頼限界を採り、少ないサンプルの率を割り引いて比べる。
+ */
+function wilsonLower(rate, catches, misses) {
+  if (!rate || rate <= 0) return 0;
+  const succ = catches + (misses ?? 0);
+  const total = Math.round(succ / (rate / 100));
+  if (!total || succ > total) return 0;
+  const z = 1.96, p = succ / total, n = total;
+  return Math.max(0, (p + (z * z) / (2 * n) - z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / (1 + (z * z) / n));
+}
+
+/** その釣り場でそのエサに反応する魚の種類数（率1%未満は数えない） */
+const baitCompetition = new Map();          // `${spotId}:${baitId}` -> 種類数
+function competitionOf(spotId, baitId) {
+  const key = `${spotId}:${baitId}`;
+  if (baitCompetition.has(key)) return baitCompetition.get(key);
+  let n = 0;
+  for (const arr of biteIndex.get(spotId)?.values() ?? []) {
+    if (arr.some((r) => r.baitId === baitId && (r.rate ?? 0) >= 1)) n++;
+  }
+  baitCompetition.set(key, n);
+  return n;
+}
+
+/**
+ * その釣り場・その魚でいちばん釣りやすいエサ。
+ * 信頼限界がほぼ並んだときは、抽選の選択肢が少ない（競合の魚が少ない）ほうを選ぶ。
  */
 function bestBaitByRate(fishId, spotId) {
   const arr = biteIndex.get(spotId)?.get(fishId);
   if (!arr?.length) return null;
-  const ranked = arr.filter((r) => r.rate != null).sort((a, b) => b.rate - a.rate || b.n - a.n);
-  return ranked[0] ?? null;
+  const scored = arr.filter((r) => r.rate != null && r.rate > 0).map((r) => ({
+    ...r,
+    lower: wilsonLower(r.rate, r.n, r.miss),
+    rivals: competitionOf(spotId, r.baitId),
+  }));
+  if (!scored.length) return null;
+  scored.sort((a, b) => {
+    if (Math.abs(a.lower - b.lower) > 0.02) return b.lower - a.lower;   // 2ポイント以上の差は率で決める
+    if (a.rivals !== b.rivals) return a.rivals - b.rivals;              // 僅差なら競合が少ないほう
+    return b.n - a.n;                                                   // それも同じなら実測が多いほう
+  });
+  return scored[0];
 }
 /** エサのアイコン。魚（泳がせ）なら魚のアイコンを使う */
 function baitIcon(id) {
   const o = DB.baits[id] ?? DB.fish[id];
   return o ? iconImg(o, 'baiticon') : '';
 }
+/** 魚影の大きさ。丸の大小で直感的に分かるようにする */
+const SHADOW_MARK = {
+  Small: '<svg class="shmark" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.6" fill="currentColor"/></svg>',
+  Normal: '<svg class="shmark" viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.2" fill="currentColor"/></svg>',
+  Large: '<svg class="shmark" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="currentColor"/></svg>',
+};
+
 /** 収集品の印 */
 const COLLECT_SVG = `<svg class="collicon" viewBox="0 0 16 16" aria-hidden="true">
   <path d="M8 1.6 9.9 5.6l4.4.6-3.2 3.1.8 4.4L8 11.6l-3.9 2.1.8-4.4L1.7 6.2l4.4-.6z"
@@ -1813,7 +1868,8 @@ function baitHTML(f, spotId) {
     if (b) {
       const parts = b.path.map((id, i) =>
         `${i ? '<span class="arrow">▸</span>' : ''}<span class="b stat${i ? ' prey' : ''}">${esc(baitName(id))}</span>`);
-      return `<div class="bait" title="${T('byRate')}${b.swimOnly ? ` / ${T('swimOnly')}` : ''}">
+      return `<div class="bait" title="${T('byRate')}${b.swimOnly ? ` / ${T('swimOnly')}` : ''}${
+        b.rivals ? ` / ${T('rivals')} ${b.rivals}` : ''}">
         ${parts.join('')}<span class="brate-inline">${b.rate}%</span></div>`;
     }
     if (f.predators.length) return `<div class="bait">${predatorHTML(f)}</div>`;
@@ -1855,7 +1911,8 @@ function fishRow(f, spot) {
     f.bigFish ? `<span class="tag big">${T('bigFish')}</span>` : '',
     f.folklore ? `<span class="tag folk">${T('folklore')}</span>` : '',
     f.collectable ? `<span class="tag coll">${COLLECT_SVG}${T('collectUse')}</span>` : '',
-    f.gig ? `<span class="tag gig">${T('gig')}${T('shadow' + f.gig)}</span>` : '',
+    f.gig ? `<span class="tag gig" title="${T('shadow')}: ${T('shadow' + f.gig)}">${
+      SHADOW_MARK[f.gig] ?? ''}${T('shadow' + f.gig)}</span>` : '',
     lureTag(f),
     f.oceanLegend ? `<span class="tag legend">${T('legendFish')}</span>` : '',
     f.spectralTrigger ? `<span class="tag trigger">${T('trigger')}</span>` : '',
@@ -2347,6 +2404,9 @@ function condChips(f, spotId) {
     const p = DB.fish[f.derived.fromPredator];
     c.push(`<span class="wchip guess" title="${esc(nm(p?.n))}${T('fromPredator')}">⚠ ${T('estimated')}</span>`);
   }
+  if (f.condManual && f.condVerified === false) {
+    c.push(`<span class="wchip guess" title="${T('unverifiedTip')}">⚠ ${T('unverified')}</span>`);
+  }
   if (d.startHour !== 0 || d.endHour !== 24) c.push(`<span class="wchip">ET ${etShort(d.startHour)}–${etShort(d.endHour)}</span>`);
   d.prevWeather.forEach((w) => c.push(`<span class="wchip prev">${T('prev')}${wIcon(w)}${esc(wName(w))}</span>`));
   d.weather.forEach((w) => c.push(`<span class="wchip">${wIcon(w)}${esc(wName(w))}</span>`));
@@ -2526,7 +2586,7 @@ function renderNushi(keepScroll = false) {
   $('#stage').innerHTML = `<div class="wrap">
     <div class="spot-head">
       <h1>ヌシ・オオヌシ</h1>
-      <div class="meta">${DB.meta.nushiCount} 匹（うちオオヌシ <b>${DB.meta.oonushiCount}</b>）· 次の窓を最大400日先まで探索</div>
+      <div class="meta">${DB.meta.nushiCount} 匹（うちオオヌシ <b>${DB.meta.oonushiCount}</b>）· 釣れる時間を最大400日先まで探索</div>
     </div>
     <div class="eyebrow">BIG FISH — NEXT WINDOWS</div>
     ${favTimelineHTML()}
@@ -2944,10 +3004,12 @@ function renderWelcome() {
       <div class="dvoy">${voy.map(({ dep, v }) => `
         <div class="dv">
           <div class="dv-t"><b>${dayLabel(dep)}${hhmm(dep)}</b> <span class="rel">${relTime(dep)}</span></div>
-          <div class="dv-r"><span class="oname indigo">${esc(nm(v.indigo?.n))}</span>
-            ${targetChips(v.indigo)}</div>
-          <div class="dv-r"><span class="oname ruby">${esc(nm(v.ruby?.n))}</span>
-            ${targetChips(v.ruby)}</div>
+          <div class="dv-r"><span class="oname indigo">${esc(nm(v.indigo?.n))}
+            <em>${v.indigo ? esc(timeLabel(v.indigo.destTime)) : ''}</em></span>${rankTag(v.indigo)}
+            ${bonusChips(v.indigo)}${targetChips(v.indigo)}</div>
+          <div class="dv-r"><span class="oname ruby">${esc(nm(v.ruby?.n))}
+            <em>${v.ruby ? esc(timeLabel(v.ruby.destTime)) : ''}</em></span>${rankTag(v.ruby)}
+            ${bonusChips(v.ruby)}${targetChips(v.ruby)}</div>
         </div>`).join('')}</div>
     </section>
 
@@ -3018,7 +3080,7 @@ function openFish(fishId, fromSpotId) {
 
   const biteSec = bites.length ? `
     <table class="btab">
-      <thead><tr><th>${T('baitCol')}</th><th>${T('biteSec')}</th><th>${T('chumCol')}</th><th>${T('rate')}</th><th>${T('samples')}</th></tr></thead>
+      <thead><tr><th>${T('baitCol')}</th><th>${T('biteSec')}</th><th>${T('chumCol')}</th><th>${T('rate')}</th><th>${T('rivals')}</th><th>${T('samples')}</th></tr></thead>
       <tbody>${(() => {
       const hs = bites.map((b) => unpackHist(b.h));
       const dmax = Math.ceil(Math.max(20, ...bites.map((b) => b.hi ?? 0),
@@ -3031,6 +3093,7 @@ function openFish(fishId, fromSpotId) {
             ${h ? `<svg class="spark" viewBox="0 0 350 24" preserveAspectRatio="none"><path d="${histPath(h, dmax)}" fill="currentColor" opacity=".55"/></svg>` : ''}</td>
           <td class="num">${b.clo != null ? `${b.clo}–${b.chi}<span class="unit">s</span>` : '—'}</td>
           <td class="num">${b.rate != null ? b.rate + '%' : '—'}</td>
+          <td class="num dim">${spot ? competitionOf(spot.id, b.baitId) : '—'}</td>
           <td class="num dim">${b.n}</td>
         </tr>`;
       }).join(''); })()}</tbody>
@@ -3072,6 +3135,9 @@ function openFish(fishId, fromSpotId) {
           <dt>${T('hours')}</dt><dd>${!f.hasConditions ? T('unknown') : (f.startHour === 0 && f.endHour === 24 ? T('allDay') : `ET ${etLabel(f.startHour)} – ${etLabel(f.endHour)}`)}</dd>
           ${f.condAssumed ? `<dt>${T('note')}</dt><dd class="assumed">${T('assumedFree')}${
             f.catches ? `（${f.catches} ${T('samples')}）` : ''}</dd>` : ''}
+          ${f.condManual ? `<dt>${T('note')}</dt><dd class="assumed">${
+            f.condVerified === false ? `⚠ ${T('unverifiedTip')}` : T('manualCond')}${
+            f.condNote ? `<br>${esc(f.condNote)}` : ''}</dd>` : ''}
           <dt>${T('weather')}</dt><dd>${!f.hasConditions ? T('unknown')
             : (f.weather.length ? f.weather.map((w) => wIcon(w) + esc(wName(w))).join(' / ') : T('anyWeather'))}
             ${f.prevWeather.length ? `<br><span style="color:var(--mist)">${T('prev')} ${f.prevWeather.map((w) => wIcon(w) + esc(wName(w))).join(' / ')}</span>` : ''}</dd>

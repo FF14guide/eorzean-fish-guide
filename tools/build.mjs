@@ -314,7 +314,8 @@ async function main() {
       x: s.coords?.x ?? null,
       y: s.coords?.y ?? null,
       spear: spearIds.has(s.id),
-      mapId: s.mapId ?? null,
+      // 合成釣り場は mapId が実際と違うので、振り分け表の指定を優先する
+      mapId: groupCfg.maps?.[s.zoneId]?.mapId ?? s.mapId ?? null,
       ex: exOfSpot(s.id, territoryId, s.placeId, s.zoneId),
       ocean: oceanMain.has(s.id) || oceanSub.has(s.id),
       spectral: oceanSub.has(s.id),
@@ -433,6 +434,33 @@ async function main() {
     }
     fish[id] = entry;
   }
+
+  // ─── 手で補った条件 ──────────────────────────────────────
+  // 上流がまだ持っていない魚（主に最新パッチのオオヌシ）を data/fish-conditions.json で補う。
+  // 上流が対応したら、そちらが自動で使われるよう「上流に無いときだけ」上書きする。
+  let manualCond = { fish: {} };
+  try { manualCond = JSON.parse(await readFile(path.join(ROOT, 'data', 'fish-conditions.json'), 'utf8')); }
+  catch { /* 無くてよい */ }
+  let manualApplied = 0;
+  for (const [id, c] of Object.entries(manualCond.fish ?? {})) {
+    const f = fish[id];
+    if (!f) { log(`cond   ID ${id} (${c.name ?? ''}) は魚に見つからず`); continue; }
+    if (f.hasConditions && !f.unknownTime && !f.unknownWeather) continue;   // 上流が持っているなら触らない
+    if (c.start != null) { f.startHour = c.start; f.endHour = c.end ?? 24; }
+    if (c.weather) f.weather = c.weather;
+    if (c.prevWeather) f.prevWeather = c.prevWeather;
+    if (c.bait) f.baitPath = c.bait;
+    if (c.predators) f.predators = c.predators;
+    if (c.lure) f.lure = LURE[c.lure] ?? null;
+    f.hasConditions = true;
+    f.unknownTime = false;
+    f.unknownWeather = false;
+    f.condManual = true;
+    f.condVerified = c.verified !== false;
+    if (c.note) f.condNote = c.note;
+    manualApplied++;
+  }
+  if (manualApplied) log(`cond   手入力の条件 ${manualApplied} 種を反映`);
 
   // ─── 制約なしとみなす魚 ──────────────────────────────────
   // 上流の Fish Tracker は「時間や天候の制約がある魚」しか扱っていない。
@@ -731,6 +759,8 @@ async function main() {
       fishCount: Object.keys(fish).length,
       conditionCount: Object.values(fish).filter((f) => f.hasConditions).length,
       assumedFreeCount: assumedFree,
+      manualCondCount: manualApplied,
+      manualCondSource: manualCond.source ?? null,
       biteTimeCount: Object.keys(biteTimes).length,
       biteSource: biteMeta?.source ?? null,
       biteImportedAt: biteMeta?.importedAt ?? null,

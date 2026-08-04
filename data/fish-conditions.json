@@ -1,0 +1,64 @@
+{
+  "$comment": [
+    "上流の Fish Tracker がまだ条件を持っていない魚を、手で補うファイル。",
+    "ここに書いた内容は上流のデータより優先される。上流が対応したら該当行を消せばよい。",
+    "",
+    "key   … 魚のアイテムID（魚の詳細パネルに出る）",
+    "start / end … ET の時間。24時間表記。省略すると終日",
+    "weather     … 必要な天候のID（複数可）",
+    "prevWeather … 直前の天候のID（複数可）",
+    "bait        … エサの道筋。魚のIDを混ぜると泳がせになる",
+    "predators   … 漁師の直感の前提。[魚ID, 匹数] の配列",
+    "lure        … Modest / Ambitious",
+    "verified    … false にすると画面に「要検証」と出る",
+    "",
+    "天候ID: 1快晴 2晴れ 3曇り 4霧 5風 7雨 8暴雨 10雷雨 11砂塵 50放電"
+  ],
+  "source": "プレイヤーの実地調査による報告",
+  "fish": {
+    "52010": {
+      "name": "ロネークポリプテルス",
+      "start": 22, "end": 24,
+      "prevWeather": [2], "weather": [11],
+      "bait": [47993],
+      "note": "ドクトーの泳がせ"
+    },
+    "52009": {
+      "name": "スカイライトハート",
+      "start": 16, "end": 21,
+      "prevWeather": [1], "weather": [7],
+      "bait": [43740],
+      "predators": [[43740, 3], [52002, 1]]
+    },
+    "52297": {
+      "name": "ライトニングボール",
+      "start": 2, "end": 4,
+      "prevWeather": [10], "weather": [50],
+      "bait": [43858],
+      "predators": [[43775, 1]]
+    },
+    "52007": {
+      "name": "ネー・ラァ・ドー",
+      "start": 15, "end": 16,
+      "prevWeather": [4], "weather": [5],
+      "bait": [43858],
+      "lure": "Modest"
+    },
+    "52011": {
+      "name": "三刃の鯱",
+      "start": 8, "end": 13,
+      "prevWeather": [3], "weather": [4],
+      "bait": [43859],
+      "predators": [[43795, 2], [52006, 1]]
+    },
+    "52008": {
+      "name": "ヂェファ・ボポル",
+      "start": 13, "end": 15,
+      "prevWeather": [3], "weather": [8],
+      "bait": [43697],
+      "predators": [[43697, 6]],
+      "verified": false,
+      "note": "ウッドキャットの泳がせ"
+    }
+  }
+}
