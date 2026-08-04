@@ -306,6 +306,10 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .baiticon{width:17px;height:17px;flex:none;border-radius:3px}
 .collicon{width:13px;height:13px;vertical-align:-2px;margin-right:3px}
 .shmark{width:12px;height:12px;vertical-align:-2px;margin-right:3px}
+.tag.speed{color:var(--aqua);background:rgba(79,220,236,.12)}
+.spmark{font-style:normal;font-family:var(--mono);letter-spacing:-2px;margin-right:4px;font-weight:800}
+.spmark.s0{color:#6E86B8} .spmark.s1{color:var(--aqua)} .spmark.s2{color:var(--lime)}
+.spmark.s3{color:var(--gold)} .spmark.s4{color:var(--coral)}
 .uptag{
   display:inline-block;font-family:var(--mono);font-size:10px;color:var(--dim);
   white-space:nowrap;line-height:1.5;
@@ -467,6 +471,19 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .chipbtn.check{border-color:rgba(143,232,112,.5);color:var(--lime)}
 .chipbtn.check:hover{background:rgba(143,232,112,.14)}
 .intuit{font-size:10.5px;color:var(--gold);margin-top:3px;line-height:1.4}
+.ptug{
+  font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:-.05em;
+  padding:0 4px;border-radius:3px;margin:0 3px;
+}
+.ptug.t1{color:var(--aqua);background:rgba(79,220,236,.14)}
+.ptug.t2{color:var(--gold);background:rgba(245,197,99,.16)}
+.ptug.t3{color:var(--coral);background:rgba(255,126,126,.16)}
+.pnum{font-family:var(--mono);font-size:10px;font-weight:700;margin-left:1px}
+.pplus{color:var(--dim);margin:0 5px}
+.idur{
+  font-family:var(--mono);font-size:9px;color:var(--dim);margin-left:7px;
+  padding:1px 5px;border-radius:var(--pill);background:rgba(46,74,125,.4);
+}
 .intuit .ilabel{
   font-size:9px;font-weight:700;padding:1px 5px;border-radius:var(--pill);
   background:rgba(245,197,99,.16);margin-right:4px;
@@ -1123,7 +1140,7 @@ const STR = {
     uses: '使い道', craftUse: '素材', gcUse: 'GC納品', collectUse: '収集品',
     lureAmb: 'アンビ', lureMod: 'モデスト', lureOnly: 'ルアー必須', lure: 'ルアー',
     condUnknown: 'データ不明', trigger: '幻海流トリガー', rareFish: '稀少魚',
-    shadow: '魚影', shadowSmall: '小', shadowNormal: '中', shadowLarge: '大',
+    shadow: '魚影', shadowSmall: '小', shadowNormal: '中', shadowLarge: '大', gigSpeed: '泳ぐ速さ',
     highScore: '高得点', rankTip: '高得点の狙いやすさ（Sarimile Fon 氏の評価を参照）',
     sortBy: '並び替え', filter: '絞り込み', reset: 'すべて解除', status: '状態',
     expansion: '拡張', hookset: 'フッキング', band: '時間帯',
@@ -1187,7 +1204,7 @@ const STR = {
     uses: 'Used for', craftUse: 'Ingredient', gcUse: 'GC delivery', collectUse: 'Collectable',
     lureAmb: 'Amb', lureMod: 'Mod', lureOnly: 'Lure required', lure: 'Lure',
     condUnknown: 'Unknown', trigger: 'Spectral trigger', rareFish: 'Rare',
-    shadow: 'Shadow', shadowSmall: 'S', shadowNormal: 'M', shadowLarge: 'L',
+    shadow: 'Shadow', shadowSmall: 'S', shadowNormal: 'M', shadowLarge: 'L', gigSpeed: 'Speed',
     highScore: 'high score', rankTip: 'How easy high scores are (community rating)',
     sortBy: 'Sort', filter: 'Filter', reset: 'Clear all', status: 'Status',
     expansion: 'Expansion', hookset: 'Hookset', band: 'Time of day',
@@ -1561,6 +1578,14 @@ const SHADOW_MARK = {
   Large: '<svg class="shmark" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="currentColor"/></svg>',
 };
 
+/** 魚影の速さ。矢印の数で段階を示す */
+const SPEED_ORDER = ['超低速', '極低速', '低速', 'やや低速', '普通', 'やや高速', '高速', '極高速', '超高速', '最高速', '爆速'];
+function SPEED_MARK(sp) {
+  const i = SPEED_ORDER.indexOf(sp.ja);
+  const lv = i < 0 ? 2 : i <= 1 ? 0 : i <= 3 ? 1 : i <= 4 ? 2 : i <= 6 ? 3 : 4;
+  return `<i class="spmark s${lv}">${'›'.repeat(lv + 1)}</i>`;
+}
+
 /** 収集品の印 */
 const COLLECT_SVG = `<svg class="collicon" viewBox="0 0 16 16" aria-hidden="true">
   <path d="M8 1.6 9.9 5.6l4.4.6-3.2 3.1.8 4.4L8 11.6l-3.9 2.1.8-4.4L1.7 6.2l4.4-.6z"
@@ -1855,10 +1880,16 @@ function weatherHTML(f, territoryId) {
   return `<div class="weather">${prev}${cur}</div>`;
 }
 
+/** 前提魚。引きの強さを添えて、どのフッキングを使うかその場で分かるようにする */
 function predatorHTML(f) {
   if (!f.predators.length) return '';
-  const p = f.predators.map(([id, n]) => `${esc(nm(DB.fish[id]?.n) || baitName(id))}×${n}`).join(' + ');
-  return `<div class="intuit"><span class="ilabel">${T('intuition')}</span> ${p}</div>`;
+  const p = f.predators.map(([id, n]) => {
+    const pf = DB.fish[id];
+    const tug = pf?.tugJa ? `<b class="ptug t${pf.tugRank}">${pf.tugJa}</b>` : '';
+    return `${esc(nm(pf?.n) || baitName(id))}${tug}<span class="pnum">×${n}</span>`;
+  }).join('<span class="pplus">+</span>');
+  return `<div class="intuit"><span class="ilabel">${T('intuition')}</span> ${p}${
+    f.intuition ? `<span class="idur">${f.intuition}${T('secU')}</span>` : ''}</div>`;
 }
 
 function baitHTML(f, spotId) {
@@ -1913,6 +1944,8 @@ function fishRow(f, spot) {
     f.collectable ? `<span class="tag coll">${COLLECT_SVG}${T('collectUse')}</span>` : '',
     f.gig ? `<span class="tag gig" title="${T('shadow')}: ${T('shadow' + f.gig)}">${
       SHADOW_MARK[f.gig] ?? ''}${T('shadow' + f.gig)}</span>` : '',
+    f.gigSpeed ? `<span class="tag speed" title="${T('gigSpeed')}: ${esc(nm(f.gigSpeed))}">${
+      SPEED_MARK(f.gigSpeed)}${esc(nm(f.gigSpeed))}</span>` : '',
     lureTag(f),
     f.oceanLegend ? `<span class="tag legend">${T('legendFish')}</span>` : '',
     f.oceanRare ? `<span class="tag rarefish">${T('rareFish')}</span>` : '',
@@ -3127,8 +3160,10 @@ function openFish(fishId, fromSpotId) {
             return `${b.path.map(baitName).map(esc).join(' ▸ ')}
               <span style="color:var(--dim);font-size:11px">${b.rate}% · ${b.swimOnly ? T('swimOnly') : T('byRate')}</span>`;
           })()}</dd>
-          ${f.predators.length ? `<dt>${T('intuition')}</dt><dd>${f.predators.map(([id, n]) =>
-            `${esc(nm(DB.fish[id]?.n) || baitName(id))} ×${n}`).join(' + ')}${f.intuition ? `（${f.intuition}s）` : ''}</dd>` : ''}
+          ${f.predators.length ? `<dt>${T('intuition')}</dt><dd>${f.predators.map(([id, n]) => {
+            const pf = DB.fish[id];
+            return `${esc(nm(pf?.n) || baitName(id))}${pf?.tugJa ? ` <b class="ptug t${pf.tugRank}">${pf.tugJa}</b>` : ''} ×${n}`;
+          }).join(' + ')}${f.intuition ? `（${f.intuition}${T('secU')}）` : ''}</dd>` : ''}
           <dt>${T('hours')}</dt><dd>${!f.hasConditions ? T('unknown') : (f.startHour === 0 && f.endHour === 24 ? T('allDay') : `ET ${etLabel(f.startHour)} – ${etLabel(f.endHour)}`)}</dd>
           ${f.condAssumed ? `<dt>${T('note')}</dt><dd class="assumed">${T('assumedFree')}${
             f.catches ? `（${f.catches} ${T('samples')}）` : ''}</dd>` : ''}
@@ -3141,7 +3176,8 @@ function openFish(fishId, fromSpotId) {
           ${f.lure ? `<dt>${T('lure')}</dt><dd class="lureline">${lureTag(f, true)}${esc(nm(f.lure))}</dd>` : ''}
           <dt>${T('tug')}</dt><dd>${f.tugJa ?? '—'}${f.hookset ? ` ／ ${esc(nm(f.hookset))}` : ''}
             ${f.tugFromStats ? `<span style="color:var(--dim);font-size:11px">${T('fromStats')}</span>` : ''}</dd>
-          ${f.gig ? `<dt>${T('shadow')}</dt><dd>${T('shadow' + f.gig)}</dd>` : ''}
+          ${f.gig ? `<dt>${T('shadow')}</dt><dd>${T('shadow' + f.gig)}${
+            f.gigSpeed ? ` ／ ${esc(nm(f.gigSpeed))}` : ''}</dd>` : ''}
           ${f.snagging ? `<dt>${T('snagging')}</dt><dd>✓</dd>` : ''}
           ${f.folklore ? `<dt>${T('folklore')}</dt><dd>${esc(nm(f.folklore))}</dd>` : ''}
           ${f.fishEyes ? '<dt>フィッシュアイ</dt><dd>有効</dd>' : ''}
@@ -3171,6 +3207,8 @@ function openFish(fishId, fromSpotId) {
             return `<div class="stp">
               ${p ? iconImg(p, 'ficon sm') : ''}
               <span class="sn" ${p ? `data-fish="${p.id}" data-fishspot="${spot?.id ?? ''}"` : ''}>${esc(nm(p?.n) || baitName(id))}</span>
+              ${p?.tugJa ? `<b class="ptug t${p.tugRank}">${p.tugJa}</b>` : ''}
+              ${p?.hookset ? `<span class="sb">${esc(nm(p.hookset).replace(/フッキング|Hookset/g, ''))}</span>` : ''}
               <span class="sx">×${n}</span>
               ${p?.baitPath.length ? `<span class="sb">${p.baitPath.map(baitName).map(esc).join(' ▸ ')}</span>` : ''}
               ${pb?.lo != null ? `<span class="wchip bite">${pb.lo}–${pb.hi}s</span>` : ''}

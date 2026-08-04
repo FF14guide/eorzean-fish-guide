@@ -37,6 +37,9 @@ const DM = 'https://raw.githubusercontent.com/xivapi/ffxiv-datamining/master/csv
 // StreamDeck プラグイン（momokotomoko）が持っている一覧を借りる。
 const OF = 'https://raw.githubusercontent.com/momokotomoko/ffxivStreamDeckOceanFishingPlugin/master'
   + '/Sources/com.elgato.ffxivoceanfishing.sdPlugin';
+// AutoHook（Dalamud プラグイン / BSD 3-Clause）が銛の魚影サイズと速さを持っている。
+// ゲームデータにも他のコミュニティデータにも無い情報なので、ここから借りる。
+const AH = 'https://raw.githubusercontent.com/PunishXIV/AutoHook/main/AutoHook/Data/FishData';
 
 const SOURCES = {
   'fishing-spots.json': `${TC}/fishing-spots.json`,
@@ -67,6 +70,7 @@ const SOURCES = {
   'ocean-indigo.json': `${OF}/oceanFishingDatabase%20-%20Indigo%20Route.json`,
   'ocean-ruby.json': `${OF}/oceanFishingDatabase%20-%20Ruby%20Route.json`,
   'IKDFishParam.csv': `${DM}/en/IKDFishParam.csv`,
+  'autohook-fish.json': `${AH}/fish_list.json`,
   'IKDContentBonus_ja.csv': `${DM}/ja/IKDContentBonus.csv`,
   'IKDContentBonus_en.csv': `${DM}/en/IKDContentBonus.csv`,
   'Recipe.csv': `${DM}/en/Recipe.csv`,
@@ -435,6 +439,32 @@ async function main() {
     fish[id] = entry;
   }
 
+  // ─── 銛の魚影（大きさと速さ）──────────────────────────
+  // AutoHook の fish_list.json より。ゲーム内の表示と同じ 3 段階／12 段階。
+  const GIG_SIZE = { 1: 'Small', 2: 'Normal', 3: 'Large' };
+  const GIG_SPEED = {
+    100: { ja: '超低速', en: 'Super Slow' },   150: { ja: '極低速', en: 'Extremely Slow' },
+    200: { ja: '低速',   en: 'Very Slow' },    250: { ja: 'やや低速', en: 'Slow' },
+    300: { ja: '普通',   en: 'Average' },      350: { ja: 'やや高速', en: 'Fast' },
+    400: { ja: '高速',   en: 'Very Fast' },    450: { ja: '極高速', en: 'Extremely Fast' },
+    500: { ja: '超高速', en: 'Super Fast' },   550: { ja: '最高速', en: 'Hyper Fast' },
+    600: { ja: '爆速',   en: 'Mega Fast' },
+  };
+  let gigCount = 0;
+  try {
+    for (const r of JSON.parse(raw['autohook-fish.json'])) {
+      const f = fish[r.ItemId];
+      if (!f) continue;
+      const size = GIG_SIZE[r.Size];
+      const speed = GIG_SPEED[r.Speed];
+      if (!size && !speed) continue;
+      if (size) f.gig = size;
+      if (speed) f.gigSpeed = fill(speed);
+      gigCount++;
+    }
+    log(`gig    魚影の大きさ・速さ ${gigCount} 種`);
+  } catch (e) { log(`gig    取り込み失敗: ${e.message}`); }
+
   // ─── 手で補った条件 ──────────────────────────────────────
   // 上流がまだ持っていない魚（主に最新パッチのオオヌシ）を data/fish-conditions.json で補う。
   // 上流が対応したら、そちらが自動で使われるよう「上流に無いときだけ」上書きする。
@@ -797,6 +827,7 @@ async function main() {
         'xivapi/ffxiv-datamining — 銛・説明文・オーシャンフィッシングの運行表',
         ...(biteMeta?.source ? ['Lodinn — ヒットタイムと釣果率の実測統計'] : []),
         'momokotomoko / StreamDeck Ocean Fishing — 伝説魚と時間限定魚',
+        'PunishXIV / AutoHook (BSD 3-Clause) — 銛の魚影の大きさと速さ',
       ],
     },
     areaOrder,
