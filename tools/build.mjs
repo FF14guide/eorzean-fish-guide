@@ -78,6 +78,8 @@ const SOURCES = {
   'ExVersion_en.csv': `${DM}/en/ExVersion.csv`,
   'ExVersion_de.csv': `${DM}/de/ExVersion.csv`,
   'ExVersion_fr.csv': `${DM}/fr/ExVersion.csv`,
+  'ExportedGatheringPoint.csv': `${DM}/en/ExportedGatheringPoint.csv`,
+  'Map.csv': `${DM}/en/Map.csv`,
   'ocean-indigo.json': `${OF}/oceanFishingDatabase%20-%20Indigo%20Route.json`,
   'ocean-ruby.json': `${OF}/oceanFishingDatabase%20-%20Ruby%20Route.json`,
   'IKDFishParam.csv': `${DM}/en/IKDFishParam.csv`,
@@ -286,6 +288,30 @@ async function main() {
   const exOfTerritory = new Map(territories.map((r) => [Number(r['#']), Number(r.ExVersion)]));
   // 銛の釣り場は Teamcraft に無く自前で組み立てるので、地図は territory から引く
   const mapOfTerritory = new Map(territories.map((r) => [Number(r['#']), Number(r.Map)]).filter(([, m]) => m));
+
+  // 銛の座標。ExportedGatheringPoint はワールド座標なので、地図の縮尺と原点で変換する。
+  const mapMeta = new Map(parseCsv(raw['Map.csv']).map((r) => [Number(r['#']), {
+    size: Number(r.SizeFactor) || 100,
+    ox: Number(r['Offset{X}'] ?? r.OffsetX) || 0,
+    oy: Number(r['Offset{Y}'] ?? r.OffsetY) || 0,
+  }]));
+  const exported = new Map(parseCsv(raw['ExportedGatheringPoint.csv'])
+    .map((r) => [Number(r['#']), { x: Number(r.X), y: Number(r.Y) }]));
+  /** ワールド座標 → ゲーム内のマップ座標（1〜42 の系） */
+  const toMapCoord = (world, offset, size) => {
+    const c = size / 100;
+    return ((41 / c) * (((world + offset) * c + 1024) / 2048)) + 1;
+  };
+  const gigPos = (baseId, terr) => {
+    const p = exported.get(baseId);
+    const mapId = terr != null ? mapOfTerritory.get(terr) : null;
+    const m = mapId != null ? mapMeta.get(mapId) : null;
+    if (!p || !m) return {};
+    return {
+      x: Number(toMapCoord(p.x, m.ox, m.size).toFixed(1)),
+      y: Number(toMapCoord(p.y, m.oy, m.size).toFixed(1)),
+    };
+  };
   // territory_id が分からない釣り場のために、地名からも拡張を引けるようにしておく
   const exOfPlace = new Map();
   for (const r of territories) {
@@ -583,6 +609,7 @@ async function main() {
       y: null,
       spear: true,
       mapId: terr != null ? mapOfTerritory.get(terr) ?? null : null,
+      ...gigPos(baseId, terr),
       ex: exOfSpot(baseId, terr, note.PlaceName, null),
       fishes,
     });

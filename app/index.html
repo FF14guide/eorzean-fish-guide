@@ -495,6 +495,10 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .rank.r1{background:rgba(79,220,236,.16);color:var(--aqua)}
 .rank.r2{background:rgba(245,197,99,.18);color:var(--gold)}
 .rank.r3{background:linear-gradient(145deg,var(--gold),#DCA945);color:#12203A}
+.vscore{
+  font-family:var(--mono);font-size:10px;color:var(--lime);margin-left:6px;
+  background:rgba(143,232,112,.12);padding:2px 7px;border-radius:var(--pill);
+}
 .otgticon{width:16px;height:16px;flex:none;border-radius:3px;margin-right:4px;vertical-align:-3px}
 .otgt .ot-t{font-size:9px;margin-left:5px;opacity:.8}
 .nv-i svg{width:14px;height:14px}
@@ -1213,6 +1217,7 @@ const STR = {
     unverified: '要検証', unverifiedTip: 'プレイヤーからの報告に基づく条件です。まだ裏取りができていません',
     manualCond: '上流にデータが無いため、プレイヤーからの報告をもとに手で入れた条件です',
     points: '釣果点', bonus: 'ボーナス対象', ptsUnit: '点', multiHook: '多重フッキング',
+    scoreTip: '各寄港地でいちばん点の高い魚を、トリプルフッキングの匹数ぶん釣れたと仮定した目安',
     biteSource: '出典：Lodinn の集計（Teamcraft の Allagan Reports に集まった実測）。釣果率はそのエサを使ったキャスト全体に占める割合。',
     minutes: '分', hoursU: '時間', days: '日', ago: 'あと ', secU: '秒',
     nushiOne: 'ヌシ', oonushi: 'オオヌシ',
@@ -1285,6 +1290,7 @@ const STR = {
     unverified: 'Unverified', unverifiedTip: 'Based on a player report, not yet confirmed',
     manualCond: 'Entered by hand from player reports, as upstream has no data yet',
     points: 'Points', bonus: 'Bonus objectives', ptsUnit: 'pt', multiHook: 'Multi-hook',
+    scoreTip: 'Rough ceiling: best-scoring fish at each stop, times its triple-hook count',
     biteSource: 'Source: Lodinn\u2019s aggregation of player reports collected via Teamcraft Allagan Reports. Catch rate is the share of all casts with that bait.',
     minutes: 'min', hoursU: 'h', days: 'd', ago: 'in ', secU: 's',
     nushiOne: 'Big Fish', oonushi: 'Legendary',
@@ -1757,6 +1763,7 @@ const state = {
     intuition: 'any',
     weather: 'any',       // any | yes（天候縛りあり）| no
     rare: 'any',          // any | rare（出現率2%未満）
+    use: 'any',           // any | craft | gc | leve | collect
     scope: 'nushi',       // nushi | all（すべての魚）
     band: 'any',          // any | day | night
     status: new Set(),    // fav | uncaught | open
@@ -1770,6 +1777,8 @@ const state = {
   oceanDest: 'all',
   oceanTargets: true,
   cosmoQuery: '',
+  // コスモは釣り場データが乏しいので既定では出さない。#cosmo で直接開けば見られる。
+  cosmoEnabled: false,
   cosmoPlanet: 'all',
   cosmoRank: 'all',
   guideOpen: false,
@@ -1869,7 +1878,7 @@ function renderSide() {
       <span>${T('nushi')}</span>
       <span class="count">${DB.meta.nushiCount}</span>
     </button>
-    ${DB.cosmoMissions?.length ? `<button type="button" id="nav-cosmo" ${state.view === 'cosmo' ? 'aria-current="true"' : ''}>
+    ${state.cosmoEnabled ? `<button type="button" id="nav-cosmo" ${state.view === 'cosmo' ? 'aria-current="true"' : ''}>
       <span class="nv-i moon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
         <path d="M20.5 14.6A8.6 8.6 0 1 1 9.4 3.5a6.8 6.8 0 0 0 11.1 11.1Z"/></svg></span>
       <span>${T('cosmo')}</span>
@@ -2636,6 +2645,10 @@ function renderNushi(keepScroll = false) {
   if (nf.intuition !== 'any') list = list.filter((f) => (nf.intuition === 'yes') === !!f.predators.length);
   if (nf.weather !== 'any') list = list.filter((f) => (nf.weather === 'yes') === !!condOf(f).weather.length);
   if (nf.band !== 'any') list = list.filter((f) => overlapsBand(f, nf.band));
+  if (nf.use !== 'any') {
+    const key = { craft: 'craft', gc: 'gc', leve: 'leve', collect: 'collectable' }[nf.use];
+    list = list.filter((f) => !!f[key]);
+  }
   if (nf.rare === 'rare') {
     list = list.filter((f) => {
       const sp = spotById.get(f.nushiSpot ?? f.spots[0]);
@@ -2692,14 +2705,15 @@ function renderNushi(keepScroll = false) {
 
   // 効いている絞り込みの数と、外せるチップ
   const DEFAULTS = { scope: 'nushi', kind: 'all', ex: 'all', ver: 'all',
-                     intuition: 'any', weather: 'any', band: 'any', rare: 'any' };
+                     intuition: 'any', weather: 'any', band: 'any', rare: 'any', use: 'any' };
   const LABELS = { scope: T('scope'), kind: T('kind'), ex: T('expansion'), ver: T('patch'),
                    intuition: T('intuition'), weather: T('weather'), band: T('band'), rarity: T('rarity'),
                    rare: T('rarity') };
   const VAL = { yes: T('need'), no: T('noNeed'), restricted: T('restricted'), day: T('dayBand'),
                 night: T('nightBand'), nushi: T('nushiOne'), oonushi: T('oonushi'),
                 open: T('open'), fav: '★', uncaught: T('uncaughtOnly'),
-                rare: T('rare'), all: T('allFish') };
+                rare: T('rare'), all: T('allFish'),
+                craft: T('craftUse'), gc: T('gcUse'), leve: T('leveUse'), collect: T('collectUse') };
   const chips = [];
   for (const [k, d] of Object.entries(DEFAULTS)) {
     if (nf[k] === d) continue;
@@ -2757,6 +2771,8 @@ function renderNushi(keepScroll = false) {
       ${nf.ex !== 'all' && vers.length > 1 ? fgroup(T('patch'), 'ver', [['all', T('all')], ...vers.map((v) => [String(v), String(v)])]) : ''}
       ${fgroup(T('intuition'), 'intuition', [['any', T('all')], ['yes', T('need')], ['no', T('noNeed')]])}
       ${fgroup(T('rarity'), 'rare', [['any', T('all')], ['rare', T('rare')]])}
+      ${fgroup(T('uses'), 'use', [['any', T('all')], ['craft', T('craftUse')], ['gc', T('gcUse')],
+        ['leve', T('leveUse')], ['collect', T('collectUse')]])}
       ${fgroup(T('weather'), 'weather', [['any', T('all')], ['yes', T('restricted')], ['no', T('anyWeather')]])}
       ${fgroup(T('band'), 'band', [['any', T('all')], ['day', T('dayBand')], ['night', T('nightBand')]])}
       <div class="fgrp fend">
@@ -2900,6 +2916,32 @@ function bonusBestCounts() {
   return bonusBest;
 }
 
+/**
+ * その便で釣れる魚の点数から、狙える上限の目安を出す。
+ * 各寄港地でいちばん点の高い魚を、多重フッキングの匹数ぶん釣れたと仮定した値。
+ * 実際にはそこまで釣れないが、航路どうしの比較には使える。
+ */
+function voyageScore(route) {
+  if (!route) return null;
+  let total = 0;
+  for (const st of route.stops) {
+    let best = 0;
+    for (const sid of [st.spotId, st.subSpotId]) {
+      const sp = sid != null ? spotById.get(sid) : null;
+      if (!sp) continue;
+      for (const id of sp.fishes) {
+        const f = DB.fish[id];
+        if (!f?.oceanPoints) continue;
+        if (f.oceanTimes && !f.oceanTimes.includes(st.time)) continue;
+        const mult = f.oceanHook?.triple?.[0] ?? 1;
+        best = Math.max(best, f.oceanPoints * mult);
+      }
+    }
+    total += best;
+  }
+  return total || null;
+}
+
 /** 高得点の狙いやすさ。S+ 〜 D の評価を出す */
 function rankTag(route) {
   if (!route?.rank) return '';
@@ -2907,6 +2949,13 @@ function rankTag(route) {
   if (!lv) return `<span class="rank r0" title="${T('rankTip')}">${route.rank}</span>`;
   return `<span class="rank r${lv}" title="${T('rankTip')}">${route.rank}${
     lv === 3 ? ` ${T('highScore')}` : ''}</span>`;
+}
+
+/** 期待点のバッジ */
+function scoreTag(route) {
+  const v = voyageScore(route);
+  if (!v) return '';
+  return `<span class="vscore" title="${T('scoreTip')}">${v.toLocaleString()}${T('ptsUnit')}</span>`;
 }
 
 function bonusChips(route) {
@@ -3118,13 +3167,13 @@ function renderOcean() {
         </div>
         <div class="oroute">
           <div class="oname indigo">${esc(nm(v.indigo?.n)) || '—'}
-            <em>${v.indigo ? esc(timeLabel(v.indigo.destTime)) : ''}</em>${rankTag(v.indigo)}</div>
+            <em>${v.indigo ? esc(timeLabel(v.indigo.destTime)) : ''}</em>${rankTag(v.indigo)}${scoreTag(v.indigo)}</div>
           <div class="opath">${stopsHTML(v.indigo)}</div>
           ${state.oceanTargets ? bonusChips(v.indigo) + targetChips(v.indigo) : ''}
         </div>
         <div class="oroute">
           <div class="oname ruby">${esc(nm(v.ruby?.n)) || '—'}
-            <em>${v.ruby ? esc(timeLabel(v.ruby.destTime)) : ''}</em>${rankTag(v.ruby)}</div>
+            <em>${v.ruby ? esc(timeLabel(v.ruby.destTime)) : ''}</em>${rankTag(v.ruby)}${scoreTag(v.ruby)}</div>
           <div class="opath">${stopsHTML(v.ruby)}</div>
           ${state.oceanTargets ? bonusChips(v.ruby) + targetChips(v.ruby) : ''}
         </div>
@@ -3623,7 +3672,7 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('[data-nfreset]')) {
     state.nf = { scope: 'nushi', kind: 'all', ex: 'all', ver: 'all', tug: new Set(), hookset: 'any',
                  lure: 'any', folklore: 'any', intuition: 'any', weather: 'any', band: 'any',
-                 rare: 'any', status: new Set() };
+                 rare: 'any', use: 'any', status: new Set() };
     store.saveFilter(state.nf);
     renderNushi(true);
     return;
@@ -3747,7 +3796,7 @@ window.addEventListener('popstate', applyRoute);
   readHash();
   if (location.hash.startsWith('#nushi')) state.view = 'nushi';
   if (location.hash.startsWith('#ocean')) state.view = 'ocean';
-  if (location.hash.startsWith('#cosmo')) state.view = 'cosmo';
+  if (location.hash.startsWith('#cosmo')) { state.view = 'cosmo'; state.cosmoEnabled = true; }
   const m = location.hash.match(/spot\/(\d+)/);
   if (m && spotById.has(Number(m[1]))) {
     state.view = 'spot';
