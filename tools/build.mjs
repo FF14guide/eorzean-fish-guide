@@ -17,7 +17,7 @@
  */
 
 import { gunzipSync } from 'node:zlib';
-import { mkdir, readFile, writeFile, access, rm } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, access, rm, readdir, cp } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -1362,13 +1362,34 @@ async function main() {
   await writeFile(path.join(DIST, 'data', coreName), coreJson);
   await writeFile(path.join(DIST, 'data', biteName), biteJson);
 
-  const shell = tpl
+  // ─── 静的ファイル ────────────────────────────────────────
+  // app/static/ に置いたものは、そのまま dist/ の直下へ。OGP画像などの置き場。
+  const STATIC = path.join(ROOT, 'app', 'static');
+  let staticFiles = [];
+  try {
+    staticFiles = (await readdir(STATIC, { withFileTypes: true }))
+      .filter((e) => e.isFile() && !e.name.startsWith('.'))
+      .map((e) => e.name);
+  } catch { /* ディレクトリが無ければ何もしない */ }
+  for (const name of staticFiles) {
+    await cp(path.join(STATIC, name), path.join(DIST, name));
+  }
+
+  // ogp.png が無いのに og:image を書くと、リンク先が 404 のまま
+  // 大きな空枠だけが出る。無いときは og:image を落として小さいカードにする。
+  const hasOgp = staticFiles.includes('ogp.png');
+  const og = (t) => (hasOgp ? t : t
+    .replace(/^<meta property="og:image"[^\n]*\n/m, '')
+    .replace('<meta name="twitter:card" content="summary_large_image">',
+      '<meta name="twitter:card" content="summary">'));
+
+  const shell = og(tpl
     .replaceAll('__SITE_URL__', SITE_URL)
-    .replace(MARK_URLS, JSON.stringify({ core: `data/${coreName}`, bite: `data/${biteName}` }));
+    .replace(MARK_URLS, JSON.stringify({ core: `data/${coreName}`, bite: `data/${biteName}` })));
   await writeFile(path.join(DIST, 'index.html'), shell);
 
   // 単体版：ファイルを直接開いても動くよう、全部埋め込む
-  const standalone = tpl.replaceAll('__SITE_URL__', SITE_URL).replace(MARK_DATA, json);
+  const standalone = og(tpl.replaceAll('__SITE_URL__', SITE_URL)).replace(MARK_DATA, json);
   await writeFile(path.join(DIST, 'standalone.html'), standalone);
 
   // 付随ファイル
@@ -1385,6 +1406,9 @@ async function main() {
   // Cloudflare Pages / Netlify 向け。ハッシュ付きなので恒久キャッシュでよい
   await writeFile(path.join(DIST, '_headers'),
     `/data/*\n  Cache-Control: public, max-age=31536000, immutable\n\n/\n  Cache-Control: public, max-age=600\n`);
+
+  if (staticFiles.length) log(`複製   app/static → dist  ${staticFiles.join(' / ')}`);
+  if (!hasOgp) log('app/static/ogp.png が無いので og:image を省略（tools/make-ogp.py で作れる）');
 
   const sz = (t) => `${(t.length / 1024).toFixed(0)} KB`;
   log(`書き出し dist/index.html            ${sz(shell)}`);

@@ -24,6 +24,7 @@ dist/
   data/core.xxxx.json   釣り場・魚・天候・運行表。1.6 MB
   data/bite.xxxx.json   ヒットタイム。1.2 MB（後追いで読む）
   standalone.html       全部入りの単体版。2.9 MB
+  ogp.png               OGP画像。app/static/ から複製される
   robots.txt / sitemap.xml / _headers / .nojekyll
 ```
 
@@ -47,8 +48,10 @@ SITE_URL=https://fish.example.com node tools/build.mjs
 
 ```
 app/index.html               サイト本体（データ差し込み前のテンプレート）
+app/static/                  そのまま dist/ 直下へ複製される静的ファイル（ogp.png）
 tools/build.mjs              ETL。外部データを取得して正規化する
 tools/import-bite-times.mjs  ヒットタイムの実測を取り込む
+tools/make-ogp.py            OGP画像を作り直す（Pillow。ビルドには関与しない）
 tools/.cache/           ダウンロードした元データ
 data/bite-times.manual.json  手で測ったヒットタイム（あれば統計より優先）
 data/ocean-notes.json        オーシャンの釣果点・多重フッキング（手書き）
