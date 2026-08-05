@@ -387,6 +387,27 @@ async function main() {
     log('bite   ヒットタイム記録なし（tools/import-bite-times.mjs で取り込める）');
   }
 
+  // 明らかに誤りと分かっている記録を落とす。
+  // 泳がせで釣った魚が竿エサの側に数えられている取り違えが混ざっているため。
+  try {
+    const ex = JSON.parse(await readFile(path.join(ROOT, 'data', 'bite-times.exclude.json'), 'utf8'));
+    const exact = new Set();
+    const anySpot = new Set();
+    for (const e of ex.exclude ?? []) {
+      const key = typeof e === 'string' ? e : e.key;
+      if (!key) continue;
+      const [sp, fi, ba] = key.split(':');
+      if (sp === '*') anySpot.add(`${fi}:${ba}`);
+      else exact.add(key);
+    }
+    let dropped = 0;
+    for (const k of Object.keys(biteTimes)) {
+      const [sp, fi, ba] = k.split(':');
+      if (exact.has(k) || anySpot.has(`${fi}:${ba}`)) { delete biteTimes[k]; dropped++; }
+    }
+    if (dropped) log(`bite   誤りとして除外した記録 ${dropped} 件`);
+  } catch { /* 除外リストが無ければ何もしない */ }
+
   // ─── 名前解決 ────────────────────────────────────────────────
   // アイコンは XIVAPI v2 のアセットパス（Teamcraft が持っている対応表をそのまま使う）
   const iconOf = (id) => itemIcons[id] ?? null;
@@ -887,11 +908,47 @@ async function main() {
     }
     if (ahHist) log(`autohook ヒストグラム ${ahHist} 件を追加`);
     log(`autohook エサ ${ahBait} / 引き ${ahTug} / ヒットタイム ${ahBite} 種を補完`);
+
+    // ── 泳がせの経路をつなぎ直す ──────────────────────────
+    // Fish Tracker の bestCatchPath は、途中の泳がせを省いて最後の1匹しか持たないことがある。
+    // 例：ロネークポリプテルスは「ドクトー」とだけ出ていて、そのドクトーの釣り方が辿れない。
+    // AutoHook は Mooches に連鎖を全部持っているので、そこから復元する。
+    // Mooches は最後に泳がせる魚から遡る順なので、反転して先頭に竿エサを足す。
+    let ahChain = 0;
+    for (const r of JSON.parse(raw['autohook-fish.json'])) {
+      const f = fish[r.ItemId];
+      const mooches = r.Mooches ?? [];
+      if (!f || !mooches.length) continue;
+      const chain = [...mooches].reverse();          // 竿に近いほうから並べる
+      const first = fish[chain[0]];
+      const rod = first?.baitPath?.find((b) => !fish[b]);   // 連鎖の起点になる竿エサ
+      const full = rod != null ? [rod, ...chain] : chain;
+      // いまの経路より情報が増えるときだけ差し替える
+      if (full.length > (f.baitPath?.length ?? 0)) {
+        f.baitPath = full;
+        ahChain++;
+      }
+    }
+    if (ahChain) log(`autohook 泳がせの経路を ${ahChain} 種でつなぎ直し`);
   } catch (e) { log(`autohook 取り込み失敗: ${e.message}`); }
 
   // ─── 手で補った条件 ──────────────────────────────────────
   // 上流がまだ持っていない魚（主に最新パッチのオオヌシ）を data/fish-conditions.json で補う。
   // 上流が対応したら、そちらが自動で使われるよう「上流に無いときだけ」上書きする。
+  /**
+   * 手入力のエサ経路と、すでに判明している経路を突き合わせる。
+   *
+   * 手書きの条件は「ドクトーの泳がせ」のように最後の1段だけ書かれていることがある。
+   * それをそのまま採ると、AutoHook から復元した全段（ポッパールアー ▸ ニーケレピトラウト ▸ ドクトー）
+   * が短く潰れてしまう。手入力が既知の経路の末尾に一致するなら、長いほうを残す。
+   * 末尾が一致しないときは別経路の指定なので、手入力を優先する。
+   */
+  const keepLongerPath = (known, manual) => {
+    if (!known?.length || !manual?.length || known.length <= manual.length) return manual;
+    const tail = known.slice(-manual.length);
+    return tail.every((v, i) => v === manual[i]) ? known : manual;
+  };
+
   let manualCond = { fish: {} };
   try { manualCond = JSON.parse(await readFile(path.join(ROOT, 'data', 'fish-conditions.json'), 'utf8')); }
   catch { /* 無くてよい */ }
@@ -913,7 +970,7 @@ async function main() {
     if (c.start != null) { f.startHour = c.start; f.endHour = c.end ?? 24; }
     if (c.weather) f.weather = c.weather;
     if (c.prevWeather) f.prevWeather = c.prevWeather;
-    if (c.bait) f.baitPath = c.bait;
+    if (c.bait) f.baitPath = keepLongerPath(f.baitPath, c.bait);
     if (c.predators) f.predators = c.predators;
     if (c.intuition != null) f.intuition = c.intuition;
     if (c.lure) f.lure = LURE[c.lure] ?? null;
@@ -926,6 +983,47 @@ async function main() {
     manualApplied++;
   }
   if (manualApplied) log(`cond   手入力の条件 ${manualApplied} 種を反映`);
+
+  // ─── 泳がせで釣れる魚の追加 ──────────────────────────────
+  // 上流は魚ごとに最短経路を1本しか持たないので、「このエサを泳がせると
+  // 実際は何種類も掛かる」という事実が落ちる。手書きの表で補う。
+  try {
+    const extra = JSON.parse(await readFile(path.join(ROOT, 'data', 'bait-extra.json'), 'utf8'));
+    let added = 0;
+    for (const [spotId, byBait] of Object.entries(extra.spots ?? {})) {
+      // その釣り場で、上流がエサとして認めているもの一覧。
+      // FF14Angler の行は「誰かが試したエサ」なので、釣果ゼロの空振りが混ざる。
+      // どのデータ源にも出てこないエサは採らない。
+      const spot = spots.find((s) => String(s.id) === String(spotId));
+      const known = new Set();
+      for (const fid of spot?.fishes ?? []) {
+        for (const b of fish[fid]?.baitPath ?? []) {
+          for (const one of Array.isArray(b) ? b : [b]) known.add(String(one));
+        }
+      }
+      for (const [baitId, fishIds] of Object.entries(byBait)) {
+        const bid = Number(baitId);
+        if (spot && !known.has(String(bid))) {
+          log(`bait   釣り場 ${spotId} のエサ ${bid} は他のどのデータ源にも無いので採らない`);
+          continue;
+        }
+        // エサ側が魚なら泳がせ。その魚の経路を前に付けて、竿からの手順にする
+        const asFish = fish[bid];
+        const route = asFish ? [...(asFish.baitPath ?? []), bid] : [bid];
+        for (const fid of fishIds) {
+          const f = fish[fid];
+          if (!f) { log(`bait   ID ${fid} は魚に見つからず`); continue; }
+          const same = (a, b) => a.length === b.length && a.every((v, i) => String(v) === String(b[i]));
+          if (same(f.baitPath ?? [], route)) continue;      // 本命の経路と同じなら不要
+          f.altPaths ??= [];
+          if (f.altPaths.some((x) => x.s === Number(spotId) && same(x.p, route))) continue;
+          f.altPaths.push({ s: Number(spotId), p: route });
+          added++;
+        }
+      }
+    }
+    if (added) log(`bait   泳がせで釣れる魚 ${added} 件を追加（${extra.source ?? '手書き'}）`);
+  } catch { /* 無ければ何もしない */ }
 
   // ─── 制約なしとみなす魚 ──────────────────────────────────
   // 上流の Fish Tracker は「時間や天候の制約がある魚」しか扱っていない。

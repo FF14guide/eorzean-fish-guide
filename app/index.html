@@ -455,6 +455,8 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .ohead>div{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
 .orow{padding:11px 12px;border-bottom:1px solid var(--edge-soft);align-items:flex-start}
 .orow.now{background:rgba(143,232,112,.08);box-shadow:inset 3px 0 0 var(--lime)}
+.dv.now{background:rgba(143,232,112,.08);box-shadow:inset 3px 0 0 var(--lime)}
+.dv.now .rel{color:var(--lime);font-weight:700}
 .otime b{display:block;font-family:var(--mono);font-size:14px;font-weight:700}
 .otime span{font-size:10.5px;color:var(--mist)}
 .orow.now .otime span{color:var(--lime);font-weight:700}
@@ -581,7 +583,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 /* ── 魚テーブル ───────────────────────────────────────── */
 .thead,.fishrow{
   display:grid;
-  grid-template-columns:minmax(190px,1.6fr) minmax(160px,1.5fr) minmax(120px,1fr) minmax(120px,1.1fr) 66px 100px;
+  grid-template-columns:minmax(190px,1.6fr) minmax(160px,1.5fr) 66px 100px minmax(120px,1fr) minmax(120px,1.1fr);
   gap:14px;align-items:center;
 }
 .thead{
@@ -669,7 +671,9 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .tug small{display:block;font-size:8.5px;letter-spacing:.06em;font-weight:400;color:var(--dim)}
 
 /* ヒットタイム */
-.bite{font-family:var(--mono);font-size:12px;text-align:right}
+.bite{font-family:var(--mono);font-size:12px}
+.bait.alt{margin-top:3px;opacity:.72;font-size:11px}
+.bait.alt .altmark{color:var(--dim);font-family:var(--mono);font-size:9px;letter-spacing:.1em;margin-right:5px}
 .bite b{font-weight:600}
 .bite .unit{font-size:9px;color:var(--dim)}
 .bite .na{color:var(--dim);font-size:10px;letter-spacing:.06em}
@@ -927,7 +931,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
   .dgrid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
 }
 @media (max-width:1080px){
-  .thead,.fishrow{grid-template-columns:minmax(150px,1.4fr) minmax(120px,1.2fr) 104px 92px 50px 78px}
+  .thead,.fishrow{grid-template-columns:minmax(150px,1.4fr) minmax(120px,1.2fr) 50px 78px 104px 92px}
   .nhead,.nrow{grid-template-columns:84px minmax(110px,1fr) 156px minmax(100px,1fr)}
   .nhead>div:nth-child(5),.nhead>div:nth-child(6){display:none}
   .nrow>.ncond,.nrow>.nbait{grid-column:2/-1;padding-top:2px}
@@ -979,12 +983,13 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
     background:rgba(21,35,64,.5);
   }
   .fishrow.live{background:rgba(143,232,112,.09)}
-  .fishrow>.fname{grid-column:1;align-self:center}
-  .fishrow>.bite{grid-column:2;align-self:center;font-size:14px}
-  .fishrow>.bait{grid-column:1/-1}
-  .fishrow>.ribbon{grid-column:1/-1}
-  .fishrow>.weather{grid-column:1}
-  .fishrow>.tug{grid-column:2;text-align:right}
+  /* カード表示では列順に引きずられないよう、行も明示しておく */
+  .fishrow>.fname{grid-column:1;grid-row:1;align-self:center}
+  .fishrow>.bite{grid-column:2;grid-row:1;align-self:center;font-size:14px;text-align:right}
+  .fishrow>.bait{grid-column:1/-1;grid-row:2}
+  .fishrow>.ribbon{grid-column:1/-1;grid-row:3}
+  .fishrow>.weather{grid-column:1;grid-row:4}
+  .fishrow>.tug{grid-column:2;grid-row:4;text-align:right}
   .fname .nm{font-size:14.5px}
 
   /* ヌシ一覧：カード */
@@ -1175,7 +1180,7 @@ const STR = {
     anytime: '時間・天候は不問', notFound: '400日先まで見つからず', condMissing: '条件が未収録',
     all: 'すべて', oonushiOnly: 'オオヌシのみ', byNext: '次回順', byName: '名前順',
     allPatches: '全拡張', favOnly: '★ お気に入り',
-    depart: '出航', indigoRoute: '近海航路', rubyRoute: '遠洋航路', boarding: '受付中',
+    depart: '出航', indigoRoute: '近海航路', rubyRoute: '遠洋航路', boarding: '乗船可能',
     howTo: '釣り方', released: '実装', place: '釣れる場所', windows: 'これから釣れる時間',
     baitCol: 'エサ', biteSec: 'ヒット秒数', chumCol: '撒き餌', rate: '釣果率', samples: '件数',
     showing: '種を表示', species: '匹', open: 'いま釣れる',
@@ -1210,6 +1215,7 @@ const STR = {
     expansion: '拡張', hookset: 'フッキング', band: '時間帯',
     need: '要る', noNeed: '不要', restricted: '縛りあり',
     dayBand: '昼 (ET6-18)', nightBand: '夜 (ET18-6)', byUptime: '出現率が低い順',
+    altBait: '泳がせでも', altBaitTip: '本命ではないが、この経路でも掛かる',
     scope: '対象', allFish: 'すべての魚', rarity: 'レア度', rare: 'レア', fishUnit: '匹',
     collectable: '収集品', clearHere: 'ここの記録を消す', note: '備考',
     assumedFree: '実測が十分にあり上流に制約の記載がないため、終日・天候不問とみなしています',
@@ -1283,6 +1289,7 @@ const STR = {
     expansion: 'Expansion', hookset: 'Hookset', band: 'Time of day',
     need: 'Required', noNeed: 'Not needed', restricted: 'Restricted',
     dayBand: 'Day (ET6-18)', nightBand: 'Night (ET18-6)', byUptime: 'Rarest first',
+    altBait: 'also by mooch', altBaitTip: 'Not the intended route, but it bites',
     scope: 'Scope', allFish: 'All fish', rarity: 'Rarity', rare: 'Rare', fishUnit: '',
     collectable: 'Collectable', clearHere: 'Clear here', note: 'Note',
     assumedFree: 'Plenty of catch data and no restriction upstream, so treated as always available',
@@ -2009,7 +2016,20 @@ function baitHTML(f, spotId) {
   const parts = f.baitPath.map((id, i) =>
     `${i ? '<span class="arrow">▸</span>' : ''}<span class="b${i ? ' prey' : ''}">${esc(baitName(id))}</span>`);
   // エサと直感の両方が要る魚は、直感が埋もれないよう下に添える
-  return `<div class="bait">${parts.join('')}${predatorHTML(f)}</div>`;
+  return `<div class="bait">${parts.join('')}${predatorHTML(f)}${altBaitHTML(f, spotId)}</div>`;
+}
+
+/**
+ * 本命の経路とは別に、泳がせで掛かる経路。
+ * 上流は魚ごとに1本しか持たないので、この情報は data/bait-extra.json から来る。
+ */
+function altBaitHTML(f, spotId) {
+  const alts = (f.altPaths ?? []).filter((a) => spotId == null || a.s === spotId);
+  if (!alts.length) return '';
+  return alts.map((a) => `<div class="bait alt" title="${T('altBaitTip')}">
+    <span class="altmark">${T('altBait')}</span>${a.p.map((id, i) =>
+      `${i ? '<span class="arrow">▸</span>' : ''}<span class="b${i ? ' prey' : ''}">${esc(baitName(id))}</span>`).join('')}
+  </div>`).join('');
 }
 
 function biteHTML(f, spotId) {
@@ -2065,11 +2085,11 @@ function fishRow(f, spot) {
   return `<div class="fishrow${live ? ' live' : ''}${state.caught.has(f.id) ? ' done' : ''}" data-fish="${f.id}" tabindex="0" role="button">
     <div class="fname">${caughtBtn(f.id)}${iconImg(f)}<span class="nm">${esc(nm(f.n))}</span>${stars}<span class="tags">${tags}</span></div>
     ${baitHTML(f, spot.id)}
-    ${ribbonHTML(f)}
-    ${weatherHTML(f, spot.territoryId)}
     <div class="tug ${tugCls}">${f.tugJa ?? '<span style="color:var(--dim)">—</span>'}
       ${f.hookset ? `<small title="${esc(nm(f.hookset))}">${esc(nm(f.hookset).replace(/フッキング|Hookset|Anhieb|Ferrage /g, '').trim())}</small>` : ''}</div>
     ${biteHTML(f, spot.id)}
+    ${ribbonHTML(f)}
+    ${weatherHTML(f, spot.territoryId)}
   </div>`;
 }
 
@@ -2249,7 +2269,7 @@ function renderSpot(keepScroll = false) {
         unknownCount ? ` · ${T('condMissing')} ${unknownCount}` : ''}</span>
     </div>
     <div class="thead">
-      <div>${T('fish')}</div><div>${T('bait')}</div><div>${T('hours')} (ET)</div><div>${T('weather')}</div><div>${T('tug')}</div><div style="text-align:right">${T('bite')}</div>
+      <div>${T('fish')}</div><div>${T('bait')}</div><div>${T('tug')}</div><div>${T('bite')}</div><div>${T('hours')} (ET)</div><div>${T('weather')}</div>
     </div>
     <div id="rows">${fishes.map((f) => fishRow(f, spot)).join('') ||
       `<div class="gempty" style="padding:26px 12px">${state.lang === 'ja' ? '条件に合う魚がいません。フィルタを外してみてください。' : 'Nothing matches. Try clearing the filters.'}</div>`}</div>
@@ -2325,7 +2345,9 @@ function renderSearch() {
   const hitBaits = Object.values(DB.baits).filter((b) => nmAll(b.n).includes(q)).slice(0, 8);
 
   const baitFish = hitBaits.length
-    ? Object.values(DB.fish).filter((f) => f.baitPath.some((id) => hitBaits.some((b) => b.id === id))).slice(0, 40)
+    ? Object.values(DB.fish).filter((f) =>
+        f.baitPath.some((id) => hitBaits.some((b) => b.id === id))
+        || (f.altPaths ?? []).some((a) => a.p.some((id) => hitBaits.some((b) => b.id === id)))).slice(0, 40)
     : [];
 
   const sec = (title, body) => body ? `<div class="dsec"><span class="eyebrow">${title}</span>${body}</div>` : '';
@@ -2367,6 +2389,7 @@ const caughtBtn = (id) => `<button class="caught" data-caught="${id}" aria-press
 const store = {
   key: 'efg.caught',
   nfKey: 'efg.filter',
+  favKey: 'efg.favs',
   loadFilter() {
     try {
       const o = JSON.parse(localStorage.getItem(this.nfKey) ?? 'null');
@@ -2387,6 +2410,19 @@ const store = {
   },
   save(set) {
     try { localStorage.setItem(this.key, JSON.stringify([...set])); } catch { /* 保存できなくても動く */ }
+  },
+  /**
+   * ★ もブラウザに残す。
+   * URL に載せるのは共有のためで、保存を兼ねさせると
+   * ハッシュの付いていない入口（ブックマークやトップからの再訪）で消えてしまう。
+   * 共有リンクを開いたときは URL 側が優先。
+   */
+  loadFavs() {
+    try { return new Set(JSON.parse(localStorage.getItem(this.favKey) ?? '[]')); }
+    catch { return new Set(); }
+  },
+  saveFavs(set) {
+    try { localStorage.setItem(this.favKey, JSON.stringify([...set])); } catch { /* 保存できなくても動く */ }
   },
 };
 
@@ -2410,8 +2446,12 @@ function syncHash(push = false) {
   else history.replaceState(null, '', url);
 }
 function readHash() {
+  // 共有リンクで開いたときは、URL の顔ぶれを採ってそのまま保存に反映する
   const m = location.hash.match(/[&|]f=([\d.]+)/);
-  if (m) state.favs = new Set(m[1].split('.').map(Number).filter(Boolean));
+  if (m) {
+    state.favs = new Set(m[1].split('.').map(Number).filter(Boolean));
+    store.saveFavs(state.favs);
+  }
   const l = location.hash.match(/[&|]l=(\w+)/);
   if (l && LANGS.some((x) => x.id === l[1])) state.lang = l[1];
   const z = location.hash.match(/[&|]z=([\w-]+)/);
@@ -2421,6 +2461,7 @@ function readHash() {
 }
 function toggleFav(id) {
   state.favs.has(id) ? state.favs.delete(id) : state.favs.add(id);
+  store.saveFavs(state.favs);
   syncHash();
 }
 
@@ -2824,6 +2865,18 @@ function renderNushi(keepScroll = false) {
    どの便がどの航路かはゲームの運行表から決まる。
    ══════════════════════════════════════════════════════════ */
 const VOYAGE_SEC = 7200;
+// 出航後この時間までは乗船できる（ゲーム内の受付時間）
+const BOARDING_MS = 15 * 60 * 1000;
+/**
+ * 一覧の先頭に出すべき便。
+ * 受付中（出航から15分以内）ならその便、閉じていれば次の便。
+ * 出てしまった便を2時間ぶん先頭に置いても選びようがないため。
+ */
+function voyageCursor(now) {
+  const running = chunkOf(now);
+  const open = now < running * VOYAGE_SEC * 1000 + BOARDING_MS;
+  return { cur: open ? running : running + 1, boardingOpen: open };
+}
 const chunkOf = (ms) => Math.floor(ms / 1000 / VOYAGE_SEC);
 const voyageAt = (chunk) => {
   const [i, r] = DB.ocean.table[(chunk + DB.ocean.phase) % DB.ocean.table.length];
@@ -3122,7 +3175,9 @@ function renderCosmo() {
 
 function renderOcean() {
   const now = Date.now();
-  const cur = chunkOf(now);
+  // 出航してから15分は乗船できる。受付が閉じた便は表から落として、
+  // 次の便が先頭に来るようにする。出てしまった便を2時間ぶん見せても仕方がない。
+  const { cur } = voyageCursor(now);
   const dests = [];
   for (const r of Object.values(DB.ocean.routes)) if (!dests.some((d) => d.ja === r.dest.ja)) dests.push(r.dest);
   const rows = [];
@@ -3134,7 +3189,7 @@ function renderOcean() {
         v.indigo?.dest.ja !== state.oceanDest && v.ruby?.dest.ja !== state.oceanDest) continue;
     if (state.oceanLegendOnly &&
         !voyageTargets(v.indigo).legend.length && !voyageTargets(v.ruby).legend.length) continue;
-    rows.push({ c, dep, v, boarding: now >= dep && now < dep + 15 * 60000 });
+    rows.push({ c, dep, v, boarding: now >= dep && now < dep + BOARDING_MS });
   }
 
   $('#stage').innerHTML = `<div class="wrap">
@@ -3162,7 +3217,9 @@ function renderOcean() {
       <div class="orow${boarding ? ' now' : ''}">
         <div class="otime">
           <b>${dayLabel(dep)}${hhmm(dep)}</b>
-          <span>${boarding ? T('boarding') : relTime(dep)}</span>
+          <span>${boarding
+            ? `${T('boarding')} ${remainTag(dep + BOARDING_MS)}`
+            : relTime(dep)}</span>
         </div>
         <div class="oroute">
           <div class="oname indigo">${esc(nm(v.indigo?.n)) || '—'}
@@ -3244,9 +3301,14 @@ function renderWelcome() {
         : `<b>${absTime(w[0])}</b><br><span class="rel">${relTime(w[0])}</span>`}</div>
     </div>`;
 
-  // 次のオーシャン便
-  const cur = chunkOf(now);
-  const voy = [0, 1].map((i) => ({ c: cur + i, dep: (cur + i) * VOYAGE_SEC * 1000, v: voyageAt(cur + i) }));
+  // 次のオーシャン便。受付中の便があれば、それを先頭に置く
+  const { cur } = voyageCursor(now);
+  const voy = [0, 1].map((i) => ({
+    c: cur + i,
+    dep: (cur + i) * VOYAGE_SEC * 1000,
+    v: voyageAt(cur + i),
+    boarding: i === 0 && now >= cur * VOYAGE_SEC * 1000,
+  }));
 
   $('#stage').innerHTML = `<div class="wrap dash">
     <div class="dashhead">
@@ -3268,9 +3330,11 @@ function renderWelcome() {
 
     <section class="dsec">
       <h2>${T('dashOcean')}</h2>
-      <div class="dvoy">${voy.map(({ dep, v }) => `
-        <div class="dv">
-          <div class="dv-t"><b>${dayLabel(dep)}${hhmm(dep)}</b> <span class="rel">${relTime(dep)}</span></div>
+      <div class="dvoy">${voy.map(({ dep, v, boarding }) => `
+        <div class="dv${boarding ? ' now' : ''}">
+          <div class="dv-t"><b>${dayLabel(dep)}${hhmm(dep)}</b> <span class="rel">${boarding
+            ? `${T('boarding')} ${remainTag(dep + BOARDING_MS)}`
+            : relTime(dep)}</span></div>
           <div class="dv-r"><span class="oname indigo">${esc(nm(v.indigo?.n))}
             <em>${v.indigo ? esc(timeLabel(v.indigo.destTime)) : ''}</em></span>${rankTag(v.indigo)}
             ${bonusChips(v.indigo)}${targetChips(v.indigo)}</div>
@@ -3608,9 +3672,11 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('[data-favall]')) {
     // いま画面に出ているぶんだけをまとめて★にする（絞り込みと併用できる）
     document.querySelectorAll('.nrow[data-fish]').forEach((r) => state.favs.add(Number(r.dataset.fish)));
-    syncHash(); renderNushi(true); return;
+    store.saveFavs(state.favs); syncHash(); renderNushi(true); return;
   }
-  if (e.target.closest('[data-favclear]')) { state.favs.clear(); syncHash(); renderNushi(true); return; }
+  if (e.target.closest('[data-favclear]')) {
+    state.favs.clear(); store.saveFavs(state.favs); syncHash(); renderNushi(true); return;
+  }
   const cg = e.target.closest('[data-caught]');
   if (cg) {
     e.stopPropagation();
@@ -3786,6 +3852,7 @@ window.addEventListener('popstate', applyRoute);
    ══════════════════════════════════════════════════════════ */
 (function init() {
   state.caught = store.load();
+  state.favs = store.loadFavs();
   const savedNf = store.loadFilter();
   if (savedNf) state.nf = { ...state.nf, ...savedNf };
   // ハッシュ指定が無ければブラウザの言語に寄せる
