@@ -1217,7 +1217,7 @@ const STR = {
     expansion: '拡張', hookset: 'フッキング', band: '時間帯',
     need: '要る', noNeed: '不要', restricted: '縛りあり',
     dayBand: '昼 (ET6-18)', nightBand: '夜 (ET18-6)', byUptime: '出現率が低い順',
-    altBait: '泳がせでも', altBaitTip: '本命ではないが、この経路でも掛かる',
+    altBait: '泳がせでも', altBait2: '別のエサ', altBaitTip: '本命ではないが、この経路でも掛かる',
     noMeasure: '実測なし',
     scope: '対象', allFish: 'すべての魚', rarity: 'レア度', rare: 'レア', fishUnit: '匹',
     collectable: '収集品', clearHere: 'ここの記録を消す', note: '備考',
@@ -1292,7 +1292,7 @@ const STR = {
     expansion: 'Expansion', hookset: 'Hookset', band: 'Time of day',
     need: 'Required', noNeed: 'Not needed', restricted: 'Restricted',
     dayBand: 'Day (ET6-18)', nightBand: 'Night (ET18-6)', byUptime: 'Rarest first',
-    altBait: 'also by mooch', altBaitTip: 'Not the intended route, but it bites',
+    altBait: 'also by mooch', altBait2: 'other bait', altBaitTip: 'Not the intended route, but it bites',
     noMeasure: 'no data yet',
     scope: 'Scope', allFish: 'All fish', rarity: 'Rarity', rare: 'Rare', fishUnit: '',
     collectable: 'Collectable', clearHere: 'Clear here', note: 'Note',
@@ -2030,10 +2030,14 @@ function baitHTML(f, spotId) {
 function altBaitHTML(f, spotId) {
   const alts = (f.altPaths ?? []).filter((a) => spotId == null || a.s === spotId);
   if (!alts.length) return '';
-  return alts.map((a) => `<div class="bait alt" title="${T('altBaitTip')}">
-    <span class="altmark">${T('altBait')}</span>${a.p.map((id, i) =>
+  return alts.map((a) => {
+    const tail = a.p[a.p.length - 1];
+    const isMooch = !Array.isArray(tail) && !!DB.fish[tail];
+    return `<div class="bait alt" title="${T('altBaitTip')}">
+    <span class="altmark">${isMooch ? T('altBait') : T('altBait2')}</span>${a.p.map((id, i) =>
       `${i ? '<span class="arrow">▸</span>' : ''}<span class="b${i ? ' prey' : ''}">${esc(baitName(id))}</span>`).join('')}
-  </div>`).join('');
+  </div>`;
+  }).join('');
 }
 
 function biteHTML(f, spotId) {

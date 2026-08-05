@@ -83,6 +83,7 @@ const SOURCES = {
   'ocean-indigo.json': `${OF}/oceanFishingDatabase%20-%20Indigo%20Route.json`,
   'ocean-ruby.json': `${OF}/oceanFishingDatabase%20-%20Ruby%20Route.json`,
   'IKDFishParam.csv': `${DM}/en/IKDFishParam.csv`,
+  'tc-sources.json': `${TC}/fishing-sources.json`,
   'autohook-fish.json': `${AH}/fish_list.json`,
   'autohook-sources.json': `${AH}/fishing-sources.json`,
   'gb-2.0.cs': `${GB}/Data2.0.cs`,
@@ -982,6 +983,43 @@ async function main() {
     if (c.note) f.condNote = c.note;
     manualApplied++;
   }
+  // ─── 釣り場ごとの別のエサ ────────────────────────────────
+  // Teamcraft の fishing-sources.json は、魚ごとに「釣り場×エサ」の配列を持つ。
+  // 上流の bestCatchPath が1本しか持てないのに対し、こちらは釣り場別に何本でも入る。
+  // 同じ魚でも釣り場が変わればエサが変わる、という実態がここに出ている。
+  try {
+    const tcSrc = JSON.parse(raw['tc-sources.json']);
+    let tcAlt = 0, tcMooch = 0;
+    for (const [fidStr, entries] of Object.entries(tcSrc)) {
+      const f = fish[Number(fidStr)];
+      if (!f) continue;
+      for (const e of entries ?? []) {
+        const sid = e.spot;
+        const bait = e.bait;
+        if (!bait) continue;
+        const spot = spots.find((sp) => sp.id === sid);
+        if (!spot || spot.ocean) continue;          // オーシャンは別の見せ方をしているので触らない
+        // すでに知っている経路の終端エサなら足す必要はない
+        const terminals = new Set();
+        for (const p of [f.baitPath ?? [], ...(f.altPaths ?? []).filter((a) => a.s === sid).map((a) => a.p)]) {
+          const t = p[p.length - 1];
+          for (const one of Array.isArray(t) ? t : [t]) terminals.add(one);
+        }
+        if (terminals.has(bait)) continue;
+        // エサが魚なら泳がせ。その魚の竿エサを前に付けて手順にする
+        const asFish = fish[bait];
+        const route = asFish ? [...(asFish.baitPath ?? []), bait] : [bait];
+        f.altPaths ??= [];
+        if (f.altPaths.some((a) => a.s === sid && a.p.length === route.length
+          && a.p.every((v, i) => String(v) === String(route[i])))) continue;
+        f.altPaths.push({ s: sid, p: route });
+        tcAlt++;
+        if (asFish) tcMooch++;
+      }
+    }
+    if (tcAlt) log(`tc     釣り場ごとの別のエサ ${tcAlt} 件を追加（うち泳がせ ${tcMooch}）`);
+  } catch (e) { log(`tc     fishing-sources 取り込み失敗: ${e.message}`); }
+
   if (manualApplied) log(`cond   手入力の条件 ${manualApplied} 種を反映`);
 
   // ─── 泳がせで釣れる魚の追加 ──────────────────────────────
