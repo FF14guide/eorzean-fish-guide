@@ -222,6 +222,11 @@ aside{
 }
 .spotlist .lv{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--dim)}
 .spotlist .gig{color:var(--rose);font-size:10px;flex:none}
+.gigfilter{display:inline-flex;align-items:center;gap:5px;color:var(--dim);font-size:11px}
+.gigchip{display:inline-flex;align-items:center;gap:3px}
+.gigchip .shmark{width:13px;height:13px;color:var(--rose)}
+.gigchip.on{border-color:var(--rose);background:rgba(255,159,208,.14);color:var(--foam)}
+.gigchip small{color:var(--dim);font-family:var(--mono)}
 
 /* ══════════════════════════════════════════════════════════
    本体
@@ -385,7 +390,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
   background:rgba(21,35,64,.55);border:1px solid var(--edge-soft);border-radius:var(--r);padding:11px 12px;
 }
 .bt-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.bt-mul{font-family:var(--mono);font-size:11px;color:var(--gold);font-weight:700}
+.bt-mul{font-family:var(--mono);font-size:11px;color:var(--gold);font-weight:700;cursor:help}
 .bt-req{font-size:11.5px;color:var(--mist);line-height:1.55}
 .bt-route{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px;font-size:10.5px}
 .bt-links{display:flex;flex-direction:column;gap:3px;margin-top:8px;border-top:1px solid var(--edge-soft);padding-top:7px}
@@ -1225,6 +1230,7 @@ const STR = {
     unverified: '要検証', unverifiedTip: 'プレイヤーからの報告に基づく条件です。まだ裏取りができていません',
     manualCond: '上流にデータが無いため、プレイヤーからの報告をもとに手で入れた条件です',
     points: '釣果点', bonus: 'ボーナス対象', ptsUnit: '点', multiHook: '多重フッキング',
+    multTip: 'この称号を達成したときに釣果点にかかる倍率',
     scoreTip: '各寄港地でいちばん点の高い魚を、トリプルフッキングの匹数ぶん釣れたと仮定した目安',
     biteSource: '出典：Lodinn の集計（Teamcraft の Allagan Reports に集まった実測）。釣果率はそのエサを使ったキャスト全体に占める割合。',
     minutes: '分', hoursU: '時間', days: '日', ago: 'あと ', secU: '秒',
@@ -1300,6 +1306,7 @@ const STR = {
     unverified: 'Unverified', unverifiedTip: 'Based on a player report, not yet confirmed',
     manualCond: 'Entered by hand from player reports, as upstream has no data yet',
     points: 'Points', bonus: 'Bonus objectives', ptsUnit: 'pt', multiHook: 'Multi-hook',
+    multTip: 'Score multiplier applied when this title is achieved',
     scoreTip: 'Rough ceiling: best-scoring fish at each stop, times its triple-hook count',
     biteSource: 'Source: Lodinn\u2019s aggregation of player reports collected via Teamcraft Allagan Reports. Catch rate is the share of all casts with that bait.',
     minutes: 'min', hoursU: 'h', days: 'd', ago: 'in ', secU: 's',
@@ -1802,6 +1809,7 @@ const state = {
   query: '',
   liveOnly: false,
   condOnly: false,
+  gigSize: null,   // 銛の釣り場で選んでいる魚影サイズ
   openAreas: new Set(),
   openEx: new Set(),
 };
@@ -2232,11 +2240,15 @@ function biteChartHTML(spot) {
 function renderSpot(keepScroll = false) {
   const spot = spotById.get(state.spotId);
   if (!spot) return renderWelcome();
+  if (!keepScroll) state.gigSize = null;   // 別の釣り場に来たら魚影の絞りは解除
   const scrollY = keepScroll ? $('#stage').scrollTop : 0;
 
   let fishes = spot.fishes.map((id) => DB.fish[id]).filter(Boolean);
   if (state.condOnly) fishes = fishes.filter((f) => isConditional(f) && f.hasConditions);
   if (state.liveOnly) fishes = fishes.filter((f) => isUp(f, spot.territoryId, Date.now()));
+  // 銛の釣り場でだけ、魚影の大きさで絞る。データは全種そろっているので、
+  // 「大きい影だけ狙う」といった実戦の使い方に直で応える。
+  if (spot.spear && state.gigSize) fishes = fishes.filter((f) => f.gig === state.gigSize);
   // 並べ替えない。ゲーム内の釣り手帳と同じ順（釣り場データの並び）で出す。
 
   // 天候予報 8 枠
@@ -2288,6 +2300,13 @@ function renderSpot(keepScroll = false) {
     <div class="toolbar">
       <button class="chipbtn check" data-caughtall="1">✔ ${T('caughtAll')}</button>
       ${caughtHere ? `<button class="chipbtn" data-spotuncaught="1">${T('clearHere')} (${caughtHere})</button>` : ''}
+      ${spot.spear ? `<span class="gigfilter">${T('shadow')}: ${['Small', 'Normal', 'Large'].map((sz) => {
+        const n = all.filter((f) => f.gig === sz).length;
+        if (!n) return '';
+        const on = state.gigSize === sz;
+        return `<button class="chipbtn gigchip${on ? ' on' : ''}" data-gigsize="${sz}" aria-pressed="${on}">${
+          SHADOW_MARK[sz]}${T('shadow' + sz)} <small>${n}</small></button>`;
+      }).join('')}</span>` : ''}
       <span class="eyebrow">${T('progress')} ${caughtHere}/${all.length} · ${
         fishes.length} ${T('showing')} · ${T('live')} ${liveCount}${
         unknownCount ? ` · ${T('condMissing')} ${unknownCount}` : ''}</span>
@@ -2545,10 +2564,17 @@ const notify = {
   },
 };
 
-/** タブのタイトルに、いちばん近い★の窓までの残り時間を出す */
+/**
+ * タブのタイトルに、いちばん近い★の窓までの残り時間を出す。
+ *
+ * ただし通知を入れているときだけ。★は保存されるので、
+ * 常に書き換えるとタブ名がいつまでも「あと◯時間◯分」のままになり、
+ * ブックマークや履歴にもその名前で残ってしまう。
+ * 窓を見張りたい人は通知ベルを入れているはずなので、そこに合わせる。
+ */
 function updateTitle() {
   const base = state.lang === 'ja' ? 'エオルゼア釣り図鑑' : 'Eorzean Fish Guide';
-  if (!state.favs.size) { document.title = base; return; }
+  if (!notify.on || !state.favs.size) { document.title = base; return; }
   let bestOpen = null, bestSoon = null;
   const now = Date.now();
   for (const id of state.favs) {
@@ -3095,7 +3121,7 @@ function bonusGuideHTML() {
         <div class="btitle">
           <div class="bt-head">
             <span class="obchip">${esc(nm(b.n))}</span>
-            <span class="bt-mul">×${(b.multiplier / 100).toFixed(2).replace(/0$/, '')}</span>
+            <span class="bt-mul" title="${T('multTip')}">×${(b.multiplier / 100).toFixed(2).replace(/0$/, '')}</span>
           </div>
           <div class="bt-req">${esc(nm(b.req))}</div>
           <div class="bt-route">${(bestRoutes.get(b.n.ja) ?? []).map((r) =>
@@ -3716,6 +3742,13 @@ document.addEventListener('click', (e) => {
     document.querySelector(`.nrow[data-fish="${id}"]`)?.classList.toggle('done', on);
     return;
   }
+  const gc = e.target.closest('[data-gigsize]');
+  if (gc) {
+    const sz = gc.dataset.gigsize;
+    state.gigSize = state.gigSize === sz ? null : sz;   // 同じのを押したら解除
+    renderSpot(true);
+    return;
+  }
   if (e.target.closest('[data-caughtall]')) {
     // いま画面に出ている魚だけをまとめて釣獲済みにする
     document.querySelectorAll('[data-caught]').forEach((b) => state.caught.add(Number(b.dataset.caught)));
@@ -3825,6 +3858,7 @@ $('#t-bell').addEventListener('click', async (e) => {
     if (!ok) alert(T('notifyDenied'));
   } else notify.on = false;
   e.currentTarget.setAttribute('aria-pressed', notify.on);
+  updateTitle();   // 切ったらタブ名を元に戻す
   if (notify.on) notify.beep();
 });
 $('#lang').addEventListener('change', (e) => {

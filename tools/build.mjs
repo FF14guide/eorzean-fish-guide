@@ -1022,6 +1022,33 @@ async function main() {
 
   if (manualApplied) log(`cond   手入力の条件 ${manualApplied} 種を反映`);
 
+  // ─── 自己泳がせ（実測から自動）────────────────────────────
+  // Lodinn の実測に「魚を自分自身で泳がせて釣れた」記録がある。
+  // 例：アスタクス・エーテリウスを釣って泳がせると、またそれが釣れる。
+  // 上流はこれを経路に持たないので、十分な件数（n>=50）の記録から自動で足す。
+  // 件数のしきい値で、竿エサの取り違えが泳がせ側に混ざったノイズを避ける。
+  const SELF_MOOCH_MIN_N = 50;
+  let selfMooch = 0;
+  for (const [k, r] of Object.entries(biteTimes)) {
+    const [sid, fid, bid] = k.split(':');
+    if (fid !== bid) continue;                       // 自分自身を泳がせた記録だけ
+    if ((r.n ?? 0) < SELF_MOOCH_MIN_N) continue;
+    const f = fish[Number(fid)];
+    if (!f) continue;
+    const spotId = Number(sid);
+    // その魚をこの釣り場で釣る経路（竿エサ起点）に、自分を泳がせる1段を足す
+    const base = f.baitPath?.length ? f.baitPath : null;
+    if (!base) continue;                             // 竿エサが分からなければ足せない
+    const route = [...base, Number(bid)];
+    const same = (a, b) => a.length === b.length && a.every((v, i) => String(v) === String(b[i]));
+    if (same(f.baitPath ?? [], route)) continue;
+    f.altPaths ??= [];
+    if (f.altPaths.some((x) => x.s === spotId && same(x.p, route))) continue;
+    f.altPaths.push({ s: spotId, p: route });
+    selfMooch++;
+  }
+  if (selfMooch) log(`bait   自己泳がせを実測から ${selfMooch} 件追加（n>=${SELF_MOOCH_MIN_N}）`);
+
   // ─── 泳がせで釣れる魚の追加 ──────────────────────────────
   // 上流は魚ごとに最短経路を1本しか持たないので、「このエサを泳がせると
   // 実際は何種類も掛かる」という事実が落ちる。手書きの表で補う。
@@ -1497,6 +1524,39 @@ async function main() {
   const biteName = `bite.${hash(biteJson)}.json`;
   await writeFile(path.join(DIST, 'data', coreName), coreJson);
   await writeFile(path.join(DIST, 'data', biteName), biteJson);
+
+  // ─── 泳がせの監査リスト（別ルート）────────────────────────
+  // Lodinn の実測に泳がせ記録があるのに、自己泳がせでなく、当サイトの経路にも
+  // 反映されていないもの。竿エサの取り違えが混じる疑いがあるので自動では入れず、
+  // 手で確認する候補として書き出す。確認できたら data/bait-extra.json へ。
+  try {
+    const auditRows = [];
+    for (const [k, r] of Object.entries(biteTimes)) {
+      const [sid, fid, bid] = k.split(':');
+      if (fid === bid) continue;                     // 自己泳がせは自動反映済み
+      if (!fish[Number(bid)] || !fish[Number(fid)]) continue;  // 泳がせ記録だけ
+      const f = fish[Number(fid)];
+      const paths = [f.baitPath ?? [], ...(f.altPaths ?? [])
+        .filter((a) => a.s === Number(sid)).map((a) => a.p)];
+      if (paths.some((p) => String(p[p.length - 1]) === bid)) continue;  // 反映済み
+      auditRows.push({ sid: Number(sid), fid: Number(fid), bid: Number(bid), n: r.n ?? 0 });
+    }
+    auditRows.sort((a, b) => b.n - a.n);
+    const nmj = (id) => (baits[id]?.n ?? fish[id]?.n ?? {}).ja ?? `#${id}`;
+    const spotj = (id) => spots.find((s) => s.id === id)?.n.ja ?? `#${id}`;
+    const md = ['# 泳がせの監査リスト（別ルート・要確認）\n',
+      `生成 ${new Date().toISOString().slice(0, 10)} ／ ${auditRows.length} 件（n の多い順）\n`,
+      'Lodinn の実測に「この魚をこの魚で泳がせて釣れた」記録があるが、当サイトの経路に無いもの。',
+      '竿エサの取り違えが泳がせ側に混ざっている可能性があるため、自動では入れていない。',
+      '実地で確認できたら `data/bait-extra.json` に追記する。\n',
+      '| 釣り場 | 釣れる魚 | 泳がせ元 | 実測数 | 釣り場ID | 魚ID | 泳がせ元ID |',
+      '|---|---|---|--:|--:|--:|--:|'];
+    for (const r of auditRows) {
+      md.push(`| ${spotj(r.sid)} | ${nmj(r.fid)} | ${nmj(r.bid)} | ${r.n} | ${r.sid} | ${r.fid} | ${r.bid} |`);
+    }
+    await writeFile(path.join(ROOT, 'tools', 'mooch-audit.md'), md.join('\n') + '\n');
+    log(`bait   別ルート泳がせの監査リスト ${auditRows.length} 件 → tools/mooch-audit.md`);
+  } catch (e) { log(`bait   監査リスト書き出し失敗: ${e.message}`); }
 
   // ─── 静的ファイル ────────────────────────────────────────
   // app/static/ に置いたものは、そのまま dist/ の直下へ。OGP画像などの置き場。
