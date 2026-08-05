@@ -673,6 +673,8 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 /* ヒットタイム */
 .bite{font-family:var(--mono);font-size:12px}
 .bait.alt{margin-top:3px;opacity:.72;font-size:11px}
+.brow.nodata{opacity:.6}
+.bnone{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--dim)}
 .bait.alt .altmark{color:var(--dim);font-family:var(--mono);font-size:9px;letter-spacing:.1em;margin-right:5px}
 .bite b{font-weight:600}
 .bite .unit{font-size:9px;color:var(--dim)}
@@ -1216,6 +1218,7 @@ const STR = {
     need: '要る', noNeed: '不要', restricted: '縛りあり',
     dayBand: '昼 (ET6-18)', nightBand: '夜 (ET18-6)', byUptime: '出現率が低い順',
     altBait: '泳がせでも', altBaitTip: '本命ではないが、この経路でも掛かる',
+    noMeasure: '実測なし',
     scope: '対象', allFish: 'すべての魚', rarity: 'レア度', rare: 'レア', fishUnit: '匹',
     collectable: '収集品', clearHere: 'ここの記録を消す', note: '備考',
     assumedFree: '実測が十分にあり上流に制約の記載がないため、終日・天候不問とみなしています',
@@ -1290,6 +1293,7 @@ const STR = {
     need: 'Required', noNeed: 'Not needed', restricted: 'Restricted',
     dayBand: 'Day (ET6-18)', nightBand: 'Night (ET18-6)', byUptime: 'Rarest first',
     altBait: 'also by mooch', altBaitTip: 'Not the intended route, but it bites',
+    noMeasure: 'no data yet',
     scope: 'Scope', allFish: 'All fish', rarity: 'Rarity', rare: 'Rare', fishUnit: '',
     collectable: 'Collectable', clearHere: 'Clear here', note: 'Note',
     assumedFree: 'Plenty of catch data and no restriction upstream, so treated as always available',
@@ -2166,10 +2170,25 @@ function biteChartHTML(spot) {
     if (lo == null && !h) continue;
     rows.push({ f: DB.fish[fishId], r, h, lo, hi });
   }
+  // 実測が無くても、そのエサで釣れると分かっている魚は行を出す。
+  // 釣れる魚一覧には並んでいるのに分布から消えると、抜け落ちたように見えるため。
+  const shown = new Set(rows.map((x) => x.f?.id));
+  const lastOf = (p) => { const x = p?.[p.length - 1]; return Array.isArray(x) ? x[0] : x; };
+  for (const fid of spot.fishes) {
+    if (shown.has(fid)) continue;
+    const f = DB.fish[fid];
+    if (!f) continue;
+    const routes = [f.baitPath ?? [], ...(f.altPaths ?? []).filter((a) => a.s === spot.id).map((a) => a.p)];
+    if (!routes.some((pp) => pp.length && lastOf(pp) === baitId)) continue;
+    rows.push({ f, r: { n: null, rate: null }, h: null, lo: null, hi: null, noData: true });
+  }
+
   if (!rows.length) {
     return wrap(bar + `<div class="gempty">${chum ? T('noChum') : T('noBite')}</div>`, T('noData'));
   }
-  rows.sort((a, b) => (a.f?.tugRank ?? 9) - (b.f?.tugRank ?? 9) || (a.lo ?? 99) - (b.lo ?? 99));
+  // 実測のある魚が先。無いものは末尾にまとめる
+  rows.sort((a, b) => (a.noData ? 1 : 0) - (b.noData ? 1 : 0)
+    || (a.f?.tugRank ?? 9) - (b.f?.tugRank ?? 9) || (a.lo ?? 99) - (b.lo ?? 99));
 
   // 横軸はこの釣り場に合わせて伸縮させる（5秒刻みで切り上げ、最低20秒）
   const need = Math.max(20, ...rows.map((r) => r.hi ?? 0),
@@ -2183,9 +2202,9 @@ function biteChartHTML(spot) {
   const TUGC = { 1: 'var(--aqua)', 2: 'var(--gold)', 3: 'var(--coral)' };
 
   const body = bar + `<div class="baxis">${axis.join('')}</div>` +
-    rows.map(({ f, r, h, lo, hi }) => {
+    rows.map(({ f, r, h, lo, hi, noData }) => {
       const col = TUGC[f?.tugRank] ?? 'var(--mist)';
-      return `<div class="brow" data-fish="${f?.id ?? ''}">
+      return `<div class="brow${noData ? ' nodata' : ''}" data-fish="${f?.id ?? ''}">
         <div class="bname" title="${esc(nm(f?.n))}">${esc(nm(f?.n)) || '?'}</div>
         <div class="btug" style="color:${col}">${f?.tugJa ?? ''}</div>
         <div class="btrack">
@@ -2194,8 +2213,9 @@ function biteChartHTML(spot) {
             ${h ? `<path d="${histPath(h, maxSec)}" fill="${col}" opacity=".75"/>` : ''}
           </svg>
           ${lo != null ? `<span class="brange" style="left:${Math.min((hi / maxSec) * 100, 82)}%">${lo}–${hi}s</span>` : ''}
+          ${noData ? `<span class="bnone">${T('noMeasure')}</span>` : ''}
         </div>
-        <div class="brate">${r.rate != null ? r.rate + '%' : '—'}<small>${r.n}</small></div>
+        <div class="brate">${r.rate != null ? r.rate + '%' : '—'}<small>${r.n ?? ''}</small></div>
       </div>`;
     }).join('') +
     `<div class="bnote">${T('biteSource')}</div>`;
