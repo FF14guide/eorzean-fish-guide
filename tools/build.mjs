@@ -27,8 +27,14 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE = path.join(ROOT, 'tools', '.cache');
 const REFRESH = process.argv.includes('--refresh');
 // 公開先のURL。OGP・canonical・sitemap に使う。
-// 例: SITE_URL=https://fish.example.com node tools/build.mjs
-const SITE_URL = (process.env.SITE_URL ?? '').replace(/\/$/, '');
+// 既定は本番ドメイン。env で上書き可（例: SITE_URL=https://fish.example.com node tools/build.mjs）。
+// ビルド環境に旧 workers.dev ドメインの SITE_URL が残っていても本番ドメインに矯正する。
+const CANONICAL_SITE_URL = 'https://eorzeanfishing.com';
+const OLD_SITE_URLS = ['https://eorzean-fish-guide.ff14.workers.dev'];
+const _envSiteUrl = (process.env.SITE_URL ?? '').replace(/\/$/, '');
+const SITE_URL = (!_envSiteUrl || OLD_SITE_URLS.includes(_envSiteUrl))
+  ? CANONICAL_SITE_URL
+  : _envSiteUrl;
 
 const TC = 'https://raw.githubusercontent.com/ffxiv-teamcraft/ffxiv-teamcraft/staging/libs/data/src/lib/json';
 const FT = 'https://raw.githubusercontent.com/icykoneko/ff14-fish-tracker-app/master';
