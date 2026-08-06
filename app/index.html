@@ -316,7 +316,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
   position:absolute;width:52px;height:52px;border-radius:50%;transform:translate(-50%,-50%);
   border:2px solid var(--coral);opacity:.55;
 }
-.spot-head h1 .tclink{display:inline-block;margin-left:12px;padding:3px 9px;border:1px solid var(--edge);border-radius:999px;font-size:11px;font-weight:600;color:var(--mist);letter-spacing:.02em;vertical-align:middle;white-space:nowrap;transition:all .15s}
+.spot-head .tclink{display:inline-block;margin-bottom:4px;padding:3px 9px;border:1px solid var(--edge);border-radius:999px;font-size:11px;font-weight:600;color:var(--mist);letter-spacing:.02em;white-space:nowrap;transition:all .15s}
 .tclink:hover{border-color:var(--aqua);color:var(--aqua);background:rgba(79,220,236,.08)}
 .gigmark{
   font-size:11px;font-weight:700;vertical-align:middle;margin-left:9px;padding:3px 9px;
@@ -2307,9 +2307,9 @@ function renderSpot(keepScroll = false) {
         esc(nm(spot.n)).replace(/：幻海流|Spectral Current/i, '')}${
         spot.mapId != null ? '<span class="mapicon">◎</span>' : ''}${
         spot.spear ? `<span class="gigmark">${T('spearMark')}</span>` : ''}${
-        spot.spectral ? `<span class="gigmark spec">${T('spectral')}</span>` : ''}${
+        spot.spectral ? `<span class="gigmark spec">${T('spectral')}</span>` : ''}</h1>${
         teamcraftSpotURL(spot) ? `<a class="tclink" href="${teamcraftSpotURL(spot)}" target="_blank" rel="noopener"
-          title="${T('tcLinkTip')}">Teamcraft ↗</a>` : ''}</h1>
+          title="${T('tcLinkTip')}">Teamcraft ↗</a>` : ''}
       <div class="meta">
         ${esc(nm(spot.area))}${spot.region ? ' · ' + esc(nm(spot.region)) : ''}
         ${spot.level ? ' · <b>Lv' + spot.level + '</b>' : ''}
@@ -3800,6 +3800,7 @@ document.addEventListener('click', (e) => {
     if (sp) openMap(sp);
     return;
   }
+  if (e.target.closest('a')) return;   // リンクは本来の遷移に任せる（Teamcraft ボタンなど）
   if (e.target.closest('#showmap')) {
     const sp = spotById.get(state.spotId);
     if (sp) openMap(sp);
