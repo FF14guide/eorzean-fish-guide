@@ -1489,6 +1489,34 @@ async function main() {
     },
     areaOrder,
     expansions,
+    // 種類系の釣りアチーブメント。回数・匹数で解除されるものは判定できないので入れない。
+    // しきい値は Achievement.csv（ja）から。対象は「どの魚を釣ったか」で判定する。
+    achievements: [
+      {
+        key: 'taiko', name: { ja: '太公望への道', en: 'Way of the Fisher' },
+        scope: 'nushi', exps: [0, 1, 2],
+        desc: { ja: '新生・蒼天・紅蓮のヌシを釣り上げる', en: 'Big fish of ARR / HW / StB' },
+        ranks: [1, 16, 37, 56, 71, 81, 87, 94, 100, 106, 119, 135, 156, 170, 185, 204],
+      },
+      {
+        key: 'shb', name: { ja: '第一世界の太公望', en: 'Way of the Fisher: The First' },
+        scope: 'nushi', exps: [3],
+        desc: { ja: '漆黒のヌシを釣り上げる', en: 'Big fish of ShB' },
+        ranks: [8, 14, 22, 28, 45],
+      },
+      {
+        key: 'ew', name: { ja: '暁月の太公望', en: 'Way of the Fisher: Endwalker' },
+        scope: 'nushi', exps: [4],
+        desc: { ja: '暁月のヌシを釣り上げる', en: 'Big fish of EW' },
+        ranks: [7, 23, 40],
+      },
+      {
+        key: 'techo', name: { ja: '手帳好きの漁師', en: 'A Fish Too Far' },
+        scope: 'all',
+        desc: { ja: '釣り手帳に印を付けた魚の種類', en: 'Fish recorded in the log' },
+        ranks: [40, 80, 160, 400, 460, 780, 1140, 1460, 1730],
+      },
+    ],
     cosmoMissions,
     spots: usableSpots,
     fish,

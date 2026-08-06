@@ -316,7 +316,9 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
   position:absolute;width:52px;height:52px;border-radius:50%;transform:translate(-50%,-50%);
   border:2px solid var(--coral);opacity:.55;
 }
-.spot-head h1 .gigmark{
+.spot-head h1 .tclink{display:inline-block;margin-left:12px;padding:3px 9px;border:1px solid var(--edge);border-radius:999px;font-size:11px;font-weight:600;color:var(--mist);letter-spacing:.02em;vertical-align:middle;white-space:nowrap;transition:all .15s}
+.tclink:hover{border-color:var(--aqua);color:var(--aqua);background:rgba(79,220,236,.08)}
+.gigmark{
   font-size:11px;font-weight:700;vertical-align:middle;margin-left:9px;padding:3px 9px;
   border-radius:var(--pill);background:rgba(255,159,208,.16);color:var(--rose);
 }
@@ -907,6 +909,20 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .pbar .pt{flex:1;height:7px;background:var(--deeper);border-radius:7px;overflow:hidden}
 .pbar .pt i{display:block;height:100%;background:linear-gradient(90deg,var(--lime),var(--aqua))}
 .pbar .pn{font-family:var(--mono);font-size:10.5px;color:var(--dim);width:56px;text-align:right}
+.dach{display:grid;gap:12px;max-width:620px}
+.ach{padding:11px 13px;border:1px solid var(--edge-soft);border-radius:10px;background:var(--deeper)}
+.ach.done{border-color:var(--gold-dim);background:rgba(245,197,99,.06)}
+.ach-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ach-name{font-weight:700;font-size:13px;color:var(--foam)}
+.ach-rank{font-family:var(--mono);font-size:11px;color:var(--mist)}
+.ach-rank b{color:var(--gold)}
+.ach-none{color:var(--dim)}
+.ach-bar{position:relative;height:8px;margin:8px 0 6px;background:var(--ink);border-radius:8px;overflow:hidden}
+.ach-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));border-radius:8px}
+.ach-bar u{position:absolute;top:0;width:1px;height:100%;background:rgba(12,21,38,.7)}
+.ach.done .ach-bar i{background:linear-gradient(90deg,var(--gold),var(--foam))}
+.ach-sub{font-size:11px;color:var(--dim)}
+.ach-sub b{color:var(--mist);font-family:var(--mono)}
 @media (max-width:780px){
   .dashhead h1{font-size:21px}
   .dgrid,.dvoy{grid-template-columns:1fr}
@@ -1201,7 +1217,7 @@ const STR = {
     then: 'その次', caughtTip: '釣った／釣っていない', uncaughtOnly: '未釣獲のみ',
     notify: '通知', notifyTip: '★を付けた魚の窓が開いたら音とデスクトップ通知で知らせます',
     notifyDenied: 'ブラウザの設定で通知が許可されていません。サイトの権限を確認してください。',
-    progress: '釣獲', dashTitle: 'いまのエオルゼア', dashOpen: 'いま釣れるヌシ', dashFav: '★の魚', dashOcean: '次の便',
+    progress: 'ヌシ釣獲', progressAll: '魚の種類', achievements: 'アチーブメント', achDone: '達成', achNone: '未達成', rank: 'ランク', nextRank: '次は', remain: 'あと', achAll: '全ランク達成', dashTitle: 'いまのエオルゼア', dashOpen: 'いま釣れるヌシ', dashFav: '★の魚', dashOcean: '次の便',
     dashNone: 'いま窓が開いているヌシはいません', steps: '手順', stepPrey: '前提魚を釣る',
     stepIntuit: '漁師の直感が付く', stepTarget: '本命を狙う', share: 'この魚のリンク',
     caughtAll: '表示中を釣獲済みに', caughtClear: '釣獲記録を消す',
@@ -1238,7 +1254,7 @@ const STR = {
     estimated: '推定', fromPredator: ' の条件から推定',
     byRate: '実測でいちばん釣りやすいエサ（信頼度で補正）', swimOnly: '泳がせ専用',
     rivals: 'このエサに反応する魚', confidence: '信頼下限', spectral: '幻海流', normal: '通常',
-    targets: '狙える魚', legendOnly: '伝説魚が狙える便', bonusAim: '狙える称号',
+    targets: '狙える魚', bonusAim: '狙える称号', tcLinkTip: 'この釣り場を Teamcraft で開く（釣果率などの詳細データ）',
     titles: '称号と釣り方', generalGuides: '全般',
     guideNote: '達成条件と得点倍率はゲームデータより。具体的な釣り方（秒数の見極め、多重フッキングの判断、マクロ）は、まとめてくださっている方の記事へのリンクを置いています。数値の転記はしていないので、詳しくはリンク先をご覧ください。',
     legendFish: '伝説魚', onlySuffix: '限定',
@@ -1276,7 +1292,7 @@ const STR = {
     then: 'then', caughtTip: 'Caught / not caught', uncaughtOnly: 'Not caught only',
     notify: 'Alerts', notifyTip: 'Sound and desktop alert when a starred fish opens',
     notifyDenied: 'Notifications are blocked. Check the site permissions in your browser.',
-    progress: 'Caught', dashTitle: 'Eorzea right now', dashOpen: 'Open right now', dashFav: 'Starred', dashOcean: 'Next voyage',
+    progress: 'Big fish', progressAll: 'Fish species', achievements: 'Achievements', achDone: 'Done', achNone: 'Not started', rank: 'Rank ', nextRank: 'Next', remain: 'need', achAll: 'All ranks done', dashTitle: 'Eorzea right now', dashOpen: 'Open right now', dashFav: 'Starred', dashOcean: 'Next voyage',
     dashNone: 'No big fish are open right now', steps: 'Steps', stepPrey: 'Catch the predators',
     stepIntuit: 'Fisher\u2019s Intuition applies', stepTarget: 'Go for the target',
     share: 'Link to this fish',
@@ -1314,7 +1330,7 @@ const STR = {
     estimated: 'Estimated', fromPredator: ' \u2014 derived from this predator',
     byRate: 'easiest bait by measured rate (confidence adjusted)', swimOnly: 'only via swimming bait',
     rivals: 'species biting this bait', confidence: 'lower bound', spectral: 'Spectral', normal: 'Normal',
-    targets: 'Targets', legendOnly: 'Legendary only', bonusAim: 'Bonuses',
+    targets: 'Targets', bonusAim: 'Bonuses', tcLinkTip: 'Open this spot on Teamcraft (catch rates and more)',
     titles: 'Achievements & guides', generalGuides: 'General',
     guideNote: 'Requirements and score multipliers come from game data. For the fine details (bite-time reads, when to multi-hook, macros) we link to community guides rather than copying their numbers.',
     legendFish: 'Legendary', onlySuffix: ' only',
@@ -1753,6 +1769,21 @@ function histPath(h, maxSec, w = 350, ht = 24) {
   return pts.join('');
 }
 /** エサ名。ff14fish は「どちらでも可」の候補を配列で持つので、その場合は並べる */
+/**
+ * Teamcraft の釣り場ページ URL。
+ * 通常の釣り場は fishing-spot/{id}/{名前}、銛は spearfishing-spot/{id}。
+ * オーシャンは Teamcraft に個別ページが無いので null（リンクを出さない）。
+ * 言語はサイトの表示言語に合わせる（ja/en/de/fr すべて対応している）。
+ */
+function teamcraftSpotURL(spot) {
+  if (spot.ocean) return null;
+  const lang = ['ja', 'en', 'de', 'fr'].includes(state.lang) ? state.lang : 'en';
+  const base = `https://ffxivteamcraft.com/db/${lang}`;
+  if (spot.spear) return `${base}/spearfishing-spot/${spot.id}`;
+  const name = encodeURIComponent(spot.n[lang] || spot.n.en || '');
+  return `${base}/fishing-spot/${spot.id}/${name}`;
+}
+
 const baitName = (id) => {
   if (Array.isArray(id)) return id.map(baitName).join(' / ');
   return nm(DB.baits[id]?.n) || nm(DB.fish[id]?.n) || `#${id}`;
@@ -1799,7 +1830,7 @@ const state = {
   cosmoPlanet: 'all',
   cosmoRank: 'all',
   guideOpen: false,
-  oceanLegendOnly: false,
+  oceanTime: null,   // 昼2/夕3/夜1 で絞る。null は全部
   openFish: null,         // 詳細を開いている魚（URLに載せて共有できるように）
   pendingFish: null,
   favs: new Set(),        // タイムラインに出すヌシ
@@ -2276,7 +2307,9 @@ function renderSpot(keepScroll = false) {
         esc(nm(spot.n)).replace(/：幻海流|Spectral Current/i, '')}${
         spot.mapId != null ? '<span class="mapicon">◎</span>' : ''}${
         spot.spear ? `<span class="gigmark">${T('spearMark')}</span>` : ''}${
-        spot.spectral ? `<span class="gigmark spec">${T('spectral')}</span>` : ''}</h1>
+        spot.spectral ? `<span class="gigmark spec">${T('spectral')}</span>` : ''}${
+        teamcraftSpotURL(spot) ? `<a class="tclink" href="${teamcraftSpotURL(spot)}" target="_blank" rel="noopener"
+          title="${T('tcLinkTip')}">Teamcraft ↗</a>` : ''}</h1>
       <div class="meta">
         ${esc(nm(spot.area))}${spot.region ? ' · ' + esc(nm(spot.region)) : ''}
         ${spot.level ? ' · <b>Lv' + spot.level + '</b>' : ''}
@@ -3237,8 +3270,10 @@ function renderOcean() {
     const v = voyageAt(c);
     if (state.oceanDest !== 'all' &&
         v.indigo?.dest.ja !== state.oceanDest && v.ruby?.dest.ja !== state.oceanDest) continue;
-    if (state.oceanLegendOnly &&
-        !voyageTargets(v.indigo).legend.length && !voyageTargets(v.ruby).legend.length) continue;
+    // 時間帯（昼・夕・夜）で絞る。締めの目的地の時間帯で見る。
+    // 近海・遠洋のどちらかが合えば残す。
+    if (state.oceanTime &&
+        v.indigo?.destTime !== state.oceanTime && v.ruby?.destTime !== state.oceanTime) continue;
     rows.push({ c, dep, v, boarding: now >= dep && now < dep + BOARDING_MS });
   }
 
@@ -3255,7 +3290,9 @@ function renderOcean() {
         aria-pressed="${state.oceanDest === d.ja}">${esc(nm(d))}</button>`).join('')}
       <span style="width:10px"></span>
       <button class="chipbtn" data-ot="1" aria-pressed="${state.oceanTargets}">${T('targets')}</button>
-      <button class="chipbtn" data-ol="1" aria-pressed="${state.oceanLegendOnly}">${T('legendOnly')}</button>
+      <span style="width:10px"></span>
+      ${[2, 3, 1].map((t) => `<button class="chipbtn" data-otime="${t}"
+        aria-pressed="${state.oceanTime === t}">${T(TIME_KEY[t])}</button>`).join('')}
     </div>
 
     ${bonusGuideHTML()}
@@ -3326,7 +3363,7 @@ function renderWelcome() {
     return { f, spot, w };
   }).sort((a, b) => (a.w?.[0] ?? Infinity) - (b.w?.[0] ?? Infinity));
 
-  // 釣獲の進み具合
+  // 釣獲の進み具合（ヌシ）
   const caughtN = nushi.filter((f) => state.caught.has(f.id)).length;
   const byEx = {};
   for (const f of nushi) {
@@ -3336,6 +3373,34 @@ function renderWelcome() {
     byEx[ex].n++;
     if (state.caught.has(f.id)) byEx[ex].c++;
   }
+
+  // 通常魚ぜんぶの拡張別進捗。銛・オーシャンも含めた「釣り手帳」に近い括り。
+  const allFish = Object.values(DB.fish);
+  const caughtAll = allFish.filter((f) => state.caught.has(f.id)).length;
+  const fishByEx = {};
+  for (const f of allFish) {
+    const spot = spotById.get(f.spots?.[0]);
+    const ex = spot?.ex ?? 0;
+    fishByEx[ex] ??= { n: 0, c: 0 };
+    fishByEx[ex].n++;
+    if (state.caught.has(f.id)) fishByEx[ex].c++;
+  }
+
+  // アチーブメントの達成度。対象範囲の釣獲数から、いまのランクと次の目標を出す。
+  const achievements = (DB.achievements ?? []).map((a) => {
+    let have;
+    if (a.scope === 'nushi') {
+      have = nushi.filter((f) => {
+        const sp = spotById.get(f.nushiSpot ?? f.spots[0]);
+        return a.exps.includes(sp?.ex ?? 0) && state.caught.has(f.id);
+      }).length;
+    } else {
+      have = caughtAll;   // 手帳好きの漁師は全魚種
+    }
+    const done = a.ranks.filter((t) => have >= t).length;   // 達成済みランク数
+    const next = a.ranks[done] ?? null;                     // 次の目標（無ければ全達成）
+    return { ...a, have, done, next, max: a.ranks.length };
+  });
 
   const card = ({ f, spot, w }, live) => `
     <div class="dcard${live ? ' live' : ''}" data-fish="${f.id}" data-fishspot="${spot?.id ?? ''}">
@@ -3405,6 +3470,37 @@ function renderWelcome() {
             <span class="pn">${p.c}/${p.n}</span></div>`;
         }).join('')}</div>
     </section>
+
+    <section class="dsec">
+      <h2>${T('progressAll')} <span class="cnt">${caughtAll} / ${allFish.length}</span></h2>
+      <div class="dprog">${DB.areaOrder.map((a) => a.ex).filter((e, i, arr) => arr.indexOf(e) === i)
+        .filter((e) => fishByEx[e]).map((e) => {
+          const p = fishByEx[e];
+          return `<div class="pbar" title="${p.c} / ${p.n}">
+            <span class="pl">${esc(nm(DB.expansions[e]?.n))}</span>
+            <span class="pt"><i style="width:${(p.c / p.n) * 100}%"></i></span>
+            <span class="pn">${p.c}/${p.n}</span></div>`;
+        }).join('')}</div>
+    </section>
+
+    ${achievements.length ? `<section class="dsec">
+      <h2>${T('achievements')}</h2>
+      <div class="dach">${achievements.map((a) => {
+        const complete = a.done >= a.max;
+        return `<div class="ach${complete ? ' done' : ''}">
+          <div class="ach-top">
+            <span class="ach-name">${esc(nm(a.name))}</span>
+            <span class="ach-rank">${complete
+              ? `<b>${T('achDone')}</b> · ${T('rank')}${a.max}`
+              : a.done > 0 ? `${T('rank')}${a.done}` : `<span class="ach-none">${T('achNone')}</span>`}</span>
+          </div>
+          <div class="ach-bar"><i style="width:${(a.have / a.ranks[a.max - 1]) * 100}%"></i>
+            ${a.ranks.slice(0, -1).map((t) => `<u style="left:${(t / a.ranks[a.max - 1]) * 100}%"></u>`).join('')}</div>
+          <div class="ach-sub">${esc(nm(a.desc))} — <b>${a.have}</b>${
+            a.next != null ? ` / ${T('nextRank')} ${a.next}（${T('remain')} ${a.next - a.have}）` : ` · ${T('achAll')}`}</div>
+        </div>`;
+      }).join('')}</div>
+    </section>` : ''}
 
     ${creditHTML()}
   </div>`;
@@ -3683,7 +3779,13 @@ document.addEventListener('click', (e) => {
   const od = e.target.closest('[data-od]');
   if (od) { state.oceanDest = od.dataset.od; renderOcean(); return; }
   if (e.target.closest('[data-ot]')) { state.oceanTargets = !state.oceanTargets; renderOcean(); return; }
-  if (e.target.closest('[data-ol]')) { state.oceanLegendOnly = !state.oceanLegendOnly; renderOcean(); return; }
+  const otm = e.target.closest('[data-otime]');
+  if (otm) {
+    const t = Number(otm.dataset.otime);
+    state.oceanTime = state.oceanTime === t ? null : t;   // 同じのを押したら解除
+    renderOcean();
+    return;
+  }
   const gs = e.target.closest('[data-gospot]');
   if (gs) { e.stopPropagation(); selectSpot(gs.dataset.gospot); return; }
   const ml = e.target.closest('[data-map]');
