@@ -903,13 +903,20 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .dv-r{margin-top:10px;padding-top:10px;border-top:1px solid var(--edge-soft)}
 .dv-r:first-of-type{border-top:none;padding-top:0}
 .dv-r .oname{display:inline-flex;align-items:baseline;gap:6px}
-.dprog{display:grid;gap:6px;max-width:620px}
+.prog2{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.progcol h2{margin-bottom:8px}
+.dprog{display:grid;gap:6px}
+.pcheck{flex:none;width:20px;height:20px;border-radius:6px;border:1px solid var(--edge);background:var(--deeper);color:var(--mist);font-size:12px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .12s}
+.pcheck:hover{border-color:var(--lime);color:var(--lime);background:rgba(143,232,112,.1)}
+.pcheck.done{border-color:transparent;background:transparent;color:var(--lime);cursor:default}
+@media (max-width:780px){.prog2{grid-template-columns:1fr;gap:20px}}
 .pbar{display:flex;align-items:center;gap:10px;font-size:11.5px}
-.pbar .pl{width:150px;flex:none;color:var(--mist)}
+.pbar .pl{width:132px;flex:none;color:var(--mist)}
 .pbar .pt{flex:1;height:7px;background:var(--deeper);border-radius:7px;overflow:hidden}
 .pbar .pt i{display:block;height:100%;background:linear-gradient(90deg,var(--lime),var(--aqua))}
 .pbar .pn{font-family:var(--mono);font-size:10.5px;color:var(--dim);width:56px;text-align:right}
-.dach{display:grid;gap:12px;max-width:620px}
+.dach{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:920px}
+@media (max-width:780px){.dach{grid-template-columns:1fr}}
 .ach{padding:11px 13px;border:1px solid var(--edge-soft);border-radius:10px;background:var(--deeper)}
 .ach.done{border-color:var(--gold-dim);background:rgba(245,197,99,.06)}
 .ach-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
@@ -1220,7 +1227,7 @@ const STR = {
     progress: 'ヌシ釣獲', progressAll: '魚の種類', achievements: 'アチーブメント', achDone: '達成', achNone: '未達成', rank: 'ランク', nextRank: '次は', remain: 'あと', achAll: '全ランク達成', dashTitle: 'いまのエオルゼア', dashOpen: 'いま釣れるヌシ', dashFav: '★の魚', dashOcean: '次の便',
     dashNone: 'いま窓が開いているヌシはいません', steps: '手順', stepPrey: '前提魚を釣る',
     stepIntuit: '漁師の直感が付く', stepTarget: '本命を狙う', share: 'この魚のリンク',
-    caughtAll: '表示中を釣獲済みに', caughtClear: '釣獲記録を消す',
+    caughtAll: '表示中を釣獲済みに', caughtClear: '釣獲記録を消す', catchExTip: 'この拡張の魚をまとめて釣獲済みにする', oceanArea: '海域',
     uses: '使い道', craftUse: '素材', gcUse: 'GC納品', collectUse: '収集品', leveUse: 'リーヴ',
     lureAmb: 'アンビ', lureMod: 'モデスト', lureOnly: 'ルアー必須', lure: 'ルアー',
     condUnknown: 'データ不明', trigger: '幻海流トリガー', rareFish: '稀少魚',
@@ -1296,7 +1303,7 @@ const STR = {
     dashNone: 'No big fish are open right now', steps: 'Steps', stepPrey: 'Catch the predators',
     stepIntuit: 'Fisher\u2019s Intuition applies', stepTarget: 'Go for the target',
     share: 'Link to this fish',
-    caughtAll: 'Mark shown as caught', caughtClear: 'Clear caught',
+    caughtAll: 'Mark shown as caught', caughtClear: 'Clear caught', catchExTip: 'Mark all fish of this expansion as caught', oceanArea: 'areas',
     uses: 'Used for', craftUse: 'Ingredient', gcUse: 'GC delivery', collectUse: 'Collectable', leveUse: 'Levequest',
     lureAmb: 'Amb', lureMod: 'Mod', lureOnly: 'Lure required', lure: 'Lure',
     condUnknown: 'Unknown', trigger: 'Spectral trigger', rareFish: 'Rare',
@@ -3388,6 +3395,13 @@ function renderWelcome() {
 
   // アチーブメントの達成度。対象範囲の釣獲数から、いまのランクと次の目標を出す。
   const achievements = (DB.achievements ?? []).map((a) => {
+    // 魚拓王・幻海王：各オーシャン海域を全種釣ればコンプ。13海域中いくつ達成したか。
+    if (a.scope === 'oceanSpots') {
+      const areas = DB.spots.filter((s) => s.ocean && !!s.spectral === a.spectral);
+      const doneAreas = areas.filter((s) =>
+        s.fishes.length && s.fishes.every((id) => state.caught.has(id)));
+      return { ...a, have: doneAreas.length, total: areas.length, spotList: true };
+    }
     let have;
     if (a.scope === 'nushi') {
       have = nushi.filter((f) => {
@@ -3401,6 +3415,21 @@ function renderWelcome() {
     const next = a.ranks[done] ?? null;                     // 次の目標（無ければ全達成）
     return { ...a, have, done, next, max: a.ranks.length };
   });
+
+  // 拡張の並び（重複を除いた ex の順）
+  const exList = DB.areaOrder.map((a) => a.ex).filter((e, i, arr) => arr.indexOf(e) === i);
+  // 進捗バー1本。scope は 'nushi'（ヌシだけ）か 'all'（魚ぜんぶ）。
+  // 全部釣っていなければ、その拡張ぶんを一括で釣獲済みにするボタンを出す。
+  const progBar = (p, ex, scope) => {
+    const full = p.c >= p.n;
+    return `<div class="pbar" title="${p.c} / ${p.n}">
+      <span class="pl">${esc(nm(DB.expansions[ex]?.n))}</span>
+      <span class="pt"><i style="width:${(p.c / p.n) * 100}%"></i></span>
+      <span class="pn">${p.c}/${p.n}</span>
+      ${full ? '<span class="pcheck done">✔</span>'
+        : `<button class="pcheck" data-catchex="${ex}" data-catchscope="${scope}"
+            title="${T('catchExTip')}">＋</button>`}</div>`;
+  };
 
   const card = ({ f, spot, w }, live) => `
     <div class="dcard${live ? ' live' : ''}" data-fish="${f.id}" data-fishspot="${spot?.id ?? ''}">
@@ -3460,32 +3489,36 @@ function renderWelcome() {
     </section>
 
     <section class="dsec">
-      <h2>${T('progress')} <span class="cnt">${caughtN} / ${nushi.length}</span></h2>
-      <div class="dprog">${DB.areaOrder.map((a) => a.ex).filter((e, i, arr) => arr.indexOf(e) === i)
-        .filter((e) => byEx[e]).map((e) => {
-          const p = byEx[e];
-          return `<div class="pbar" title="${p.c} / ${p.n}">
-            <span class="pl">${esc(nm(DB.expansions[e]?.n))}</span>
-            <span class="pt"><i style="width:${(p.c / p.n) * 100}%"></i></span>
-            <span class="pn">${p.c}/${p.n}</span></div>`;
-        }).join('')}</div>
-    </section>
-
-    <section class="dsec">
-      <h2>${T('progressAll')} <span class="cnt">${caughtAll} / ${allFish.length}</span></h2>
-      <div class="dprog">${DB.areaOrder.map((a) => a.ex).filter((e, i, arr) => arr.indexOf(e) === i)
-        .filter((e) => fishByEx[e]).map((e) => {
-          const p = fishByEx[e];
-          return `<div class="pbar" title="${p.c} / ${p.n}">
-            <span class="pl">${esc(nm(DB.expansions[e]?.n))}</span>
-            <span class="pt"><i style="width:${(p.c / p.n) * 100}%"></i></span>
-            <span class="pn">${p.c}/${p.n}</span></div>`;
-        }).join('')}</div>
+      <div class="prog2">
+        <div class="progcol">
+          <h2>${T('progress')} <span class="cnt">${caughtN} / ${nushi.length}</span></h2>
+          <div class="dprog">${exList.filter((e) => byEx[e]).map((e) => progBar(byEx[e], e, 'nushi')).join('')}</div>
+        </div>
+        <div class="progcol">
+          <h2>${T('progressAll')} <span class="cnt">${caughtAll} / ${allFish.length}</span></h2>
+          <div class="dprog">${exList.filter((e) => fishByEx[e]).map((e) => progBar(fishByEx[e], e, 'all')).join('')}</div>
+        </div>
+      </div>
     </section>
 
     ${achievements.length ? `<section class="dsec">
       <h2>${T('achievements')}</h2>
       <div class="dach">${achievements.map((a) => {
+        // 魚拓王・幻海王：海域コンプ型。○/13 海域で表示。
+        if (a.spotList) {
+          const complete = a.have >= a.total;
+          return `<div class="ach${complete ? ' done' : ''}">
+            <div class="ach-top">
+              <span class="ach-name">${esc(nm(a.name))}</span>
+              <span class="ach-rank">${complete
+                ? `<b>${T('achDone')}</b>` : `${a.have} / ${a.total}`}</span>
+            </div>
+            <div class="ach-bar"><i style="width:${(a.have / a.total) * 100}%"></i>
+              ${Array.from({ length: a.total - 1 }, (_, i) =>
+                `<u style="left:${((i + 1) / a.total) * 100}%"></u>`).join('')}</div>
+            <div class="ach-sub">${esc(nm(a.desc))} — <b>${a.have}</b> / ${a.total} ${T('oceanArea')}</div>
+          </div>`;
+        }
         const complete = a.done >= a.max;
         return `<div class="ach${complete ? ' done' : ''}">
           <div class="ach-top">
@@ -3850,6 +3883,21 @@ document.addEventListener('click', (e) => {
     const sz = gc.dataset.gigsize;
     state.gigSize = state.gigSize === sz ? null : sz;   // 同じのを押したら解除
     renderSpot(true);
+    return;
+  }
+  const cex = e.target.closest('[data-catchex]');
+  if (cex) {
+    // その拡張の魚をまとめて釣獲済みにする。scope=nushi ならヌシだけ、all なら全魚。
+    const ex = Number(cex.dataset.catchex);
+    const nushiOnly = cex.dataset.catchscope === 'nushi';
+    for (const f of Object.values(DB.fish)) {
+      const sp = spotById.get(f.nushiSpot ?? f.spots?.[0]);
+      if ((sp?.ex ?? 0) !== ex) continue;
+      if (nushiOnly && !f.nushi) continue;
+      state.caught.add(f.id);
+    }
+    store.save(state.caught);
+    renderWelcome();
     return;
   }
   if (e.target.closest('[data-caughtall]')) {

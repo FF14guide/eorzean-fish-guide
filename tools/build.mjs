@@ -277,6 +277,7 @@ async function main() {
 
   const exOfSpot = (id, territoryId, placeId, zoneId) => {
     if (oceanMain.has(id) || oceanSub.has(id)) return OCEAN_EX;
+    if (spotExOverride.has(id)) return spotExOverride.get(id);   // 釣り場ID単位の上書き
     const sp = id >= SPECIAL_ID_FROM ? specialOf(zoneId) : null;
     if (sp) return sp.ex;
     if (territoryId != null && exOfTerritory.has(territoryId)) return exOfTerritory.get(territoryId);
@@ -330,6 +331,9 @@ async function main() {
   } catch { /* 無くてよい */ }
   const groupIds = {};                       // 'diadem' → -2, 'island' → -3 …
   Object.keys(groupCfg.groups ?? {}).forEach((k, i) => { groupIds[k] = -2 - i; });
+  // 釣り場ID → 拡張ID の上書き。シロガネのように場所名から引くと拡張がずれるものを直す。
+  const spotExOverride = new Map(
+    Object.entries(groupCfg.spotEx ?? {}).map(([id, ex]) => [Number(id), Number(ex)]));
   /** 釣り場の zoneId から、特別なグループとエリア名を引く */
   function specialOf(zoneId) {
     const z = Number(zoneId);
@@ -1521,6 +1525,18 @@ async function main() {
         scope: 'all',
         desc: { ja: '釣り手帳に印を付けた魚の種類', en: 'Fish recorded in the log' },
         ranks: [40, 80, 160, 400, 460, 780, 1140, 1460, 1730],
+      },
+      {
+        // 魚拓王：各オーシャン海域の通常時の魚を全種。釣り場コンプ型。
+        key: 'gyotaku', name: { ja: 'オーシャンの魚拓王', en: 'Ocean Fishprint King' },
+        scope: 'oceanSpots', spectral: false,
+        desc: { ja: '各海域（通常）の魚を全種釣り上げた数', en: 'Ocean areas (normal) fully caught' },
+      },
+      {
+        // 幻海王：各オーシャン海域の幻海流時の魚を全種。
+        key: 'genkai', name: { ja: 'オーシャンの幻海王', en: 'Ocean Spectral King' },
+        scope: 'oceanSpots', spectral: true,
+        desc: { ja: '各海域（幻海流）の魚を全種釣り上げた数', en: 'Ocean areas (spectral) fully caught' },
       },
     ],
     cosmoMissions,
