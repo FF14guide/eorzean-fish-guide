@@ -221,6 +221,9 @@ aside{
   color:var(--aqua);border-left-color:var(--aqua);background:rgba(79,220,236,.10);font-weight:600;
 }
 .spotlist .lv{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--dim)}
+.spotlist .lv.ct{color:var(--mist);font-weight:600}
+.spotlist .lv.ct.done{color:var(--lime)}
+.spotlist .lv.ct+.lv{margin-left:0}
 .spotlist .gig{color:var(--rose);font-size:10px;flex:none}
 .gigfilter{display:inline-flex;align-items:center;gap:5px;color:var(--dim);font-size:11px}
 .gigchip{display:inline-flex;align-items:center;gap:3px}
@@ -490,6 +493,10 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .otgt.legend{background:rgba(245,197,99,.16);color:var(--gold);font-weight:700}
 .otgt i{font-style:normal;font-size:9px;color:var(--dim);margin-left:5px}
 .otgt.legend i{color:var(--gold-dim)}
+.olegwrap{margin-top:26px}
+.oleg-h{display:flex;align-items:baseline;gap:10px;margin-bottom:9px}
+.oleg-h .eyebrow{margin:0}
+.oleg-count{font-family:var(--mono);font-size:11px;color:var(--gold)}
 .tag.legend{color:var(--gold);background:rgba(245,197,99,.14)}
 .tag.otime{color:var(--aqua);background:rgba(79,220,236,.12)}
 .tag.bonus{color:var(--lime);background:rgba(143,232,112,.12)}
@@ -915,9 +922,10 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .pbar .pt{flex:1;height:7px;background:var(--deeper);border-radius:7px;overflow:hidden}
 .pbar .pt i{display:block;height:100%;background:linear-gradient(90deg,var(--lime),var(--aqua))}
 .pbar .pn{font-family:var(--mono);font-size:10.5px;color:var(--dim);width:56px;text-align:right}
-.dach{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;max-width:1200px}
-@media (max-width:1040px){.dach{grid-template-columns:1fr 1fr}}
-@media (max-width:780px){.dach{grid-template-columns:1fr}}
+.dach{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:1200px}
+@media (max-width:1240px){.dach{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:980px){.dach{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:680px){.dach{grid-template-columns:1fr}}
 .ach{padding:11px 13px;border:1px solid var(--edge-soft);border-radius:10px;background:var(--deeper)}
 .ach.done{border-color:var(--gold-dim);background:rgba(245,197,99,.06)}
 .ach-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
@@ -1913,6 +1921,14 @@ function renderChrome() {
 }
 
 function renderSide() {
+  // 釣り場ごとの「釣獲数/総数」バッジ。魚を持たない釣り場（ミッション等）には出さない。
+  const catchBadge = (s) => {
+    const ids = s.fishes ?? [];
+    const fs = ids.map((id) => DB.fish[id]).filter(Boolean);
+    if (!fs.length) return '';
+    const c = fs.filter((f) => state.caught.has(f.id)).length;
+    return `<span class="lv ct${c >= fs.length ? ' done' : ''}">${c}/${fs.length}</span>`;
+  };
   // 拡張ごとにエリアをまとめ、その下に釣り場を並べる
   const byArea = new Map();
   for (const s of DB.spots) {
@@ -1971,6 +1987,7 @@ function renderSide() {
             ${sp.spear ? '<span class="gig" title="spear">⚵</span>' : ''}
             <span>${esc(nm(sp.n))}</span>
             ${sp.missions ? `<span class="lv ms">${sp.missions.length}</span>` : ''}
+            ${catchBadge(sp)}
             ${sp.level ? `<span class="lv">Lv${sp.level}</span>` : ''}
           </button></div>`;
         }
@@ -1985,6 +2002,7 @@ function renderSide() {
               ${s.spear ? '<span class="gig" title="spear">⚵</span>' : ''}
               <span>${esc(nm(s.n))}</span>
               ${s.missions ? `<span class="lv ms">${s.missions.length}</span>` : ''}
+              ${catchBadge(s)}
               ${s.level ? `<span class="lv">Lv${s.level}</span>` : ''}
             </button>`).join('')}</div>
         </details>`;
@@ -1992,6 +2010,21 @@ function renderSide() {
     </details>`;
   }).join('');
   $('#side').innerHTML = html;
+}
+
+/** サイドバーを作り直さずに、釣獲数バッジ（◯/◯）だけをその場で更新する。
+ *  スクロール位置や開閉状態を保つため、innerHTML の張り替えは避ける。 */
+function refreshSideBadges() {
+  document.querySelectorAll('#side button[data-spot]').forEach((btn) => {
+    const badge = btn.querySelector('.lv.ct');
+    if (!badge) return;
+    const s = spotById.get(Number(btn.dataset.spot));
+    const fs = (s?.fishes ?? []).map((id) => DB.fish[id]).filter(Boolean);
+    if (!fs.length) return;
+    const c = fs.filter((f) => state.caught.has(f.id)).length;
+    badge.textContent = `${c}/${fs.length}`;
+    badge.classList.toggle('done', c >= fs.length);
+  });
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -3285,6 +3318,21 @@ function renderOcean() {
     rows.push({ c, dep, v, boarding: now >= dep && now < dep + BOARDING_MS });
   }
 
+  // 未釣の伝説魚。各伝説魚が属する海域（釣り場）を1つ拾い、クリックで詳細へ飛べるようにする。
+  const legendSpotOf = new Map();
+  for (const s of DB.spots) {
+    if (!s.ocean || !s.fishes) continue;
+    for (const id of s.fishes) {
+      const f = DB.fish[id];
+      if (f?.oceanLegend && !legendSpotOf.has(id)) legendSpotOf.set(id, s);
+    }
+  }
+  const legendTotal = legendSpotOf.size;
+  const legendUncaught = [...legendSpotOf.entries()]
+    .map(([id, sp]) => ({ f: DB.fish[id], sp }))
+    .filter((x) => x.f && !state.caught.has(x.f.id))
+    .sort((a, b) => nm(a.sp.n).localeCompare(nm(b.sp.n), state.lang === 'ja' ? 'ja' : 'en'));
+
   $('#stage').innerHTML = `<div class="wrap">
     <div class="spot-head">
       <h1>オーシャンフィッシング</h1>
@@ -3329,6 +3377,19 @@ function renderOcean() {
           ${state.oceanTargets ? bonusChips(v.ruby) + targetChips(v.ruby) : ''}
         </div>
       </div>`).join('') || `<div class="gempty" style="padding:26px 12px">${state.lang === 'ja' ? 'この行き先の便は48時間以内にありません。' : 'No voyage to this destination within 48 hours.'}</div>`}
+    </div>
+
+    <div class="olegwrap">
+      <div class="oleg-h">
+        <span class="eyebrow">${state.lang === 'ja' ? '未釣の伝説魚' : 'UNCAUGHT LEGENDARY FISH'}</span>
+        <span class="oleg-count">${legendTotal - legendUncaught.length} / ${legendTotal}</span>
+      </div>
+      ${legendUncaught.length ? `<div class="otargets">
+        ${legendUncaught.map(({ f, sp }) => `<span class="otgt legend" data-fish="${f.id}" data-fishspot="${sp.id}"
+          tabindex="0" role="button" title="${esc(nm(sp.n))}${sp.spectral ? ` / ${T('spectral')}` : ''}">
+          ${iconImg(f, 'otgticon')}${esc(nm(f.n))}<i>${esc(nm(sp.n))}${sp.spectral ? `・${state.lang === 'ja' ? '幻' : 'S'}` : ''}</i></span>`).join('')}
+      </div>`
+      : `<p class="gempty" style="padding:16px 12px">${state.lang === 'ja' ? '伝説魚はすべて釣獲済みです！🎉' : 'All legendary fish caught! 🎉'}</p>`}
     </div>
 
     <div class="credit" style="margin-top:24px;border-top:none;padding-top:0">
@@ -3877,6 +3938,7 @@ document.addEventListener('click', (e) => {
     });
     document.querySelector(`.fishrow[data-fish="${id}"]`)?.classList.toggle('done', on);
     document.querySelector(`.nrow[data-fish="${id}"]`)?.classList.toggle('done', on);
+    refreshSideBadges();
     return;
   }
   const gc = e.target.closest('[data-gigsize]');
@@ -3899,6 +3961,7 @@ document.addEventListener('click', (e) => {
     }
     store.save(state.caught);
     renderWelcome();
+    refreshSideBadges();
     return;
   }
   if (e.target.closest('[data-caughtall]')) {
@@ -3906,14 +3969,15 @@ document.addEventListener('click', (e) => {
     document.querySelectorAll('[data-caught]').forEach((b) => state.caught.add(Number(b.dataset.caught)));
     store.save(state.caught);
     if (state.view === 'nushi') renderNushi(true); else renderSpot(true);
+    refreshSideBadges();
     return;
   }
   if (e.target.closest('[data-spotuncaught]')) {
     const sp = spotById.get(state.spotId);
-    if (sp) { sp.fishes.forEach((id) => state.caught.delete(id)); store.save(state.caught); renderSpot(true); }
+    if (sp) { sp.fishes.forEach((id) => state.caught.delete(id)); store.save(state.caught); renderSpot(true); refreshSideBadges(); }
     return;
   }
-  if (e.target.closest('[data-caughtclear]')) { state.caught.clear(); store.save(state.caught); renderNushi(); return; }
+  if (e.target.closest('[data-caughtclear]')) { state.caught.clear(); store.save(state.caught); renderNushi(); refreshSideBadges(); return; }
   const tl = e.target.closest('[data-tl]');
   if (tl) { e.preventDefault(); state.tlHours = Number(tl.dataset.tl); renderNushi(true); return; }
   const cb = e.target.closest('[data-cb]');
