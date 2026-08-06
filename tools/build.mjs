@@ -1511,6 +1511,12 @@ async function main() {
         ranks: [7, 23, 40],
       },
       {
+        key: 'dt', name: { ja: '黄金の太公望', en: 'Way of the Fisher: Dawntrail' },
+        scope: 'nushi', exps: [5],
+        desc: { ja: '黄金のヌシを釣り上げる', en: 'Big fish of DT' },
+        ranks: [8, 24, 46],
+      },
+      {
         key: 'techo', name: { ja: '手帳好きの漁師', en: 'A Fish Too Far' },
         scope: 'all',
         desc: { ja: '釣り手帳に印を付けた魚の種類', en: 'Fish recorded in the log' },
