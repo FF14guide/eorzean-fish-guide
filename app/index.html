@@ -915,7 +915,8 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .pbar .pt{flex:1;height:7px;background:var(--deeper);border-radius:7px;overflow:hidden}
 .pbar .pt i{display:block;height:100%;background:linear-gradient(90deg,var(--lime),var(--aqua))}
 .pbar .pn{font-family:var(--mono);font-size:10.5px;color:var(--dim);width:56px;text-align:right}
-.dach{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:920px}
+.dach{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;max-width:1200px}
+@media (max-width:1040px){.dach{grid-template-columns:1fr 1fr}}
 @media (max-width:780px){.dach{grid-template-columns:1fr}}
 .ach{padding:11px 13px;border:1px solid var(--edge-soft);border-radius:10px;background:var(--deeper)}
 .ach.done{border-color:var(--gold-dim);background:rgba(245,197,99,.06)}
