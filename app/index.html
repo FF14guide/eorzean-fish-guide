@@ -3516,6 +3516,56 @@ function renderWelcome() {
     boarding: i === 0 && now >= cur * VOYAGE_SEC * 1000,
   }));
 
+  // オーシャンの未釣の伝説魚。運行表を先読みして「次に狙える便」の出航時刻を求める。
+  const oceanLegendIds = new Set();
+  const oceanLegendSpot = new Map();
+  for (const s of DB.spots) {
+    if (!s.ocean || !s.fishes) continue;
+    for (const id of s.fishes) {
+      const lf = DB.fish[id];
+      if (lf?.oceanLegend && !state.caught.has(id)) {
+        oceanLegendIds.add(id);
+        if (!oceanLegendSpot.has(id)) oceanLegendSpot.set(id, s);
+      }
+    }
+  }
+  const legendNext = [];
+  if (oceanLegendIds.size) {
+    const found = new Set();
+    const cycleLen = DB.ocean.table.length;
+    for (let i = 0; i < cycleLen && found.size < oceanLegendIds.size; i++) {
+      const c = cur + i;
+      const dep = c * VOYAGE_SEC * 1000;
+      const vv = voyageAt(c);
+      for (const route of [vv.indigo, vv.ruby]) {
+        if (!route) continue;
+        for (const { f: lf, sp } of voyageTargets(route).legend) {
+          if (!oceanLegendIds.has(lf.id) || found.has(lf.id)) continue;
+          found.add(lf.id);
+          legendNext.push({ f: lf, sp, dep, boarding: dep <= now && now < dep + BOARDING_MS });
+        }
+      }
+    }
+    // 先読み範囲で便が拾えなかった伝説魚も一覧には残す（時刻は不明表示）
+    for (const id of oceanLegendIds) {
+      if (!found.has(id)) legendNext.push({ f: DB.fish[id], sp: oceanLegendSpot.get(id), dep: null, boarding: false });
+    }
+    legendNext.sort((a, b) => (a.dep ?? Infinity) - (b.dep ?? Infinity));
+  }
+  // 今釣れる／★の魚と同じ .dcard 形式。時刻欄は「次に狙える便」の出航時刻にする。
+  const legendCard = ({ f: lf, sp, dep, boarding }) => `
+    <div class="dcard${boarding ? ' live' : ''}" data-fish="${lf.id}" data-fishspot="${sp?.id ?? ''}">
+      ${favBtn(lf.id)}${iconImg(lf, 'ficon')}
+      <div class="dc-main">
+        <div class="dc-name">${esc(nm(lf.n))}<span class="tag legend">${T('legendFish')}</span></div>
+        <div class="dc-sub">${esc(nm(sp?.n) ?? '')}${sp?.spectral ? `・${state.lang === 'ja' ? '幻海流' : 'spectral'}` : ''}</div>
+      </div>
+      <div class="dc-time">${
+        dep == null ? `<span class="anytime">—</span>`
+        : boarding ? `<b class="live">${T('boarding')}</b><br><span class="rel">${remainTag(dep + BOARDING_MS)}</span>`
+        : `<b>${dayLabel(dep)}${hhmm(dep)}</b><br><span class="rel">${relTime(dep)}</span>`}</div>
+    </div>`;
+
   $('#stage').innerHTML = `<div class="wrap dash">
     <div class="dashhead">
       <h1>${T('dashTitle')}</h1>
@@ -3532,6 +3582,11 @@ function renderWelcome() {
     ${favs.length ? `<section class="dsec">
       <h2>${T('dashFav')} <span class="cnt">${favs.length}</span></h2>
       <div class="dgrid">${favs.slice(0, 12).map((x) => card(x, x.w && x.w[0] <= now)).join('')}</div>
+    </section>` : ''}
+
+    ${legendNext.length ? `<section class="dsec">
+      <h2>${state.lang === 'ja' ? 'オーシャン 未釣の伝説魚' : 'Uncaught legendary — Ocean'} <span class="cnt">${legendNext.length}</span></h2>
+      <div class="dgrid">${legendNext.map(legendCard).join('')}</div>
     </section>` : ''}
 
     <section class="dsec">
