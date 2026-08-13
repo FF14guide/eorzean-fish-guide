@@ -1657,7 +1657,60 @@ async function main() {
   }
   // Cloudflare Pages / Netlify 向け。ハッシュ付きなので恒久キャッシュでよい
   await writeFile(path.join(DIST, '_headers'),
-    `/data/*\n  Cache-Control: public, max-age=31536000, immutable\n\n/\n  Cache-Control: public, max-age=600\n`);
+    `/data/*\n  Cache-Control: public, max-age=31536000, immutable\n\n/automation-feed.json\n  Cache-Control: public, max-age=3600\n\n/\n  Cache-Control: public, max-age=600\n`);
+
+  // ─── 自動化むけの軽量フィード（n8n等が読む静的JSON）──────────────
+  // オーシャンの運行は時刻から決まる周期なので、周期テーブル＋各航路の伝説魚を
+  // 事前計算しておけば、取り込み側は時刻計算だけで「次の便と狙える魚」を作れる。
+  {
+    const VOYAGE_SEC = 7200;   // クライアント側の定数と一致させること
+    const legendBySpot = new Map();
+    for (const f of Object.values(fish)) {
+      if (!f.oceanLegend) continue;
+      for (const sid of f.spots ?? []) {
+        if (!legendBySpot.has(sid)) legendBySpot.set(sid, []);
+        legendBySpot.get(sid).push(f);
+      }
+    }
+    const feedRoutes = {};
+    for (const [id, r] of Object.entries(oceanRoutes)) {
+      const seen = new Set();
+      const legendary = [];
+      for (const st of r.stops) {
+        for (const [sid, spectral] of [[st.spotId, false], [st.subSpotId, true]]) {
+          if (!sid) continue;
+          for (const f of legendBySpot.get(sid) ?? []) {
+            if (seen.has(f.id)) continue;
+            if (f.oceanTimes?.length && !f.oceanTimes.includes(st.time)) continue;
+            seen.add(f.id);
+            legendary.push({ id: f.id, name: { ja: f.n.ja, en: f.n.en }, spectral, times: f.oceanTimes ?? null });
+          }
+        }
+      }
+      feedRoutes[id] = { dest: { ja: r.dest.ja, en: r.dest.en }, destTime: r.destTime, legendary };
+    }
+    const feed = {
+      generatedAt: new Date().toISOString(),
+      howto: 'Deterministic ocean voyage schedule. chunk = floor(nowMs/1000/voyageSec); slot = ((chunk+phase)%cycleLength); [indigoRouteId, rubyRouteId] = table[slot]; departureMs = chunk*voyageSec*1000; boarding open for 15min after departure. destTime: 1=night 2=day 3=sunset.',
+      site: {
+        url: SITE_URL || null,
+        spots: out.meta.spotCount,
+        fish: out.meta.fishCount,
+        nushi: out.meta.nushiCount,
+        oonushi: out.meta.oonushiCount,
+        oceanAreas: usableSpots.filter((s) => s.ocean).length,
+      },
+      ocean: {
+        voyageSec: VOYAGE_SEC,
+        phase: OCEAN_PHASE,
+        cycleLength: ocean.table.length,
+        table: ocean.table,
+        routes: feedRoutes,
+      },
+    };
+    await writeFile(path.join(DIST, 'automation-feed.json'), JSON.stringify(feed));
+    log(`         dist/automation-feed.json    ${sz(JSON.stringify(feed))}`);
+  }
 
   if (staticFiles.length) log(`複製   app/static → dist  ${staticFiles.join(' / ')}`);
   if (!hasOgp) log('app/static/ogp.png が無いので og:image を省略（tools/make-ogp.py で作れる）');

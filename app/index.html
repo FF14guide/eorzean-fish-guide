@@ -146,6 +146,18 @@ header::after{ /* 金の縁取り */
 .clock-read.lt{padding-left:10px;border-left:1px solid var(--edge-soft)}
 @media (max-width:1180px) and (min-width:781px){.clock-read.lt{display:none}}
 @media (max-width:900px){.picks select{padding:5px 8px;font-size:11px}}
+#mb{max-width:150px}
+.pricechip{display:inline-flex;align-items:baseline;gap:4px;font-family:var(--mono);font-size:11px;white-space:nowrap}
+.pricechip .pg{color:var(--gold);font-size:9px}
+.pricechip .pm{color:var(--gold);font-weight:600}
+.pricechip .pa{color:var(--dim);font-size:10px}
+.pricechip.nodata{color:var(--dim)}
+.mbbody .mbkv{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;margin:2px 0 8px;font-size:13px}
+.mbbody .mbkv dt{color:var(--mist)}
+.mbbody .mbkv dd{color:var(--foam);font-family:var(--mono);margin:0;text-align:right}
+.mbbody .mbnil{color:var(--dim);font-size:12.5px}
+.mbbody .mblink{font-size:11.5px;color:var(--aqua);text-decoration:none}
+.mbbody .mblink:hover{text-decoration:underline}
 .toggles{display:flex;gap:6px;flex:none}
 .tgl{
   font-size:11.5px;font-weight:600;letter-spacing:.02em;
@@ -678,6 +690,12 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 .wchip.hit{background:var(--aqua);color:var(--ink);font-weight:700}
 .wchip.bite{background:rgba(79,220,236,.12);border:1px solid rgba(79,220,236,.5);color:var(--aqua);font-family:var(--mono);font-size:9.5px;font-weight:700}
 .weather .any{color:var(--dim);font-size:11px}
+.wchip.nextwin{background:rgba(79,220,236,.10);border:1px solid rgba(79,220,236,.45);color:var(--aqua);font-weight:600}
+.wchip.nextwin.open{background:rgba(143,232,112,.12);border-color:rgba(143,232,112,.5);color:var(--lime)}
+.wchip.nextwin .rel{font-family:var(--mono)}
+.wincd{font-size:13px;font-weight:700;color:var(--aqua);margin:2px 0 9px}
+.wincd.open{color:var(--lime)}
+.wincd .rel{font-family:var(--mono)}
 
 /* 引き */
 .tug{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:-.5px}
@@ -1150,6 +1168,7 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
       <!-- 中身は起動時に LANGS から作る（setLangUI） -->
       <select id="lang" aria-label="Language"></select>
       <select id="tz" aria-label="Time zone"></select>
+      <select id="mb" aria-label="Market data center" title="マーケット価格の対象DC/ワールド"></select>
     </div>
 
     <div class="toggles">
@@ -1563,6 +1582,30 @@ function nextWindow(list) {
   return list.find(([, b]) => b > now) ?? null;
 }
 
+/** 通常魚の「次のウィンドウ」。findWindowsを呼び、結果を60秒キャッシュ。
+ *  時間・天候の制約が無い魚（'always'／条件なし）は null を返す。 */
+const nextWinCache = new Map();
+function nextFishWindow(f, territoryId) {
+  const key = `${f.id}:${territoryId}:${state.fishEyes ? 1 : 0}`;
+  const hit = nextWinCache.get(key);
+  if (hit && hit.at > Date.now() - 60000) return hit.v;
+  const ws = findWindows(f, territoryId, { days: 60, limit: 3, fishEyes: state.fishEyes });
+  const v = (ws === 'always' || !Array.isArray(ws) || !ws.length) ? null : ws;
+  nextWinCache.set(key, { at: Date.now(), v });
+  return v;
+}
+/** 「次の解禁まであとX」チップ。時間・天候限定の魚だけに出す（それ以外は空文字）。 */
+function nextWinChip(f, territoryId) {
+  const ws = nextFishWindow(f, territoryId);
+  if (!ws) return '';
+  const w = nextWindow(ws);
+  if (!w || w === 'always') return '';
+  const ja = state.lang === 'ja';
+  return w[0] <= Date.now()
+    ? `<span class="wchip nextwin open" title="${ja ? 'いま解禁中' : 'Open now'}">${ja ? '解禁中 ' : 'open · '}<span class="rel">${remainTag(w[1])}</span></span>`
+    : `<span class="wchip nextwin" title="${ja ? '次に条件が揃うまで' : 'Until next window'}">◷ <span class="rel">${relTime(w[0])}</span></span>`;
+}
+
 /**
  * 条件が未収録のヌシでも、直感の前提魚が縛られていれば、そこから窓は導ける。
  * 前提魚を釣らないと本命は釣れないので、前提魚の条件がそのまま実効的な条件になる。
@@ -1813,6 +1856,7 @@ const baitKey = (id) => (Array.isArray(id) ? id[0] : id);
 const state = {
   lang: 'ja',             // ja | en | de | fr
   tz: 'auto',             // ZONES の id
+  mb: '',                 // マーケット価格の対象（Universalisのワールド名/DC名。空=オフ）
   view: 'welcome',        // welcome | spot | search | nushi
   fishEyes: false,
   // ヌシ一覧の絞り込み。増えても散らからないよう1か所にまとめる。
@@ -1918,6 +1962,7 @@ function renderChrome() {
     `<option value="${z.id}">${esc(state.lang === 'ja' ? z.ja : z.en)}</option>`).join('');
   tz.value = state.tz;
   $('#ltlabel').textContent = (ZONES.find((z) => z.id === state.tz) ?? ZONES[0])[state.lang === 'ja' ? 'ja' : 'en'].toUpperCase();
+  setMbUI();
 }
 
 function renderSide() {
@@ -2057,10 +2102,11 @@ function ribbonHTML(f) {
 }
 
 function weatherHTML(f, territoryId) {
+  const nw = nextWinChip(f, territoryId);
   if (!f.hasConditions) return `<div class="weather"><span class="any">${T('unknown')}</span></div>`;
   if (!f.weather.length && !f.prevWeather.length) {
     return `<div class="weather"><span class="any"${f.condAssumed
-      ? ` title="${T('assumedFree')}${f.catches ? ` (${f.catches})` : ''}"` : ''}>${T('anyWeather')}</span></div>`;
+      ? ` title="${T('assumedFree')}${f.catches ? ` (${f.catches})` : ''}"` : ''}>${T('anyWeather')}</span>${nw}</div>`;
   }
   const nowW = territoryId != null ? weatherAt(territoryId, Date.now()) : null;
   const prevW = territoryId != null ? weatherAt(territoryId, periodStart(Date.now()) - W_PERIOD * 1000) : null;
@@ -2068,7 +2114,7 @@ function weatherHTML(f, territoryId) {
     `<span class="wchip prev${w === prevW ? ' hit' : ''}">${T('prev')}${wIcon(w)}${esc(wName(w))}</span>`).join('');
   const cur = f.weather.map((w) =>
     `<span class="wchip${w === nowW ? ' hit' : ''}">${wIcon(w)}${esc(wName(w))}</span>`).join('');
-  return `<div class="weather">${prev}${cur}</div>`;
+  return `<div class="weather">${prev}${cur}${nw}</div>`;
 }
 
 /** 前提魚。引きの強さを添えて、どのフッキングを使うかその場で分かるようにする */
@@ -2171,7 +2217,7 @@ function fishRow(f, spot) {
   const stars = f.stars ? `<span class="stars">${'★'.repeat(f.stars)}</span>` : '';
   const tugCls = f.tugRank ? `t${f.tugRank}` : '';
   return `<div class="fishrow${live ? ' live' : ''}${state.caught.has(f.id) ? ' done' : ''}" data-fish="${f.id}" tabindex="0" role="button">
-    <div class="fname">${caughtBtn(f.id)}${iconImg(f)}<span class="nm">${esc(nm(f.n))}</span>${stars}<span class="tags">${tags}</span></div>
+    <div class="fname">${caughtBtn(f.id)}${iconImg(f)}<span class="nm">${esc(nm(f.n))}</span>${stars}<span class="tags">${tags}</span>${priceCell(f)}</div>
     ${baitHTML(f, spot.id)}
     <div class="tug ${tugCls}">${f.tugJa ?? '<span style="color:var(--dim)">—</span>'}
       ${f.hookset ? `<small title="${esc(nm(f.hookset))}">${esc(nm(f.hookset).replace(/フッキング|Hookset|Anhieb|Ferrage /g, '').trim())}</small>` : ''}</div>
@@ -2393,6 +2439,7 @@ function renderSpot(keepScroll = false) {
     ${creditHTML()}
   </div>`;
   $('#stage').scrollTop = scrollY;
+  MB.ensureForSpot(spot);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -2541,7 +2588,210 @@ const store = {
   saveFavs(set) {
     try { localStorage.setItem(this.favKey, JSON.stringify([...set])); } catch { /* 保存できなくても動く */ }
   },
+  loadMb() { try { return localStorage.getItem('efg.mb') ?? ''; } catch { return ''; } },
+  saveMb(v) { try { v ? localStorage.setItem('efg.mb', v) : localStorage.removeItem('efg.mb'); } catch { /* noop */ } },
 };
+
+/* ══════════════════════════════════════════════════════════
+   マーケットボード価格（Universalis / crowd-sourced）
+   選んだDCまたはワールドで、魚（＝アイテム）の相場を表示する。外部API・任意機能。
+   ══════════════════════════════════════════════════════════ */
+const MB = {
+  base: 'https://universalis.app/api/v2',
+  meta: null,            // { regions:[{region, dcs:[{name, worlds:[{id,name}]}]}] }
+  tradable: null,        // Set<number>（売買可能なアイテムID）
+  cache: new Map(),      // `${scope}:${id}` -> { nq, hq, avg, upd, at }
+  TTL: 15 * 60 * 1000,
+  METATTL: 7 * 86400 * 1000,
+
+  online() { return typeof fetch === 'function' && navigator.onLine !== false; },
+  enabled() { return !!state.mb && this.online(); },
+  async getJSON(url) {
+    const r = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  },
+
+  async loadMeta() {
+    if (this.meta) return this.meta;
+    try {
+      const c = JSON.parse(localStorage.getItem('efg.mbmeta') || 'null');
+      if (c && Date.now() - c.at < this.METATTL) { this.meta = c.v; return this.meta; }
+    } catch { /* noop */ }
+    if (!this.online()) return null;
+    try {
+      const [dcs, worlds] = await Promise.all([
+        this.getJSON(`${this.base}/data-centers`),
+        this.getJSON(`${this.base}/worlds`),
+      ]);
+      const wById = new Map(worlds.map((w) => [w.id, w.name]));
+      const byRegion = new Map();
+      for (const dc of dcs) {
+        if (!dc.name || !(dc.worlds || []).length) continue;
+        if (!byRegion.has(dc.region)) byRegion.set(dc.region, []);
+        byRegion.get(dc.region).push({
+          name: dc.name,
+          worlds: (dc.worlds || []).map((id) => ({ id, name: wById.get(id) || '' }))
+            .filter((w) => w.name).sort((a, b) => a.name.localeCompare(b.name)),
+        });
+      }
+      const order = ['Japan', 'North-America', 'Europe', 'Oceania', '中国', 'China', '한국', 'Korea'];
+      const regions = [...byRegion.entries()]
+        .sort((a, b) => (order.indexOf(a[0]) + 1 || 99) - (order.indexOf(b[0]) + 1 || 99))
+        .map(([region, ds]) => ({ region, dcs: ds.sort((a, b) => a.name.localeCompare(b.name)) }));
+      this.meta = { regions };
+      try { localStorage.setItem('efg.mbmeta', JSON.stringify({ at: Date.now(), v: this.meta })); } catch { /* noop */ }
+      return this.meta;
+    } catch { return null; }
+  },
+
+  async loadTradable() {
+    if (this.tradable) return this.tradable;
+    try {
+      const c = JSON.parse(localStorage.getItem('efg.mbtradable') || 'null');
+      if (c && Date.now() - c.at < this.METATTL) { this.tradable = new Set(c.v); return this.tradable; }
+    } catch { /* noop */ }
+    if (!this.online()) return null;
+    try {
+      const ids = await this.getJSON(`${this.base}/marketable`);
+      this.tradable = new Set(ids);
+      try { localStorage.setItem('efg.mbtradable', JSON.stringify({ at: Date.now(), v: ids })); } catch { /* noop */ }
+      return this.tradable;
+    } catch { return null; }
+  },
+
+  isTradable(id) { return this.tradable ? this.tradable.has(id) : true; }, // 未取得なら一旦許可
+  get(id) {
+    const e = this.cache.get(`${state.mb}:${id}`);
+    return e && Date.now() - e.at < this.TTL ? e : null;
+  },
+
+  async fetchPrices(ids) {
+    if (!this.enabled()) return;
+    await this.loadTradable();
+    const scope = state.mb;
+    const need = [...new Set(ids)].filter((id) => this.isTradable(id) && !this.get(id));
+    for (let i = 0; i < need.length; i += 100) {
+      const chunk = need.slice(i, i + 100);
+      try {
+        const fields = encodeURIComponent('minPriceNQ,minPriceHQ,averagePrice,averagePriceNQ,currentAveragePrice,lastUploadTime');
+        const url = `${this.base}/${encodeURIComponent(scope)}/${chunk.join(',')}?fields=${fields}`;
+        const data = await this.getJSON(url);
+        const items = data.items || (data.itemID ? { [data.itemID]: data } : {});
+        const now = Date.now();
+        for (const id of chunk) {
+          const it = items[id] || items[String(id)];
+          this.cache.set(`${scope}:${id}`, it ? {
+            nq: it.minPriceNQ || 0,
+            hq: it.minPriceHQ || 0,
+            avg: Math.round(it.averagePrice ?? it.averagePriceNQ ?? it.currentAveragePrice ?? 0),
+            upd: it.lastUploadTime || 0,
+            at: now,
+          } : { nq: 0, hq: 0, avg: 0, upd: 0, at: now });
+        }
+      } catch { /* このチャンクは飛ばす */ }
+    }
+  },
+
+  async ensureForSpot(spot) {
+    if (!this.enabled() || !spot?.fishes?.length) return;
+    await this.loadTradable();
+    fillPrices();                                   // 未対応の魚の枠を掃除
+    await this.fetchPrices(spot.fishes);
+    fillPrices();
+  },
+  async ensureForFish(f) {
+    if (!this.enabled() || !f) return;
+    await this.loadTradable();
+    fillPrices();
+    if (this.isTradable(f.id)) { await this.fetchPrices([f.id]); fillPrices(); }
+  },
+};
+
+const gil = (n) => (n ? `${n.toLocaleString('en-US')}` : '—');
+function agoText(ms) {
+  if (!ms) return '—';
+  const d = Math.floor((Date.now() - ms) / 86400000);
+  const ja = state.lang === 'ja';
+  if (d <= 0) { const h = Math.floor((Date.now() - ms) / 3600000); return ja ? (h <= 0 ? 'さっき' : `${h}時間前`) : (h <= 0 ? 'just now' : `${h}h ago`); }
+  return ja ? `${d}日前` : `${d}d ago`;
+}
+/** 釣り場の魚一覧に置く価格チップ（最初は空。取得後に fillPrices が埋める） */
+function priceCell(f) {
+  if (!state.mb) return '';
+  if (MB.tradable && !MB.tradable.has(f.id)) return '';
+  return `<span class="pricechip" data-price="${f.id}"></span>`;
+}
+/** 魚詳細のマーケット価格セクション（取得後に fillPrices が中身を埋める） */
+function priceDetailHTML(f) {
+  if (!state.mb) return '';
+  if (MB.tradable && !MB.tradable.has(f.id)) return '';
+  const ja = state.lang === 'ja';
+  return `<div class="dsec">
+    <span class="eyebrow">${ja ? 'マーケット価格' : 'Market price'} · ${esc(state.mb)}</span>
+    <div class="mbbody" data-pricedetail="${f.id}">${ja ? '取得中…' : 'Loading…'}</div>
+  </div>`;
+}
+/** DOM上の価格枠（一覧チップ・詳細）を、キャッシュから埋める */
+function fillPrices() {
+  if (!state.mb) return;
+  const ja = state.lang === 'ja';
+  document.querySelectorAll('[data-price]').forEach((el) => {
+    const id = Number(el.dataset.price);
+    if (MB.tradable && !MB.tradable.has(id)) { el.remove(); return; }
+    const rec = MB.get(id);
+    if (!rec) return;                                // 取得中
+    if (!(rec.nq || rec.hq || rec.avg)) {
+      el.textContent = '—'; el.classList.add('nodata');
+      el.title = ja ? 'マーケットにデータがありません' : 'No market data';
+      return;
+    }
+    const min = rec.nq || rec.hq;
+    el.innerHTML = `<span class="pg">◆</span><span class="pm">${gil(min)}</span>${rec.avg ? `<span class="pa">~${gil(rec.avg)}</span>` : ''}`;
+    el.title = [
+      rec.nq ? `${ja ? 'NQ最安' : 'NQ min'} ${gil(rec.nq)}` : '',
+      rec.hq ? `${ja ? 'HQ最安' : 'HQ min'} ${gil(rec.hq)}` : '',
+      rec.avg ? `${ja ? '平均' : 'avg'} ${gil(rec.avg)}` : '',
+      `${ja ? '更新' : 'upd'} ${agoText(rec.upd)}`,
+      state.mb,
+    ].filter(Boolean).join(' · ');
+  });
+  document.querySelectorAll('[data-pricedetail]').forEach((el) => {
+    const id = Number(el.dataset.pricedetail);
+    const rec = MB.get(id);
+    if (!rec) return;
+    if (!(rec.nq || rec.hq || rec.avg)) {
+      el.innerHTML = `<span class="mbnil">${ja ? 'マーケットにデータがありません' : 'No market data'}</span>`;
+      return;
+    }
+    el.innerHTML = `<dl class="kv mbkv">
+      <dt>${ja ? 'NQ 最安' : 'NQ min'}</dt><dd>${gil(rec.nq)}</dd>
+      <dt>${ja ? 'HQ 最安' : 'HQ min'}</dt><dd>${rec.hq ? gil(rec.hq) : '—'}</dd>
+      <dt>${ja ? '平均' : 'Average'}</dt><dd>${gil(rec.avg)}</dd>
+      <dt>${ja ? '更新' : 'Updated'}</dt><dd>${agoText(rec.upd)}</dd>
+    </dl>
+    <a class="mblink" href="https://universalis.app/market/${id}" target="_blank" rel="noopener">Universalis ↗</a>`;
+  });
+}
+/** マーケットセレクタの中身を作る。DCと、その配下のワールドを地域ごとに並べる */
+function setMbUI() {
+  const el = $('#mb'); if (!el) return;
+  const ja = state.lang === 'ja';
+  const rlabel = (r) => (ja ? ({ Japan: '日本', 'North-America': '北米', Europe: '欧州', Oceania: 'オセアニア', China: '中国', 中国: '中国', Korea: '韓国', 한국: '韓国' }[r] ?? r) : r);
+  let html = `<option value="">${ja ? '価格オフ' : 'Prices off'}</option>`;
+  if (MB.meta) {
+    for (const { region, dcs } of MB.meta.regions) {
+      html += `<optgroup label="${esc(rlabel(region))}">`;
+      for (const dc of dcs) {
+        html += `<option value="${esc(dc.name)}">${esc(dc.name)}${ja ? '（DC全体）' : ' (all)'}</option>`;
+        for (const w of dc.worlds) html += `<option value="${esc(w.name)}">　${esc(w.name)}</option>`;
+      }
+      html += '</optgroup>';
+    }
+  }
+  el.innerHTML = html;
+  el.value = state.mb || '';
+}
 
 /**
  * URL の同期。
@@ -3554,8 +3804,8 @@ function renderWelcome() {
   }
   // 今釣れる／★の魚と同じ .dcard 形式。時刻欄は「次に狙える便」の出航時刻にする。
   const legendCard = ({ f: lf, sp, dep, boarding }) => `
-    <div class="dcard${boarding ? ' live' : ''}" data-fish="${lf.id}" data-fishspot="${sp?.id ?? ''}">
-      ${favBtn(lf.id)}${iconImg(lf, 'ficon')}
+    <div class="dcard legendcard${boarding ? ' live' : ''}" data-fish="${lf.id}" data-fishspot="${sp?.id ?? ''}">
+      ${caughtBtn(lf.id)}${iconImg(lf, 'ficon')}
       <div class="dc-main">
         <div class="dc-name">${esc(nm(lf.n))}<span class="tag legend">${T('legendFish')}</span></div>
         <div class="dc-sub">${esc(nm(sp?.n) ?? '')}${sp?.spectral ? `・${state.lang === 'ja' ? '幻海流' : 'spectral'}` : ''}</div>
@@ -3584,7 +3834,7 @@ function renderWelcome() {
       <div class="dgrid">${favs.slice(0, 12).map((x) => card(x, x.w && x.w[0] <= now)).join('')}</div>
     </section>` : ''}
 
-    ${legendNext.length ? `<section class="dsec">
+    ${legendNext.length ? `<section class="dsec" id="legend-sec">
       <h2>${state.lang === 'ja' ? 'オーシャン 未釣の伝説魚' : 'Uncaught legendary — Ocean'} <span class="cnt">${legendNext.length}</span></h2>
       <div class="dgrid">${legendNext.map(legendCard).join('')}</div>
     </section>` : ''}
@@ -3691,6 +3941,13 @@ function openFish(fishId, fromSpotId) {
   const wsRaw = f.nushi ? nushiWindows(f, terr) : findWindows(f, terr, { days: 3, limit: 8, fishEyes: state.fishEyes });
   const ws = wsRaw === 'always' ? [] : wsRaw;
   const always = wsRaw === 'always';
+  const nextW = always ? 'always' : nextWindow(wsRaw);
+  const winCountdown = (!always && nextW && nextW !== 'always')
+    ? `<div class="wincd${nextW[0] <= Date.now() ? ' open' : ''}">${
+        nextW[0] <= Date.now()
+          ? `${state.lang === 'ja' ? '🎣 いま解禁中 ' : '🎣 Open now · '}<span class="rel">${remainTag(nextW[1])}</span>`
+          : `${state.lang === 'ja' ? '次の解禁まで ' : 'Next window '}<span class="rel">${relTime(nextW[0])}</span>`}</div>`
+    : '';
   const winHTML = always
     ? '<p style="color:var(--glow);font-size:12.5px">時間帯・天候の制約なし。いつ行っても抽選対象。</p>'
     : ws.length ? ws.map(([a, b], i) => `
@@ -3826,8 +4083,11 @@ function openFish(fishId, fromSpotId) {
 
       <div class="dsec">
         <span class="eyebrow">${T('windows')}${spot ? ' · ' + esc(nm(spot.n)) : ''}</span>
+        ${winCountdown}
         ${winHTML}
       </div>
+
+      ${priceDetailHTML(f)}
 
       <div class="dsec">
         <span class="eyebrow">${T('place')} ${f.spots.length}</span>
@@ -3848,6 +4108,7 @@ function openFish(fishId, fromSpotId) {
     copy.textContent = 'コピーしました';
     setTimeout(() => (copy.textContent = 'スニペットをコピー'), 1600);
   });
+  MB.ensureForFish(f);
 }
 function closeDrawer() {
   $('#drawer').classList.remove('open');
@@ -3993,6 +4254,17 @@ document.addEventListener('click', (e) => {
     });
     document.querySelector(`.fishrow[data-fish="${id}"]`)?.classList.toggle('done', on);
     document.querySelector(`.nrow[data-fish="${id}"]`)?.classList.toggle('done', on);
+    // トップの「未釣の伝説魚」：釣獲したらそのカードを取り除き、件数を更新（空なら節ごと消す）
+    if (on) {
+      document.querySelectorAll(`.legendcard[data-fish="${id}"]`).forEach((el) => el.remove());
+      const lsec = document.getElementById('legend-sec');
+      if (lsec) {
+        const left = lsec.querySelectorAll('.dcard').length;
+        const cnt = lsec.querySelector('.cnt');
+        if (cnt) cnt.textContent = left;
+        if (!left) lsec.remove();
+      }
+    }
     refreshSideBadges();
     return;
   }
@@ -4142,6 +4414,14 @@ $('#tz').addEventListener('change', (e) => {
   fmtCache.clear();
   syncHash(); renderChrome(); render(); drawRing();
 });
+$('#mb').addEventListener('change', (e) => {
+  state.mb = e.target.value;
+  store.saveMb(state.mb);
+  // 対象が変わったら現在ビューを描き直して価格枠を更新（釣り場ページなら取得も走る）
+  render();
+  // 開いている魚詳細があれば、その価格も取り直す
+  if (state.openFish) MB.ensureForFish(DB.fish[state.openFish]);
+});
 $('#menubtn').addEventListener('click', () => {
   const open = $('#side').classList.toggle('open');
   $('#scrim').classList.toggle('side', open);
@@ -4182,6 +4462,7 @@ window.addEventListener('popstate', applyRoute);
 (function init() {
   state.caught = store.load();
   state.favs = store.loadFavs();
+  state.mb = store.loadMb();
   const savedNf = store.loadFilter();
   if (savedNf) state.nf = { ...state.nf, ...savedNf };
   // ハッシュ指定が無ければブラウザの言語に寄せる
@@ -4215,6 +4496,10 @@ window.addEventListener('popstate', applyRoute);
   renderSide();
   render();
   drawRing();
+  // マーケット（Universalis）：DC/ワールド一覧と売買可能一覧を取得してセレクタに反映。
+  // 失敗しても本体には影響しない（価格が出ないだけ）。
+  MB.loadMeta().then(() => setMbUI());
+  MB.loadTradable().then(() => { if (state.mb) fillPrices(); });
   setInterval(() => { drawRing(); tickCountdowns(); updateTitle(); updateMobar(); }, 1000);
   notify.check();
   setInterval(() => notify.check(), 20000);
