@@ -2674,20 +2674,23 @@ const MB = {
     for (let i = 0; i < need.length; i += 100) {
       const chunk = need.slice(i, i + 100);
       try {
-        const fields = encodeURIComponent('minPriceNQ,minPriceHQ,averagePrice,averagePriceNQ,currentAveragePrice,lastUploadTime');
-        const url = `${this.base}/${encodeURIComponent(scope)}/${chunk.join(',')}?fields=${fields}`;
+        // listings=1 で最安の1件を確保しつつ、集計値(minPrice/currentAveragePrice)も受け取る
+        const url = `${this.base}/${encodeURIComponent(scope)}/${chunk.join(',')}?listings=1&entries=0`;
         const data = await this.getJSON(url);
         const items = data.items || (data.itemID ? { [data.itemID]: data } : {});
         const now = Date.now();
         for (const id of chunk) {
           const it = items[id] || items[String(id)];
-          this.cache.set(`${scope}:${id}`, it ? {
-            nq: it.minPriceNQ || 0,
-            hq: it.minPriceHQ || 0,
-            avg: Math.round(it.averagePrice ?? it.averagePriceNQ ?? it.currentAveragePrice ?? 0),
-            upd: it.lastUploadTime || 0,
-            at: now,
-          } : { nq: 0, hq: 0, avg: 0, upd: 0, at: now });
+          let rec = { nq: 0, hq: 0, avg: 0, upd: 0, at: now };
+          if (it) {
+            const L = Array.isArray(it.listings) ? it.listings : [];
+            const nqL = L.find((l) => !l.hq), hqL = L.find((l) => l.hq);
+            const nq = it.minPriceNQ || it.minPrice || (nqL ? nqL.pricePerUnit : 0) || 0;
+            const hq = it.minPriceHQ || (hqL ? hqL.pricePerUnit : 0) || 0;
+            const avg = Math.round(it.averagePrice ?? it.averagePriceNQ ?? it.currentAveragePrice ?? it.currentAveragePriceNQ ?? 0);
+            rec = { nq, hq, avg, upd: it.lastUploadTime || 0, at: now };
+          }
+          this.cache.set(`${scope}:${id}`, rec);
         }
       } catch { /* このチャンクは飛ばす */ }
     }
