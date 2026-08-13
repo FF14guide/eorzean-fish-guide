@@ -1708,8 +1708,9 @@ async function main() {
         routes: feedRoutes,
       },
     };
-    await writeFile(path.join(DIST, 'automation-feed.json'), JSON.stringify(feed));
-    log(`         dist/automation-feed.json    ${sz(JSON.stringify(feed))}`);
+    const feedJson = JSON.stringify(feed);
+    await writeFile(path.join(DIST, 'automation-feed.json'), feedJson);
+    log(`         dist/automation-feed.json    ${(feedJson.length / 1024).toFixed(0)} KB`);
   }
 
   if (staticFiles.length) log(`複製   app/static → dist  ${staticFiles.join(' / ')}`);
