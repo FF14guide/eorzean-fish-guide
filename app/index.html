@@ -116,7 +116,19 @@ header::after{ /* 金の縁取り */
   display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;
   color:var(--gold);opacity:.75;
 }
-
+/* ── 関連サイト ─────────────────────────────────────────── */
+.extlinks{display:flex;align-items:center;gap:6px;flex:none}
+.extlink{
+  display:inline-flex;align-items:center;gap:4px;padding:6px 9px;
+  border:1px solid var(--edge-soft);border-radius:var(--pill);
+  color:var(--mist);font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;
+  text-decoration:none;white-space:nowrap;transition:border-color .12s,color .12s,background .12s;
+}
+.extlink:hover{border-color:var(--gold);background:rgba(245,197,99,.08);color:var(--foam)}
+.extlink:focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
+.extlink .out{color:var(--gold);font-size:11px;line-height:1}
+@media (max-width:1260px){.extlink{padding:6px 7px;font-size:9.5px}}
+@media (max-width:1080px){.extlinks{display:none}}
 
 /* ── ET時計：24分割のリング ─────────────────────────────── */
 .clock{display:flex;align-items:center;gap:10px;flex:none}
@@ -1143,8 +1155,11 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
         </svg>
       </span>
       <span class="ttl"><b id="brandname">エオルゼア釣り図鑑</b><span class="sub">EORZEAN FISH GUIDE</span></span>
-    </button>
-
+        </button>
+    <nav class="extlinks" aria-label="関連サイト">
+      <a class="extlink" href="https://collection.eorzeanfishing.com/" target="_blank" rel="noopener noreferrer" aria-label="Collection を新しいタブで開く">COLLECTION <span class="out" aria-hidden="true">↗</span></a>
+      <a class="extlink" href="https://gathering.eorzeanfishing.com/" target="_blank" rel="noopener noreferrer" aria-label="Gathering を新しいタブで開く">GATHERING <span class="out" aria-hidden="true">↗</span></a>
+    </nav>
     <div class="clock" title="エオルゼア時間">
       <svg width="34" height="34" viewBox="0 0 34 34" id="etring" aria-hidden="true"></svg>
       <div class="clock-read">
