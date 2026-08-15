@@ -1156,9 +1156,9 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
       </span>
       <span class="ttl"><b id="brandname">エオルゼア釣り図鑑</b><span class="sub">EORZEAN FISH GUIDE</span></span>
         </button>
-    <nav class="extlinks" aria-label="関連サイト">
-      <a class="extlink" href="https://collection.eorzeanfishing.com/" target="_blank" rel="noopener noreferrer" aria-label="Collection を新しいタブで開く">COLLECTION <span class="out" aria-hidden="true">↗</span></a>
-      <a class="extlink" href="https://gathering.eorzeanfishing.com/" target="_blank" rel="noopener noreferrer" aria-label="Gathering を新しいタブで開く">GATHERING <span class="out" aria-hidden="true">↗</span></a>
+    <nav class="extlinks" id="extlinks" aria-label="関連サイト">
+      <a class="extlink" id="collection-link" href="https://collection.eorzeanfishing.com/" target="_blank" rel="noopener noreferrer" aria-label="コレクションを新しいタブで開く"><span id="collection-link-label">コレクション</span> <span class="out" aria-hidden="true">↗</span></a>
+      <a class="extlink" id="gathering-link" href="https://gathering.eorzeanfishing.com/" target="_blank" rel="noopener noreferrer" aria-label="採集を新しいタブで開く"><span id="gathering-link-label">採集</span> <span class="out" aria-hidden="true">↗</span></a>
     </nav>
     <div class="clock" title="エオルゼア時間">
       <svg width="34" height="34" viewBox="0 0 34 34" id="etring" aria-hidden="true"></svg>
@@ -1237,6 +1237,8 @@ const nmAll = (o) => (o ? Object.values(o).join('\u0001').toLowerCase() : '');
 const STR = {
   ja: {
     brand: 'エオルゼア釣り図鑑', brandSub: 'EORZEAN FISH GUIDE',
+    relatedSites: '関連サイト', collection: 'コレクション', gathering: '採集',
+    collectionLinkLabel: 'コレクションを新しいタブで開く', gatheringLinkLabel: '採集を新しいタブで開く',
     search: '魚・釣り場・エサを検索',
     live: '今釣れる', condOnly: '条件付きのみ', fishEyes: 'フィッシュアイ',
     nushi: 'ヌシ・オオヌシ', ocean: 'オーシャンフィッシング', schedule: '運行表',
@@ -1312,6 +1314,8 @@ const STR = {
   },
   en: {
     brand: 'Eorzean Fish Guide', brandSub: 'EORZEAN FISH GUIDE',
+    relatedSites: 'Related sites', collection: 'Collection', gathering: 'Gathering',
+    collectionLinkLabel: 'Open Collection in a new tab', gatheringLinkLabel: 'Open Gathering in a new tab',
     search: 'Search fish, spots, bait',
     live: 'Available now', condOnly: 'Conditional only', fishEyes: 'Fish Eyes',
     nushi: 'Big Fish', ocean: 'Ocean Fishing', schedule: 'Schedule',
@@ -1385,6 +1389,14 @@ const STR = {
     guideNote: 'Requirements and score multipliers come from game data. For the fine details (bite-time reads, when to multi-hook, macros) we link to community guides rather than copying their numbers.',
     legendFish: 'Legendary', onlySuffix: ' only',
     uptime: 'Uptime', nearshore: 'Indigo Route', offshore: 'Ruby Route',
+  },
+  de: {
+    relatedSites: 'Verwandte Seiten', collection: 'Sammlung', gathering: 'Sammeln',
+    collectionLinkLabel: 'Sammlung in einem neuen Tab öffnen', gatheringLinkLabel: 'Sammeln in einem neuen Tab öffnen',
+  },
+  fr: {
+    relatedSites: 'Sites associés', collection: 'Collection', gathering: 'Récolte',
+    collectionLinkLabel: 'Ouvrir Collection dans un nouvel onglet', gatheringLinkLabel: 'Ouvrir Récolte dans un nouvel onglet',
   },
 };
 const T = (k) => (STR[state.lang] ?? STR.en)[k] ?? STR.en[k] ?? k;
@@ -1962,6 +1974,11 @@ function renderChrome() {
   document.documentElement.lang = state.lang;
   $('#q').placeholder = T('search');
   $('#brandname').textContent = T('brand');
+  $('#extlinks').setAttribute('aria-label', T('relatedSites'));
+  $('#collection-link-label').textContent = T('collection');
+  $('#collection-link').setAttribute('aria-label', T('collectionLinkLabel'));
+  $('#gathering-link-label').textContent = T('gathering');
+  $('#gathering-link').setAttribute('aria-label', T('gatheringLinkLabel'));
   $('#t-bell').textContent = `🔔 ${T('notify')}`;
   $('#t-bell').title = T('notifyTip');
   $('#t-eyes').textContent = T('fishEyes');
