@@ -40,10 +40,26 @@ jobs:
       - name: サイトを生成
         run: node tools/build.mjs --refresh
 
+      # 上流データの一時欠損や形式変更で、ヌシ／オオヌシの釣り方が空のまま
+      # 公開されることを防ぐ。失敗時はこの後の公開を行わない。
+      - name: ヌシ・オオヌシの自動更新を検査
+        run: node tools/validate-bigfish.mjs
+
       # 生成データはリポジトリに置かない（毎ビルドで作り直す）ので、コミットは不要。
       # 日次のスケジュール実行そのものが再ビルドのきっかけになる。
 
-      # GitHub Pages で公開する場合のみ。Cloudflare Pages を使うなら不要。
+      # Cloudflare Workers（wrangler.jsonc の静的アセット）へ直接公開する。
+      # 事前に Actions の Variables へ DEPLOY_CLOUDFLARE_WORKER=true、
+      # Secrets へ CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID を設定した場合だけ実行する。
+      - name: Cloudflare Workers へ自動公開
+        if: vars.DEPLOY_CLOUDFLARE_WORKER == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
+
+      # GitHub Pages で公開する場合のみ。Cloudflare Workers を使うなら不要。
       - uses: actions/configure-pages@v5
         if: vars.DEPLOY_GITHUB_PAGES == 'true'
       - uses: actions/upload-pages-artifact@v3

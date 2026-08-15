@@ -1239,6 +1239,8 @@ const STR = {
     brand: 'エオルゼア釣り図鑑', brandSub: 'EORZEAN FISH GUIDE',
     relatedSites: '関連サイト', collection: 'コレクション', gathering: '採集',
     collectionLinkLabel: 'コレクションを新しいタブで開く', gatheringLinkLabel: '採集を新しいタブで開く',
+    autoGuide: '自動更新の釣り方', autoGuideNote: 'エサ・条件・直感・フッキングの最新データから自動生成しています。',
+    guidePrepare: '準備', guideConditions: '条件を確認', guideIntuition: '直感を発動', guideHook: 'フッキング', guideBite: 'ヒットの目安',
     search: '魚・釣り場・エサを検索',
     live: '今釣れる', condOnly: '条件付きのみ', fishEyes: 'フィッシュアイ',
     nushi: 'ヌシ・オオヌシ', ocean: 'オーシャンフィッシング', schedule: '運行表',
@@ -1316,6 +1318,8 @@ const STR = {
     brand: 'Eorzean Fish Guide', brandSub: 'EORZEAN FISH GUIDE',
     relatedSites: 'Related sites', collection: 'Collection', gathering: 'Gathering',
     collectionLinkLabel: 'Open Collection in a new tab', gatheringLinkLabel: 'Open Gathering in a new tab',
+    autoGuide: 'Automatically updated guide', autoGuideNote: 'Generated from the latest bait, condition, intuition and hookset data.',
+    guidePrepare: 'Prepare', guideConditions: 'Check conditions', guideIntuition: 'Trigger intuition', guideHook: 'Hookset', guideBite: 'Bite timing',
     search: 'Search fish, spots, bait',
     live: 'Available now', condOnly: 'Conditional only', fishEyes: 'Fish Eyes',
     nushi: 'Big Fish', ocean: 'Ocean Fishing', schedule: 'Schedule',
@@ -1393,10 +1397,14 @@ const STR = {
   de: {
     relatedSites: 'Verwandte Seiten', collection: 'Sammlung', gathering: 'Sammeln',
     collectionLinkLabel: 'Sammlung in einem neuen Tab öffnen', gatheringLinkLabel: 'Sammeln in einem neuen Tab öffnen',
+    autoGuide: 'Automatisch aktualisierte Anleitung', autoGuideNote: 'Aus den neuesten Daten zu Köder, Bedingungen, Intuition und Anhieb erzeugt.',
+    guidePrepare: 'Vorbereitung', guideConditions: 'Bedingungen prüfen', guideIntuition: 'Intuition auslösen', guideHook: 'Anhieb', guideBite: 'Bisszeit',
   },
   fr: {
     relatedSites: 'Sites associés', collection: 'Collection', gathering: 'Récolte',
     collectionLinkLabel: 'Ouvrir Collection dans un nouvel onglet', gatheringLinkLabel: 'Ouvrir Récolte dans un nouvel onglet',
+    autoGuide: 'Guide mis à jour automatiquement', autoGuideNote: 'Généré à partir des dernières données d’appât, de conditions, d’intuition et de ferrage.',
+    guidePrepare: 'Préparation', guideConditions: 'Vérifier les conditions', guideIntuition: 'Déclencher l’intuition', guideHook: 'Ferrage', guideBite: 'Temps de touche',
   },
 };
 const T = (k) => (STR[state.lang] ?? STR.en)[k] ?? STR.en[k] ?? k;
@@ -3994,6 +4002,27 @@ function openFish(fishId, fromSpotId) {
   // ヒットタイム：この釣り場でのエサ別実測
   const bites = ((spot && biteIndex.get(spot.id)?.get(f.id)) ?? [])
     .slice().sort(((c) => (a, b) => c(a.baitId, b.baitId))(baitOrderFor(!!spot?.ocean)));
+  const guideHTML = (() => {
+    if (!f.nushi) return '';
+    const bait = f.baitPath.length ? f.baitPath.map(baitName).map(esc).join(' ▸ ') : '—';
+    const time = f.startHour === 0 && f.endHour === 24 ? T('allDay') : `ET ${etLabel(f.startHour)} – ${etLabel(f.endHour)}`;
+    const weather = f.weather.length ? f.weather.map((w) => wIcon(w) + esc(wName(w))).join(' / ') : T('anyWeather');
+    const previous = f.prevWeather.length ? `<br><span class="dim">${T('prev')} ${f.prevWeather.map((w) => wIcon(w) + esc(wName(w))).join(' / ')}</span>` : '';
+    const bestBite = bites.find((b) => b.baitId === baitKey(f.baitPath[f.baitPath.length - 1])) ?? bites[0];
+    const intuition = f.predators.length ? `<li><b>${T('guideIntuition')}</b><span>${f.predators.map(([id, n]) => `${esc(nm(DB.fish[id]?.n) || baitName(id))} ×${n}`).join(' + ')}${f.intuition ? ` (${f.intuition}${T('secU')})` : ''}</span></li>` : '';
+    const bite = bestBite?.lo != null ? `<li><b>${T('guideBite')}</b><span>${bestBite.lo}${bestBite.hi != null ? `–${bestBite.hi}` : ''}${T('secU')} · ${bestBite.n ?? 0} ${T('samples')}</span></li>` : '';
+    return `<div class="dsec autoguide">
+      <span class="eyebrow">${T('autoGuide')}</span>
+      <ol class="steps">
+        <li><b>${T('guidePrepare')}</b><span>${bait}</span></li>
+        <li><b>${T('guideConditions')}</b><span>${time}<br>${weather}${previous}</span></li>
+        ${intuition}
+        <li><b>${T('guideHook')}</b><span>${f.tugJa ?? '—'}${f.hookset ? ` ／ ${esc(nm(f.hookset))}` : ''}${f.fishEyes ? ` ／ ${T('fishEyes')}` : ''}</span></li>
+        ${bite}
+      </ol>
+      <p class="bnote">${T('autoGuideNote')}</p>
+    </div>`;
+  })();
   const key = `${spot?.id ?? 0}:${f.id}:${baitKey(f.baitPath[f.baitPath.length - 1]) ?? 0}`;
   const snippet = `"${key}": { "lo": 0, "hi": 0, "n": 1 }`;
 
@@ -4039,6 +4068,7 @@ function openFish(fishId, fromSpotId) {
       ${f.desc ? `<p class="ddesc">${esc(f.desc[state.lang] ?? f.desc.en ?? f.desc.ja)}</p>` : ''}
     </header>
     <div class="dbody">
+      ${guideHTML}
       <div class="dsec">
         <span class="eyebrow">${T('howTo')}</span>
         <dl class="kv">
