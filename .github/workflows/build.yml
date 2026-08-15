@@ -57,7 +57,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
+          command: deploy --config wrangler.jsonc
 
       # GitHub Pages で公開する場合のみ。Cloudflare Workers を使うなら不要。
       - uses: actions/configure-pages@v5

@@ -3,9 +3,11 @@
   // ビルドで生成した dist/ をそのまま配る。サーバー側のコードは無い。
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "eorzean-fish-guide",
+  "main": "./src/worker.js",
   "compatibility_date": "2026-08-01",
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     // ハッシュ付きのデータファイルは dist/_headers で恒久キャッシュにしてある
     "not_found_handling": "404-page"
   }
