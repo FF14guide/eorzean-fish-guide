@@ -159,6 +159,7 @@ const SOURCES = {
 const OCEAN_PHASE = 41;
 
 const log = (...a) => console.log('·', ...a);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function fetchSource(name, url) {
   const dest = path.join(CACHE, name);
@@ -166,13 +167,32 @@ async function fetchSource(name, url) {
     log(`cache  ${name}`);
     return readFile(dest, 'utf8');
   }
-  log(`fetch  ${name}`);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`${name}: HTTP ${res.status}`);
-  const text = await res.text();
-  await mkdir(CACHE, { recursive: true });
-  await writeFile(dest, text);
-  return text;
+
+  // GitHub Raw等の上流は短時間に多数のファイルを取得すると一時的に429を返す。
+  // Retry-Afterを優先し、なければ指数バックオフで最大4回まで再試行する。
+  const maxAttempts = 4;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    log(attempt === 1 ? `fetch  ${name}` : `retry  ${name} (${attempt}/${maxAttempts})`);
+    const res = await fetch(url);
+    if (res.ok) {
+      const text = await res.text();
+      await mkdir(CACHE, { recursive: true });
+      await writeFile(dest, text);
+      return text;
+    }
+
+    const retryable = [429, 502, 503, 504].includes(res.status);
+    if (!retryable || attempt === maxAttempts) {
+      throw new Error(`${name}: HTTP ${res.status}`);
+    }
+
+    const retryAfterSeconds = Number(res.headers.get('retry-after'));
+    const delay = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+      ? retryAfterSeconds * 1000
+      : 1000 * (2 ** (attempt - 1));
+    log(`wait   ${name}: HTTP ${res.status} のため ${Math.ceil(delay / 1000)}秒待機`);
+    await sleep(delay);
+  }
 }
 
 /** 1行目がヘッダの CSV を、引用符を尊重して行オブジェクトの配列にする */
@@ -241,7 +261,11 @@ const LURE = {
 
 async function main() {
   const raw = {};
-  await Promise.all(Object.entries(SOURCES).map(async ([n, u]) => { raw[n] = await fetchSource(n, u); }));
+  // 上流サービスの429を避けるため、更新時は一斉取得せず順番に短い間隔を空けて取得する。
+  for (const [n, u] of Object.entries(SOURCES)) {
+    raw[n] = await fetchSource(n, u);
+    if (REFRESH) await sleep(250);
+  }
 
   const tcSpots = JSON.parse(raw['fishing-spots.json']);
   const items = JSON.parse(raw['items.json']);
