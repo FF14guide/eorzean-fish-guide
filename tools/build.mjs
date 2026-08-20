@@ -381,8 +381,7 @@ async function main() {
   const spearItems = parseCsv(raw['SpearfishingItem.csv']);
   const spearNotes = parseCsv(raw['SpearfishingNotebook.csv']);
   const gpBases = parseCsv(raw['GatheringPointBase.csv']);
-  const fishSheet = parseCsv(raw['FishParameterSheet.csv']);
-
+    const fishSheet = parseCsv(raw['FishParameterSheet.csv']);
   // 銛：採集ポイント → SpearfishingItem 行 → 実際のアイテム
   const spearByRow = new Map(spearItems.map((r) => [r['#'], r]));
   const gpbItems = new Map(gpBases.map((r) => [

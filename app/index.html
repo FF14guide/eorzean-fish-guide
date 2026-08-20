@@ -927,6 +927,11 @@ section.stage{overflow-y:auto;min-height:0;padding:0 0 80px}
 }
 .dcard:hover{border-color:var(--gold)}
 .dcard.live{background:rgba(143,232,112,.09);box-shadow:inset 3px 0 0 var(--lime)}
+.dcard.marketcard{background:linear-gradient(135deg,rgba(245,197,99,.11),rgba(21,35,64,.7));border-color:rgba(245,197,99,.32)}
+.marketrank{font-family:var(--mono);font-size:10px;color:var(--gold);min-width:22px}
+.marketvalue{display:block;color:var(--gold);font-size:13px;font-weight:800}
+.marketlabel{display:block;font-size:9.5px;color:var(--mist)}
+.marketnote{font-size:11px;color:var(--mist);padding:2px 0}
 .dc-main{min-width:0;flex:1}
 .dc-name{font-size:13.5px;display:flex;align-items:center;gap:6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .dc-sub{font-size:11px;color:var(--mist);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1271,7 +1276,7 @@ const STR = {
     then: 'その次', caughtTip: '釣った／釣っていない', uncaughtOnly: '未釣獲のみ',
     notify: '通知', notifyTip: '★を付けた魚の窓が開いたら音とデスクトップ通知で知らせます',
     notifyDenied: 'ブラウザの設定で通知が許可されていません。サイトの権限を確認してください。',
-    progress: 'ヌシ釣獲', progressAll: '魚の種類', achievements: 'アチーブメント', achDone: '達成', achNone: '未達成', rank: 'ランク', nextRank: '次は', remain: 'あと', achAll: '全ランク達成', dashTitle: 'いまのエオルゼア', dashOpen: 'いま釣れるヌシ', dashFav: '★の魚', dashOcean: '次の便',
+    progress: 'ヌシ釣獲', progressAll: '魚の種類', achievements: 'アチーブメント', achDone: '達成', achNone: '未達成', rank: 'ランク', nextRank: '次は', remain: 'あと', achAll: '全ランク達成', dashTitle: 'いまのエオルゼア', dashOpen: 'いま釣れるヌシ', dashFav: '★の魚', dashTopMarket: 'マケボ販売価格 上位12種', marketPrice: 'NQ最安値', marketLoading: 'マーケット価格を取得中…', marketNone: '販売価格データがありません', gil: 'ギル', dashOcean: '次の便',
     dashNone: 'いま窓が開いているヌシはいません', steps: '手順', stepPrey: '前提魚を釣る',
     stepIntuit: '漁師の直感が付く', stepTarget: '本命を狙う', share: 'この魚のリンク',
     caughtAll: '表示中を釣獲済みに', caughtClear: '釣獲記録を消す', catchExTip: 'この拡張の魚をまとめて釣獲済みにする', oceanArea: '海域',
@@ -1350,7 +1355,7 @@ const STR = {
     then: 'then', caughtTip: 'Caught / not caught', uncaughtOnly: 'Not caught only',
     notify: 'Alerts', notifyTip: 'Sound and desktop alert when a starred fish opens',
     notifyDenied: 'Notifications are blocked. Check the site permissions in your browser.',
-    progress: 'Big fish', progressAll: 'Fish species', achievements: 'Achievements', achDone: 'Done', achNone: 'Not started', rank: 'Rank ', nextRank: 'Next', remain: 'need', achAll: 'All ranks done', dashTitle: 'Eorzea right now', dashOpen: 'Open right now', dashFav: 'Starred', dashOcean: 'Next voyage',
+    progress: 'Big fish', progressAll: 'Fish species', achievements: 'Achievements', achDone: 'Done', achNone: 'Not started', rank: 'Rank ', nextRank: 'Next', remain: 'need', achAll: 'All ranks done', dashTitle: 'Eorzea right now', dashOpen: 'Open right now', dashFav: 'Starred', dashTopMarket: 'Top 12 market prices', marketPrice: 'NQ lowest', marketLoading: 'Loading market prices…', marketNone: 'No market price data', gil: 'gil', dashOcean: 'Next voyage',
     dashNone: 'No big fish are open right now', steps: 'Steps', stepPrey: 'Catch the predators',
     stepIntuit: 'Fisher\u2019s Intuition applies', stepTarget: 'Go for the target',
     share: 'Link to this fish',
@@ -1398,13 +1403,13 @@ const STR = {
     relatedSites: 'Verwandte Seiten', collection: 'Sammlung', gathering: 'Sammeln',
     collectionLinkLabel: 'Sammlung in einem neuen Tab öffnen', gatheringLinkLabel: 'Sammeln in einem neuen Tab öffnen',
     autoGuide: 'Automatisch aktualisierte Anleitung', autoGuideNote: 'Aus den neuesten Daten zu Köder, Bedingungen, Intuition und Anhieb erzeugt.',
-    guidePrepare: 'Vorbereitung', guideConditions: 'Bedingungen prüfen', guideIntuition: 'Intuition auslösen', guideHook: 'Anhieb', guideBite: 'Bisszeit',
+    guidePrepare: 'Vorbereitung', guideConditions: 'Bedingungen prüfen', guideIntuition: 'Intuition auslösen', guideHook: 'Anhieb', guideBite: 'Bisszeit', dashTopMarket: 'Top 12 nach Marktpreis', marketPrice: 'NQ-Mindestpreis', marketLoading: 'Marktpreise werden geladen…', marketNone: 'Keine Marktpreisdaten', gil: 'Gil',
   },
   fr: {
     relatedSites: 'Sites associés', collection: 'Collection', gathering: 'Récolte',
     collectionLinkLabel: 'Ouvrir Collection dans un nouvel onglet', gatheringLinkLabel: 'Ouvrir Récolte dans un nouvel onglet',
     autoGuide: 'Guide mis à jour automatiquement', autoGuideNote: 'Généré à partir des dernières données d’appât, de conditions, d’intuition et de ferrage.',
-    guidePrepare: 'Préparation', guideConditions: 'Vérifier les conditions', guideIntuition: 'Déclencher l’intuition', guideHook: 'Ferrage', guideBite: 'Temps de touche',
+    guidePrepare: 'Préparation', guideConditions: 'Vérifier les conditions', guideIntuition: 'Déclencher l’intuition', guideHook: 'Ferrage', guideBite: 'Temps de touche', dashTopMarket: 'Top 12 des prix du marché', marketPrice: 'Prix NQ le plus bas', marketLoading: 'Chargement des prix du marché…', marketNone: 'Aucune donnée de prix', gil: 'gils',
   },
 };
 const T = (k) => (STR[state.lang] ?? STR.en)[k] ?? STR.en[k] ?? k;
@@ -2641,6 +2646,8 @@ const MB = {
   meta: null,            // { regions:[{region, dcs:[{name, worlds:[{id,name}]}]}] }
   tradable: null,        // Set<number>（売買可能なアイテムID）
   cache: new Map(),      // `${scope}:${id}` -> { nq, hq, avg, upd, at }
+  welcomeRankScope: '',  // トップページの市場価格ランキングを取得中の市場
+  welcomeLoading: null,
   TTL: 15 * 60 * 1000,
   METATTL: 7 * 86400 * 1000,
 
@@ -2736,6 +2743,25 @@ const MB = {
     }
   },
 
+  async ensureWelcomeRanking() {
+    if (!this.enabled()) return;
+    const scope = state.mb;
+    await this.loadTradable();
+    const ids = Object.values(DB.fish)
+      .filter((f) => !f.oonushi && this.isTradable(f.id))
+      .map((f) => f.id);
+    // 価格が有効期限内のときは再取得・再描画しない。
+    if (!ids.some((id) => !this.get(id))) return;
+    if (this.welcomeLoading && this.welcomeRankScope === scope) return this.welcomeLoading;
+    this.welcomeRankScope = scope;
+    this.welcomeLoading = this.fetchPrices(ids).then(() => {
+      // 取得中に市場や画面が変わった場合は、古い結果で描き直さない。
+      if (state.view === 'welcome' && state.mb === scope) renderWelcome();
+    }).finally(() => {
+      if (this.welcomeRankScope === scope) this.welcomeLoading = null;
+    });
+    return this.welcomeLoading;
+  },
   async ensureForSpot(spot) {
     if (!this.enabled() || !spot?.fishes?.length) return;
     await this.loadTradable();
@@ -3718,13 +3744,21 @@ function renderWelcome() {
   open.sort((a, b) => a.w[1] - b.w[1]);
 
   // ★を付けた魚の直近
-  const favs = [...state.favs].map((id) => DB.fish[id]).filter(Boolean).map((f) => {
+    const favs = [...state.favs].map((id) => DB.fish[id]).filter(Boolean).map((f) => {
     const spot = spotById.get(f.nushiSpot ?? f.spots[0]);
     const ws = nushiWindows(f, spot?.territoryId ?? null);
     const w = ws === 'always' ? null : nextWindow(ws);
     return { f, spot, w };
   }).sort((a, b) => (a.w?.[0] ?? Infinity) - (b.w?.[0] ?? Infinity));
-
+  // 選択中の市場における販売価格上位12種。オオヌシと未取引品は除外する。
+  const marketRows = !state.mb ? [] : Object.values(DB.fish)
+    .filter((f) => !f.oonushi && MB.isTradable(f.id))
+    .map((f) => ({ f, spot: spotById.get(f.spots?.[0]), rec: MB.get(f.id) }))
+    .filter((x) => x.rec && (x.rec.nq || x.rec.hq))
+    .sort((a, b) => ((b.rec.nq || b.rec.hq) - (a.rec.nq || a.rec.hq))
+      || nm(a.f.n).localeCompare(nm(b.f.n), state.lang === 'ja' ? 'ja' : 'en'))
+    .slice(0, 12);
+  const marketLoading = !!state.mb && !marketRows.length && !MB.welcomeLoading;
   // 釣獲の進み具合（ヌシ）
   const caughtN = nushi.filter((f) => state.caught.has(f.id)).length;
   const byEx = {};
@@ -3846,7 +3880,7 @@ function renderWelcome() {
     legendNext.sort((a, b) => (a.dep ?? Infinity) - (b.dep ?? Infinity));
   }
   // 今釣れる／★の魚と同じ .dcard 形式。時刻欄は「次に狙える便」の出航時刻にする。
-  const legendCard = ({ f: lf, sp, dep, boarding }) => `
+    const legendCard = ({ f: lf, sp, dep, boarding }) => `
     <div class="dcard legendcard${boarding ? ' live' : ''}" data-fish="${lf.id}" data-fishspot="${sp?.id ?? ''}">
       ${caughtBtn(lf.id)}${iconImg(lf, 'ficon')}
       <div class="dc-main">
@@ -3858,7 +3892,17 @@ function renderWelcome() {
         : boarding ? `<b class="live">${T('boarding')}</b><br><span class="rel">${remainTag(dep + BOARDING_MS)}</span>`
         : `<b>${dayLabel(dep)}${hhmm(dep)}</b><br><span class="rel">${relTime(dep)}</span>`}</div>
     </div>`;
-
+  const marketCard = ({ f, spot, rec }, rank) => {
+    const price = rec.nq || rec.hq;
+    return `<div class="dcard marketcard" data-fish="${f.id}" data-fishspot="${spot?.id ?? ''}">
+      ${caughtBtn(f.id)}${iconImg(f, 'ficon')}
+      <div class="dc-main">
+        <div class="dc-name"><span class="marketrank">#${rank}</span>${esc(nm(f.n))}</div>
+        <div class="dc-sub">${esc(nm(spot?.n) ?? '')}</div>
+      </div>
+      <div class="dc-time"><span class="marketvalue">${gil(price)} ${T('gil')}</span><span class="marketlabel">${T('marketPrice')}</span></div>
+    </div>`;
+  };
   $('#stage').innerHTML = `<div class="wrap dash">
     <div class="dashhead">
       <h1>${T('dashTitle')}</h1>
@@ -3872,11 +3916,16 @@ function renderWelcome() {
       ${open.length > 12 ? `<button class="chipbtn" id="dash-more">${T('nushi')} →</button>` : ''}
     </section>
 
-    ${favs.length ? `<section class="dsec">
+        ${favs.length ? `<section class="dsec">
       <h2>${T('dashFav')} <span class="cnt">${favs.length}</span></h2>
       <div class="dgrid">${favs.slice(0, 12).map((x) => card(x, x.w && x.w[0] <= now)).join('')}</div>
     </section>` : ''}
-
+    ${state.mb ? `<section class="dsec" id="market-top-sec">
+      <h2>${T('dashTopMarket')} <span class="cnt">${marketRows.length || '—'}</span></h2>
+      <div class="eyebrow" style="margin-bottom:8px">${esc(state.mb)} · ${T('marketPrice')}</div>
+      ${marketRows.length ? `<div class="dgrid">${marketRows.map((x, i) => marketCard(x, i + 1)).join('')}</div>`
+        : `<p class="marketnote">${marketLoading ? T('marketLoading') : T('marketNone')}</p>`}
+    </section>` : ''}
     ${legendNext.length ? `<section class="dsec" id="legend-sec">
       <h2>${state.lang === 'ja' ? 'オーシャン 未釣の伝説魚' : 'Uncaught legendary — Ocean'} <span class="cnt">${legendNext.length}</span></h2>
       <div class="dgrid">${legendNext.map(legendCard).join('')}</div>
@@ -3947,9 +3996,10 @@ function renderWelcome() {
 
     ${creditHTML()}
   </div>`;
-  $('#stage').scrollTop = 0;
+    $('#stage').scrollTop = 0;
+  // トップページのみ、選択中の市場の全魚価格を一括取得してランキングを更新する。
+  MB.ensureWelcomeRanking();
 }
-
 function creditHTML() {
   const ja = state.lang === 'ja';
   return `<div class="credit">
