@@ -138,6 +138,7 @@ const SOURCES = {
   'IKDContentBonus_ja.csv': `${DM}/ja/IKDContentBonus.csv`,
   'IKDContentBonus_en.csv': `${DM}/en/IKDContentBonus.csv`,
   'Recipe.csv': `${DM}/en/Recipe.csv`,
+  'Item.csv': `${DM}/en/Item.csv`,
   'GCSupplyDuty.csv': `${DM}/en/GCSupplyDuty.csv`,
   'Leve.csv': `${DM}/en/Leve.csv`,
   'CraftLeve.csv': `${DM}/en/CraftLeve.csv`,
@@ -1438,7 +1439,8 @@ async function main() {
   // 「この魚は何に使えるか」をゲームデータから集める
   const CRAFT_JA = ['木工', '鍛冶', '甲冑', '彫金', '革細工', '裁縫', '錬金', '調理'];
   const CRAFT_EN = ['Carpenter', 'Blacksmith', 'Armorer', 'Goldsmith', 'Leatherworker', 'Weaver', 'Alchemist', 'Culinarian'];
-  for (const r of parseCsv(raw['Recipe.csv'])) {
+  const recipes = parseCsv(raw['Recipe.csv']);
+  for (const r of recipes) {
     const ct = Number(r.CraftType);
     for (let i = 0; i < 8; i++) {
       const id = Number(r[`Ingredient[${i}]`]);
@@ -1447,6 +1449,40 @@ async function main() {
       f.craft ??= [];
       if (!f.craft.includes(ct)) f.craft.push(ct);
     }
+  }
+  // ミニオンを完成品とするレシピの材料になっている魚。ItemUICategory 81 は Minion。
+  // 完成品の直近材料は加工品であることが多いため、各中間素材のレシピも再帰的に遡る。
+  const MINION_UI_CATEGORY = 81;
+  const itemUiCategory = new Map(parseCsv(raw['Item.csv']).map((r) => [Number(r['#']), Number(r.ItemUICategory)]));
+  const recipesByResult = new Map();
+  for (const r of recipes) {
+    const result = Number(r.ItemResult);
+    if (!result) continue;
+    const list = recipesByResult.get(result) ?? [];
+    list.push(r);
+    recipesByResult.set(result, list);
+  }
+  const minionMaterials = new Set();
+  const pendingResults = [...itemUiCategory.entries()]
+    .filter(([, category]) => category === MINION_UI_CATEGORY)
+    .map(([id]) => id);
+  const visitedResults = new Set();
+  while (pendingResults.length) {
+    const result = pendingResults.pop();
+    if (visitedResults.has(result)) continue;
+    visitedResults.add(result);
+    for (const r of recipesByResult.get(result) ?? []) {
+      for (let i = 0; i < 8; i++) {
+        const ingredient = Number(r[`Ingredient[${i}]`]);
+        if (!ingredient || ingredient < 0) continue;
+        minionMaterials.add(ingredient);
+        if (recipesByResult.has(ingredient)) pendingResults.push(ingredient);
+      }
+    }
+  }
+  let minionCount = 0;
+  for (const [id, f] of Object.entries(fish)) {
+    if (minionMaterials.has(Number(id))) { f.minion = true; minionCount++; }
   }
   const collectables = JSON.parse(raw['collectables.json']);
   for (const id of Object.keys(collectables)) if (fish[id]) fish[id].collectable = true;
@@ -1761,7 +1797,7 @@ async function main() {
       `\n地図 ${Object.keys(maps).length} 枚` +
       `\n用途: 素材 ${Object.values(fish).filter((f) => f.craft).length}` +
       ` / 収集品 ${Object.values(fish).filter((f) => f.collectable).length}` +
-      ` / GC納品 ${gcCount} / リーヴ ${leveCount}` +
+      ` / GC納品 ${gcCount} / ミニオン素材 ${minionCount} / リーヴ ${leveCount}` +
       `\n拡張別の釣り場: ${Object.values(expansions).map((e) =>
         `${e.n.ja} ${usableSpots.filter((s) => s.ex === e.id).length}`).join(' / ')}`,
   );
