@@ -2748,7 +2748,7 @@ const MB = {
     const scope = state.mb;
     await this.loadTradable();
     const ids = Object.values(DB.fish)
-      .filter((f) => !f.oonushi && this.isTradable(f.id))
+      .filter((f) => !f.nushi && !f.oonushi && this.isTradable(f.id))
       .map((f) => f.id);
     // 価格が有効期限内のときは再取得・再描画しない。
     if (!ids.some((id) => !this.get(id))) return;
@@ -3750,11 +3750,11 @@ function renderWelcome() {
     const w = ws === 'always' ? null : nextWindow(ws);
     return { f, spot, w };
   }).sort((a, b) => (a.w?.[0] ?? Infinity) - (b.w?.[0] ?? Infinity));
-  // 選択中の市場における販売価格上位12種。オオヌシと未取引品は除外する。
+  // 選択中の市場における販売価格上位12種。ヌシ・オオヌシ、未取引品、10万ギル以上は除外する。
   const marketRows = !state.mb ? [] : Object.values(DB.fish)
-    .filter((f) => !f.oonushi && MB.isTradable(f.id))
+    .filter((f) => !f.nushi && !f.oonushi && MB.isTradable(f.id))
     .map((f) => ({ f, spot: spotById.get(f.spots?.[0]), rec: MB.get(f.id) }))
-    .filter((x) => x.rec && (x.rec.nq || x.rec.hq))
+    .filter((x) => x.rec && (x.rec.nq || x.rec.hq) && (x.rec.nq || x.rec.hq) < 100000)
     .sort((a, b) => ((b.rec.nq || b.rec.hq) - (a.rec.nq || a.rec.hq))
       || nm(a.f.n).localeCompare(nm(b.f.n), state.lang === 'ja' ? 'ja' : 'en'))
     .slice(0, 12);
